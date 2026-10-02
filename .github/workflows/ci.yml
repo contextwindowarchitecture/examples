@@ -12,16 +12,17 @@ permissions:
   contents: read
 
 jobs:
-  docs-qa:
-    name: 01-docs-qa (Python ${{ matrix.python }})
+  example:
+    name: ${{ matrix.example }} (Python ${{ matrix.python }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
+        example: ["01-docs-qa", "02-account-aware"]
         python: ["3.12", "3.13", "3.14"]
     defaults:
       run:
-        working-directory: 01-docs-qa
+        working-directory: ${{ matrix.example }}
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
