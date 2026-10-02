@@ -37,8 +37,8 @@ def test_an_evaluated_profile_deploys_for_its_model() -> None:
 
 
 def test_an_evaluated_profile_does_not_deploy_for_another_model() -> None:
-    with pytest.raises(RegistryError, match=f"evaluated for {model()}, not claude-opus-5-5"):
-        agent.deployable(route(evaluated=True), "claude-opus-5-5")
+    with pytest.raises(RegistryError, match=f"evaluated for {model()}, not another-model"):
+        agent.deployable(route(evaluated=True), "another-model")
 
 
 def test_a_profile_changed_without_a_new_version_is_refused() -> None:

@@ -9,6 +9,11 @@
       "id": "account-agent-messages",
       "version": 3,
       "sha256": "48a93d41ffa95b0a584bf7ce7eff9b6d2507e6c09e70d8271d655d1a4146dff6"
+    },
+    {
+      "id": "account-agent-messages",
+      "version": 4,
+      "sha256": "0a50a1408dc803372549d101daac30ea20d0695fbdcd2663322170066cbfe7ba"
     }
   ],
   "route_policies": [

@@ -1,9 +1,9 @@
 {
   "spec": "cwa/draft",
   "id": "account-agent-messages",
-  "version": 4,
+  "version": 5,
   "route": "account-agent",
-  "model_family": "openai/gpt-oss-120b",
+  "model_family": "claude-opus-5-5",
   "route_policy_version": "account-agent/v2",
   "placement": [
     {
