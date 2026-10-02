@@ -68,6 +68,13 @@ function checkRows(found) {
     <span class="text">${c.measure} ${c.check} · ${c.detail}</span>`)}</div>`;
 }
 
+// A run's checks: its own, then its job's invariants, each once. On a construct's page, only that construct's.
+function checksOf(s, r, c) {
+  const job = s.jobs.find((one) => one.job === r.job);
+  return [...r.checks.filter((check) => check.measure !== "invariant"), ...(job?.invariants ?? [])]
+    .filter((check) => !c || (c.measures.includes(check.measure) && (check.measure !== "invariant" || c.invariants.includes(check.check))));
+}
+
 function repeatChips(s) {
   const repeats = [...new Set(ran(s).map((r) => String(r.repeat)))].sort();
   if (repeats.length < 2) return "";
@@ -265,10 +272,8 @@ async function evidence(run, s, c, key) {
 }
 
 function resultCard(run, s, r, c) {
-  const job = s.jobs.find((one) => one.job === r.job);
   const measures = c ? c.measures : MEASURES;
-  const found = [...r.checks, ...(job?.invariants ?? []).filter((check) => !c || c.invariants.includes(check.check))]
-    .filter((check) => measures.includes(check.measure) && (check.measure !== "invariant" || !c || c.invariants.includes(check.check)));
+  const found = checksOf(s, r, c);
   const agent = r.case.startsWith("04-") || r.case.startsWith("05-");
   return html`<div class="cell">
     <div class="label split"><span>${short(r.model)}</span><span>${r.variant ? `${r.variant} · ` : ""}repeat ${r.repeat}</span></div>
@@ -331,8 +336,7 @@ async function decided(run, r) {
 }
 
 function modelCard(run, s, r) {
-  const job = s.jobs.find((one) => one.job === r.job);
-  const found = [...r.checks.filter((c) => c.measure !== "invariant"), ...(job?.invariants ?? [])];
+  const found = checksOf(s, r, null);
   return html`<div class="cell" style="gap: 16px;">
     <div><div class="label split" style="margin-bottom: 8px;"><span>${r.variant ? `${r.variant} · ` : ""}repeat ${r.repeat}</span><span>${plural(r.assemblies.length, "assembly")}</span></div>
       <div class="card-title">${r.model}</div></div>
