@@ -1,0 +1,63 @@
+{
+  "profile": {
+    "id": "docs-qa-messages",
+    "version": 1
+  },
+  "budget": {
+    "input": 1500,
+    "reserved_output": 16000,
+    "margin_percent": 15
+  },
+  "result": null,
+  "included": [],
+  "compressed": [],
+  "excluded": [
+    {
+      "item_id": "help:api@5#1",
+      "reason": "below_threshold",
+      "stage": "assembler",
+      "slot": "evidence.knowledge"
+    },
+    {
+      "item_id": "help:guests@3#0",
+      "reason": "below_threshold",
+      "stage": "assembler",
+      "slot": "evidence.knowledge"
+    },
+    {
+      "item_id": "help:guests@3#2",
+      "reason": "below_threshold",
+      "stage": "assembler",
+      "slot": "evidence.knowledge"
+    },
+    {
+      "item_id": "help:mobile-apps@4#1",
+      "reason": "below_threshold",
+      "stage": "assembler",
+      "slot": "evidence.knowledge"
+    },
+    {
+      "item_id": "help:notifications@5#1",
+      "reason": "below_threshold",
+      "stage": "assembler",
+      "slot": "evidence.knowledge"
+    }
+  ],
+  "conflicts": [],
+  "refused": {
+    "bool": true,
+    "reason": "evidence_required"
+  },
+  "context": {
+    "spec": "cwa/draft",
+    "assembly_time": "2026-09-30T16:00:00Z",
+    "route_policy_version": "docs-qa/v1",
+    "tokenizer": "estimate-utf8/v1",
+    "renderer": "cwa-messages/v1",
+    "snapshot_digest": "15746b34ed4e48770acb0ff7f715df83dcbec66521ee4f936dd31a93de39a519"
+  },
+  "defaults_filled": [],
+  "recovery": {
+    "action": "request_context"
+  }
+}

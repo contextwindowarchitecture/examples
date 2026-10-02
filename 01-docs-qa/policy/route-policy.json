@@ -1,0 +1,20 @@
+{
+  "route": "docs-qa",
+  "version": "docs-qa/v1",
+  "clock_skew_seconds": 5,
+  "requires_evidence": true,
+  "producers": {
+    "app-policy": { "kind": "policy", "slots": ["governance.instructions"] },
+    "help-center-search": { "kind": "retrieval", "slots": ["evidence.knowledge"] },
+    "chat-session": { "kind": "interaction", "slots": ["interaction.history", "interaction.query"] }
+  },
+  "slots": {
+    "evidence.knowledge": { "min_relevance": 2.0, "min_included": 1, "order_by": ["-relevance", "-freshness"] },
+    "interaction.history": { "required_scope": ["session"], "order_by": ["-freshness"], "max_tokens": 350 },
+    "interaction.query": { "required_scope": ["session"] }
+  },
+  "fitting_order": [
+    { "slot": "interaction.history", "action": "omit" },
+    { "slot": "evidence.knowledge", "action": "omit" }
+  ]
+}

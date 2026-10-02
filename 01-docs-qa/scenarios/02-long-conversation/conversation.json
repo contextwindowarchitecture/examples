@@ -1,0 +1,47 @@
+{
+  "session": "s_02long",
+  "asked_at": "2026-09-30T16:20:00Z",
+  "turns": [
+    {
+      "role": "user",
+      "at": "2026-09-30T16:01:00Z",
+      "text": "We're on the Business plan and use Okta for everything. How do I set up single sign-on for our Fernway workspace?"
+    },
+    {
+      "role": "assistant",
+      "at": "2026-09-30T16:01:20Z",
+      "text": "SAML single sign-on is included in the Business plan and works with Okta [help:sso@8#0]. To set it up:\n1. As a workspace owner, open Settings, then Security, then Single sign-on, and copy Fernway's ACS URL and entity ID.\n2. In Okta, create a new SAML app and paste those values into it.\n3. Paste Okta's metadata URL back into Fernway and choose Test connection [help:sso@8#1].\nBefore you enforce SSO, verify your email domain as well [help:sso@8#2]."
+    },
+    {
+      "role": "user",
+      "at": "2026-09-30T16:06:00Z",
+      "text": "Where do I verify the domain, and how long does it take?"
+    },
+    {
+      "role": "assistant",
+      "at": "2026-09-30T16:06:15Z",
+      "text": "Open Settings, then Domains, and add the TXT record Fernway shows you to your DNS. Only members whose email address is on a verified domain can sign in with SSO [help:sso@8#2]. The articles don't say how long verification takes; that depends on how quickly your DNS change is published."
+    },
+    {
+      "role": "user",
+      "at": "2026-09-30T16:10:00Z",
+      "text": "Once SSO is on, what happens to people who still sign in with a password?"
+    },
+    {
+      "role": "assistant",
+      "at": "2026-09-30T16:10:20Z",
+      "text": "After the test succeeds and you turn on Require SSO, members must sign in through Okta and password sign-in is disabled for them. Workspace owners keep a password as a recovery path in case Okta is down [help:sso@8#3]."
+    },
+    {
+      "role": "user",
+      "at": "2026-09-30T16:15:00Z",
+      "text": "Can Okta also create and remove Fernway accounts automatically when people join or leave?"
+    },
+    {
+      "role": "assistant",
+      "at": "2026-09-30T16:15:20Z",
+      "text": "Yes, with SCIM provisioning. Generate a SCIM token under Single sign-on, then SCIM, and paste it with the SCIM base URL into Okta. Deactivating a user in Okta removes their seat in Fernway within minutes [help:sso@8#4]."
+    }
+  ],
+  "question": "Our sister company's workspace is on the Team plan. Can they use SSO and SCIM too?"
+}

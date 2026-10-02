@@ -1,0 +1,15 @@
+{
+  "spec": "cwa/draft",
+  "id": "docs-qa-messages",
+  "version": 1,
+  "route": "docs-qa",
+  "model_family": null,
+  "route_policy_version": "docs-qa/v1",
+  "placement": [
+    { "slot": "governance.instructions", "wrap": "system" },
+    { "slot": "evidence.knowledge", "wrap": "xml:article" },
+    { "slot": "interaction.history", "wrap": "xml:history" },
+    { "slot": "interaction.query", "wrap": "xml:question" }
+  ],
+  "evaluation": { "status": "unevaluated", "suite": null, "date": null, "result": null, "artifact": null }
+}
