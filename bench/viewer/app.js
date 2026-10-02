@@ -9,6 +9,7 @@
 import * as data from "./data.js";
 import * as show from "./decision.js";
 import { count, dollars, html, number, plural, seconds } from "./html.js";
+import { citedLeftOut, compared, marked, ordered, pairsOf } from "./beforeafter.js";
 import { asked, cell } from "./question.js";
 
 const INVARIANTS = [
@@ -178,7 +179,7 @@ function cases(run, s) {
     <div class="panel scroll"><div style="min-width: 860px;">
       <div class="row headrow" style="grid-template-columns: ${columns};"><span>Case</span><span>Question</span><span>Constructs</span></div>
       ${s.cases.map((c) => html`<a class="row" href="${caseHref(run, c.key)}" style="grid-template-columns: ${columns};">
-        <span>${c.key}${c.variants.length ? html`<span class="sub">${c.variants.join(" and ")}</span>` : ""}</span>
+        <span>${c.key}${c.variants.length ? html`<span class="sub">${ordered(c.variants).join(" and ")}</span>` : ""}</span>
         ${cell(c.question)}
         <span class="muted">${c.constructs.length ? c.constructs.join(", ") : "none"}</span></a>`)}
     </div></div></section>`;
@@ -219,8 +220,8 @@ function construct(run, s, id) {
         <div class="label" style="margin-bottom: 10px;"><a href="${caseHref(run, key)}">${key} →</a></div>
         <h2 class="case">${question.title}</h2>${question.more}
         <div style="margin: 20px 0 28px;">${later(evidence(run, s, c, key))}</div>
-        <div class="label" style="margin-bottom: 10px;">What each run did</div>
-        <div class="hair wide">${caseResults.map((r) => resultCard(run, s, r, c))}</div>
+        ${one?.variants.length ? html`<div class="label" style="margin-bottom: 10px;">What each model did, before and after</div>${pairRows(run, s, pairsOf(caseResults), c)}`
+          : html`<div class="label" style="margin-bottom: 10px;">What each run did</div><div class="hair wide">${caseResults.map((r) => resultCard(run, s, r, c))}</div>`}
       </div></section>`;
     })}`;
 }
@@ -298,6 +299,7 @@ function resultCard(run, s, r, c) {
 function caseView(run, s, key) {
   const one = s.cases.find((x) => x.key === key);
   if (!one) return html`<section class="wrap head"><h1>No such case</h1></section>`;
+  if (one.variants.length) return pairedCase(run, s, key, one);
   const [example, ...rest] = key.split("/");
   const results = ran(s).filter((r) => r.case === key);
   const index = Math.min(state.pick, results.length - 1);
@@ -327,14 +329,121 @@ function caseView(run, s, key) {
     </div></section>`;
 }
 
-async function decided(run, r) {
-  if (r.request) {
-    const request = await data.file(run, r.request);
-    const chunks = [...new Set(JSON.stringify(request.system).match(/help:[a-z0-9-]+@\d+#\d+/g) ?? [])];
-    return html`<div class="note">before.py builds its request by hand, so there is no snapshot or trace to show: nothing recorded what it left out.</div>
-      <div class="panel"><div class="panel-head"><span>before.py's request</span><a href="${data.href(run, r.request)}" target="_blank" rel="noopener">request.json →</a></div>
-      <div class="panel-body mono" style="font-size: 12.5px; line-height: 1.7;">${plural(chunks.length, "chunk")} pasted into the system prompt: ${chunks.join(", ")}<br>${plural(request.messages.length, "message")}</div></div>`;
+// A case 01 runs both ways, read as people read a change: before, then after. First what each script sent, item by
+// item; then each model's two answers side by side.
+function pairedCase(run, s, key, one) {
+  const [example, ...rest] = key.split("/");
+  const results = ran(s).filter((r) => r.case === key);
+  const pairs = pairsOf(results);
+  const index = Math.min(state.pick, pairs.length - 1);
+  const question = asked(one.question || key);
+  const runsOf = (variant) => results.filter((r) => r.variant === variant).length;
+  const snapshots = Object.keys(one.snapshots);
+  return html`
+    <section class="wrap head">
+      <div class="crumb"><a href="#/${run}/cases">Cases</a> / ${example} / ${rest.join("/")}</div>
+      <div class="kicker">Case · ${example} · ${ordered(one.variants).join(" and ")}</div>
+      <h1>${question.title}</h1>${question.more}
+      <p class="lede">Each run asks the question twice: before.py builds its request by hand, after.py builds it through CWA. Both go to the same model, so the difference between its two answers is the difference between the two requests.</p>
+      <div class="meta"><span>${plural(new Set(results.map((r) => r.model)).size, "model")} · ${plural(new Set(results.map((r) => r.repeat)).size, "repeat")}</span>
+        <span>${plural(runsOf("before"), "run")} of before.py</span><span>${plural(runsOf("after"), "run")} of after.py</span>
+        <span>${snapshots.length === 1 ? `1 snapshot, ${snapshots[0]}` : plural(snapshots.length, "first snapshot")}</span></div>
+      <div class="pills">${one.constructs.map((id) => html`<a class="pill" href="#/${run}/construct/${id}">${s.constructs.find((c) => c.id === id)?.title ?? id}</a>`)}</div>
+    </section>
+    <section class="band surface"><div class="wrap">
+      <div class="kicker">What CWA decided</div>
+      <h2>What each script sent.</h2>
+      <p class="body">${snapshots.length === 1 ? `after.py froze the same snapshot in all ${runsOf("after")} of its runs, so every model was sent the same request.` : `after.py's runs froze ${snapshots.length} different snapshots; this is the picked run's.`}
+        Below is every item in it, with what before.py did with it and what after.py's assembly decided. before.py records nothing, so where it put each item is read from its request.</p>
+      ${pairs[index] ? later(sentBoth(run, pairs[index], picker(pairs, index))) : html`<p class="body">No run of this case finished.</p>`}
+    </div></section>
+    <section class="band"><div class="wrap">
+      <div class="kicker">What each model did</div>
+      <h2>Same question, before and after.</h2>
+      <p class="body">One row per model: before.py's answer on the left, after.py's on the right. A citation marked <mark class="left">[like this]</mark> names a chunk after.py's assembly left out, so only before.py's request could have carried it.</p>
+      ${repeatChips(s)}
+      ${pairRows(run, s, pairs.filter(inRepeat), null)}
+    </div></section>`;
+}
+
+// The two requests of one run, compared item by item, then the files behind them and after.py's decision in full.
+async function sentBoth(run, pair, choose) {
+  const { before, after } = pair;
+  const [request, a] = await Promise.all([
+    before?.request ? data.file(run, before.request) : null,
+    after?.assemblies.length ? data.assembly(run, after.assemblies[after.assemblies.length - 1]) : null]);
+  if (!request || !a) return html`<p class="body">This run did not record both requests.</p><div class="toolbar">${choose}</div>`;
+  const links = { trace: data.href(run, `${a.folder}/trace.json`), snapshot: data.href(run, `${a.folder}/snapshot.json`), payload: data.href(run, `${a.folder}/payload.json`) };
+  const refused = a.trace.refused.bool;
+  const link = (href, name) => html`<a href="${href}" target="_blank" rel="noopener">${name} →</a>`;
+  return html`${show.refusal(a)}${compared(a, request)}
+    <div class="toolbar" style="margin-top: 28px;"><span class="label">The files behind it</span>${choose}</div>
+    <div class="hair" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+      <div class="cell"><div class="label">Before · before.py</div>
+        <div class="mono fg" style="font-size: 12.5px; line-height: 1.7;">Its request, built by hand. There is no snapshot or trace: nothing recorded what it left out.</div>
+        <span class="mono" style="font-size: 12px;">${link(data.href(run, before.request), "request.json")}</span></div>
+      <div class="cell"><div class="label">After · after.py</div>
+        <div class="mono fg" style="font-size: 12.5px; line-height: 1.7;">${refused ? "Its snapshot and trace. The refusal is the whole outcome: there is no payload." : "Its snapshot, its trace, and the payload it rendered, which the proxy saw sent byte for byte."}</div>
+        <span class="mono links" style="font-size: 12px;">${link(links.snapshot, "snapshot.json")}${link(links.trace, "trace.json")}${refused ? "" : link(links.payload, "payload.json")}</span></div>
+    </div>
+    <details class="full"><summary class="label">after.py's decision in full: ${refused ? "the refusal, what was left out, provenance" : "the budget by plane, the slots, what was left out, provenance"}</summary>${show.decision(a, links)}</details>`;
+}
+
+// Each model's two answers to a case, before.py's then after.py's, with each one's checks: on a construct's page, only
+// that construct's.
+function pairRows(run, s, pairs, c) {
+  return html`<div class="pairs">
+    <div class="pair head label"><span>Model</span><span>Before · before.py, built by hand</span><span>After · after.py, through CWA</span></div>
+    ${pairs.map((p) => html`<div class="pair">
+      <div><div class="card-title">${p.model}</div><div class="label">repeat ${p.repeat}</div><p class="card-copy" style="margin: 0;">${verdict(s, p)}</p></div>
+      ${side(run, s, p.before, c, "Before", citedLeftOut(p.before))}
+      ${side(run, s, p.after, c, "After", [])}
+    </div>`)}
+  </div>`;
+}
+
+function side(run, s, r, c, name, leftOut) {
+  if (!r) return html`<div><div class="label side-label">${name}</div><p class="muted mono" style="font-size: 12px;">Not run.</p></div>`;
+  const found = checksOf(s, r, c);
+  return html`<div><div class="label side-label">${name}</div>
+    ${r.answer ? later(data.file(run, r.answer).then((answered) => answered.answer
+      ? html`<blockquote class="answer">${marked(answered.answer, leftOut)}</blockquote>` : unanswered(run, r, answered)))
+      : html`<p class="muted mono" style="font-size: 12px;">Nothing was sent, so there is no answer.</p>`}
+    <div class="tallies">${[...new Set(found.map((check) => check.measure))].map((measure) => {
+      const counts = data.tally(found, (check) => check.measure === measure);
+      return counts[1] ? count(measure, counts) : "";
+    })}</div>
+    ${checkRows(found.filter((check) => check.passed !== true))}
+  </div>`;
+}
+
+// No answer: an error, or an assembly that refused, so no model was asked.
+async function unanswered(run, r, answered) {
+  if (answered.error) return html`<blockquote class="answer">error: ${answered.error}</blockquote>`;
+  const trace = r.assemblies.length ? await data.file(run, `${r.assemblies[r.assemblies.length - 1]}/trace.json`) : null;
+  return trace?.refused.bool
+    ? html`<div class="box refused">Refused: ${trace.refused.reason}.<br><span class="muted">Nothing was rendered, so no model was asked and there is no answer.</span></div>`
+    : html`<blockquote class="answer">no answer</blockquote>`;
+}
+
+// What differed for one model between before and after, in a line.
+function verdict(s, p) {
+  if (!p.before || !p.after) return "";
+  // 01 assembles once per run, so an assembly refused in after.py's run is the run refusing.
+  const refused = s.jobs.find((job) => job.job === p.after.job)?.invariants?.some((check) => check.check === "refused_sends_nothing");
+  if (refused) {
+    const [passed, graded] = data.tally(p.before.checks, (check) => check.measure === "refusal");
+    return `after.py's assembly refused, so this model was never asked. before.py asked it anyway${graded ? (passed === graded ? ", and it declined." : ", and it answered.") : "."}`;
   }
+  const ids = citedLeftOut(p.before);
+  if (ids.length) return `Before, it cited ${ids.join(", ")}: ${ids.length === 1 ? "a chunk" : "chunks"} after.py's assembly left out, so after.py never sent ${ids.length === 1 ? "it" : "them"}.`;
+  const failed = (r) => r.checks.filter((check) => check.passed === false && check.measure !== "invariant").length;
+  const [then, now] = [failed(p.before), failed(p.after)];
+  return then === now ? "It cited nothing after.py left out, and the checks see no difference between its two answers."
+    : `It cited nothing after.py left out. Before, its answer failed ${plural(then, "check")}; after, ${plural(now, "check")}.`;
+}
+
+async function decided(run, r) {
   if (!r.assemblies.length) return html`<p class="body">Nothing was assembled.</p>`;
   const index = state.inference === null ? r.assemblies.length - 1 : Math.min(state.inference, r.assemblies.length - 1);
   const folder = r.assemblies[index];
