@@ -4,7 +4,7 @@ The examples show one application building its context through CWA. This harness
 
 It is not an example to copy. It treats the examples as applications: it runs their command lines and changes nothing they send.
 
-**Status: in progress.** This README is the plan, and each section becomes true as its commit lands ([Implementation order](#implementation-order)). Done so far: [Configuration](#configuration).
+**Status: in progress.** This README is the plan, and each section becomes true as its commit lands ([Implementation order](#implementation-order)). Done so far: [Configuration](#configuration) and the preflight.
 
 ## What it measures
 
@@ -38,7 +38,7 @@ flowchart LR
     I --> V["Viewer<br/>uv run serve.py"]
 ```
 
-1. **Preflight.** Every selected example's `scenarios.py --check` and `scripts/assembler_pin.py` pass, so the run records the context the repository commits. Every model is on OpenRouter's model list.
+1. **Preflight** ([preflight.py](preflight.py)). Every selected example's `scenarios.py --check` and `scripts/assembler_pin.py` pass, so the run records the context the repository commits; 05 commits eval recordings instead, which its own suite checks. The key's variable is set, and every model is on OpenRouter's public model list ([catalog.py](catalog.py)), which also gives its prices and whether it takes tools.
 2. **Plan.** The cases, the number of calls, and a cost range from OpenRouter's prices for each model. With `confirm = true` the runner waits for a yes.
 3. **Run.** Each case runs the example's own command in the example's uv environment, with `OPENAI_BASE_URL` pointing at the proxy. Free models run one call at a time, the rest up to `concurrency`.
 4. **Grade.** The checks read only the recorded files. Then every recorded snapshot is replayed.
