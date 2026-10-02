@@ -4,7 +4,7 @@ The examples show one application building its context through CWA. This harness
 
 It is not an example to copy. It treats the examples as applications: it runs their command lines and changes nothing they send.
 
-**Status: design.** Nothing here is implemented yet. This README is the plan, and each section becomes true as its commit lands ([Implementation order](#implementation-order)).
+**Status: in progress.** This README is the plan, and each section becomes true as its commit lands ([Implementation order](#implementation-order)). Done so far: [Configuration](#configuration).
 
 ## What it measures
 
@@ -46,32 +46,34 @@ flowchart LR
 
 ## Configuration
 
-`bench.toml`:
+[bench.toml](bench.toml) names the models, as OpenRouter IDs sent as written, and how to run them:
 
 ```toml
+models = [
+  "inclusionai/ling-3.1-flash",
+  "qwen/qwen3.8-27b:free",
+  "anthropic/claude-sonnet-5.5",
+  # ...
+]
+
 [openrouter]
-key_env = "OPENROUTER_API_KEY"   # read from the environment or the repository's .env, never written to this file or a run
+key_env = "OPENROUTER_API_KEY"   # the variable that holds the key, never the key itself
 
 [run]
 examples = ["01-docs-qa", "02-account-aware", "03-budget-and-routes", "04-tools", "05-production"]
 repeats = 3
 concurrency = 4                  # paid models; free models run one call at a time
-max_cost_usd = 15.0
-confirm = true
-
-# OpenRouter model IDs, sent as they are written
-models = [
-  "inclusionai/ling-3.1-flash",
-  "qwen/qwen3.8-27b:free",
-  "nvidia/nemotron-3.5-lightning:free",
-  "google/gemma-4-31b-it:free",
-  "x-ai/grok-4.7",
-  "anthropic/claude-sonnet-5.5",
-  "openai/gpt-6.1-sol-pro",
-  "deepseek/deepseek-v4.1-flash",
-  "deepseek/deepseek-v4-pro-0813",
-]
+max_cost_usd = 15.0              # no case starts once the run has spent this
+confirm = true                   # show the plan and its estimate, and wait for a yes
 ```
+
+Only `models` and `max_cost_usd` are required. The rest default to every example, one repeat, four at a time, and a confirmation. [config.py](config.py) checks the file before anything runs and reports every problem at once:
+
+- **Fixed models only.** An ID starting with `~`, OpenRouter's alias for the latest model in a family, or `openrouter/`, its routers, is refused: the model behind it changes, so runs could not be compared.
+- **A spending cap.** A run without `max_cost_usd` is refused.
+- **No unknown settings,** so a misspelled one is not silently ignored.
+
+The key is read from the environment. `uv run --env-file ../.env ...` reads it from the repository's `.env`, which git ignores, as the examples do.
 
 Each model's results go in a folder named after its ID, with `/` and `:` replaced by `-`, as in `google-gemma-4-31b-it-free`.
 

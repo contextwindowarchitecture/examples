@@ -1,0 +1,24 @@
+# The models to benchmark and how to run them (README.md). Model IDs are OpenRouter's, sent as written. The key is read
+# from the variable key_env names; `uv run --env-file ../.env ...` reads it from the repository's .env.
+
+models = [
+  "inclusionai/ling-3.1-flash",
+  "qwen/qwen3.8-27b:free",
+  "nvidia/nemotron-3.5-lightning:free",
+  "google/gemma-4-31b-it:free",
+  "x-ai/grok-4.7",
+  "anthropic/claude-sonnet-5.5",
+  "openai/gpt-6.1-sol-pro",
+  "deepseek/deepseek-v4.1-flash",
+  "deepseek/deepseek-v4-pro-0813",
+]
+
+[openrouter]
+key_env = "OPENROUTER_API_KEY"
+
+[run]
+examples = ["01-docs-qa", "02-account-aware", "03-budget-and-routes", "04-tools", "05-production"]
+repeats = 3
+concurrency = 4         # paid models; free models run one call at a time
+max_cost_usd = 15.0     # no case starts once the run has spent this
+confirm = true          # show the plan and its estimate, and wait for a yes

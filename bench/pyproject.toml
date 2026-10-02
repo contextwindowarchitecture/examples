@@ -1,0 +1,19 @@
+[project]
+name = "cwa-bench"
+version = "0.1.0"
+description = "Runs the examples against a list of models on OpenRouter and records what CWA decided and what each model did"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.12"
+# Standard library only: the harness runs each example in the example's own environment, and needs nothing itself.
+dependencies = []
+
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
