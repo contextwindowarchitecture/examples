@@ -1,0 +1,66 @@
+{
+  "workspace": "w_kitewood",
+  "user": "u_ada",
+  "session": "s_long",
+  "asked_at": "2026-09-30T16:20:00Z",
+  "route": "account-help",
+  "turns": [
+    {
+      "role": "user",
+      "at": "2026-09-30T16:01:00Z",
+      "text": "We're on the Business plan and use Okta for everything. How do I set up single sign-on for our Fernway workspace?"
+    },
+    {
+      "role": "assistant",
+      "at": "2026-09-30T16:01:20Z",
+      "text": "SAML single sign-on is included in the Business plan and works with Okta [help:sso@8#0]. To set it up:\n1. As a workspace owner, open Settings, then Security, then Single sign-on, and copy Fernway's ACS URL and entity ID.\n2. In Okta, create a new SAML app and paste those values into it.\n3. Paste Okta's metadata URL back into Fernway and choose Test connection [help:sso@8#1].\nBefore you enforce SSO, verify your email domain as well [help:sso@8#2].",
+      "summary": {
+        "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+        "text": "SAML SSO in Business > Security > sign-on, copy Fernway ACS URL/entity ID, create Okta SAML app, paste metadata URL back, test [help:sso@8#1], verify domain [help:sso@8#2]."
+      }
+    },
+    {
+      "role": "user",
+      "at": "2026-09-30T16:06:00Z",
+      "text": "Where do I verify the domain, and how long does it take?"
+    },
+    {
+      "role": "assistant",
+      "at": "2026-09-30T16:06:15Z",
+      "text": "Open Settings, then Domains, and add the TXT record Fernway shows you to your DNS. Only members whose email address is on a verified domain can sign in with SSO [help:sso@8#2]. The articles don't say how long verification takes; that depends on how quickly your DNS change is published.",
+      "summary": {
+        "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+        "text": "Settings → Domains, add the TXT record Fernway displays; only members with verified-domain emails sign in with SSO [help:sso@8#2]; verification time depends on DNS propagation."
+      }
+    },
+    {
+      "role": "user",
+      "at": "2026-09-30T16:10:00Z",
+      "text": "Once SSO is on, what happens to people who still sign in with a password?"
+    },
+    {
+      "role": "assistant",
+      "at": "2026-09-30T16:10:20Z",
+      "text": "After the test succeeds and you turn on Require SSO, members must sign in through Okta and password sign-in is disabled for them. Workspace owners keep a password as a recovery path in case Okta is down [help:sso@8#3].",
+      "summary": {
+        "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+        "text": "After test succeeds and you enable Require SSO, members must sign in through Okta, password sign-in disabled; owners keep recovery password if Okta down [help:sso@8#3]."
+      }
+    },
+    {
+      "role": "user",
+      "at": "2026-09-30T16:15:00Z",
+      "text": "Can Okta also create and remove Fernway accounts automatically when people join or leave?"
+    },
+    {
+      "role": "assistant",
+      "at": "2026-09-30T16:15:20Z",
+      "text": "Yes, with SCIM provisioning. Generate a SCIM token under Single sign-on, then SCIM, and paste it with the SCIM base URL into Okta. Deactivating a user in Okta removes their seat in Fernway within minutes [help:sso@8#4].",
+      "summary": {
+        "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+        "text": "Generate a SCIM token under sign‑on, SCIM, paste it with SCIM base URL into Okta; deactivating a user in Okta removes Fernway seat within minutes [help:sso@8#4]."
+      }
+    }
+  ],
+  "question": "Before we turn on Require SSO, I want a full backup. How do I export the whole workspace?"
+}

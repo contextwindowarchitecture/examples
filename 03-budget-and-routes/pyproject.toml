@@ -1,0 +1,28 @@
+[project]
+name = "cwa-example-budget-and-routes"
+version = "0.1.0"
+description = "The account-aware bot on two model routes, with summaries computed ahead of time as variants"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.12"
+dependencies = [
+    "contextwindowarchitecture-assembler",
+    "llama-index-core>=0.14",
+    "llama-index-retrievers-bm25>=0.8",
+    "anthropic>=1",
+    "openai>=2",
+]
+
+[tool.uv]
+package = false
+
+# The assembler is a draft release on GitHub, not yet on PyPI. Pinned to its tag, so `uv sync` is all a reader runs.
+[tool.uv.sources]
+contextwindowarchitecture-assembler = { git = "https://github.com/contextwindowarchitecture/assembler-python", tag = "draft-release" }
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
