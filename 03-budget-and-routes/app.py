@@ -7,8 +7,10 @@ history turns and long articles are replaced by summaries written ahead of time,
     uv run app.py --conversation scenarios/02-small-route/conversation.json
     uv run app.py --replay runs/<digest>/snapshot.json                          # re-assemble a saved request
     uv run --env-file .env app.py --provider anthropic "How do I export the whole workspace?"
+    uv run --env-file .env app.py --provider anthropic --record runs/export "How do I export the whole workspace?"
 
-Every assembly is saved under runs/<digest>/ as snapshot.json, trace.json and, unless refused, payload.json.
+Every assembly is saved under runs/<digest>/ as snapshot.json, trace.json and, unless refused, payload.json. --record DIR
+also writes each route's assembly to DIR/<route>/, with the conversation (conversation.json) and the reply (run.json).
 """
 from __future__ import annotations
 
@@ -36,12 +38,14 @@ def build_request(conversation: Conversation, route: Route) -> tuple[dict[str, A
 
 
 def answer(conversation: Conversation, provider: str, model: str | None, *, route: str | None = None,
-           out: TextIO = sys.stdout, runs: Path = RUNS) -> str | None:
+           out: TextIO = sys.stdout, runs: Path = RUNS, record: str | Path | None = None) -> str | None:
     chosen = routes.load(route or conversation.route or routes.default())
     tried = []
     while True:
         document, result = build_request(conversation, chosen)
         save(document, result, runs)
+        if record:
+            write(Path(record) / chosen.name, document, result)  # --record: one folder per route tried
         print(f"route {chosen.name}", file=out)
         report(document, result, out)
         if result.payload is not None:
@@ -127,12 +131,17 @@ def report(document: dict[str, Any], result: AssemblyResult, out: TextIO = sys.s
 def save(document: dict[str, Any], result: AssemblyResult, runs: Path = RUNS) -> Path:
     """Keep the frozen input with its outcome, keyed by the snapshot digest: enough to replay this exact request."""
     directory = runs / result.trace["context"]["snapshot_digest"][:16]
+    write(directory, document, result)
+    return directory
+
+
+def write(directory: Path, document: dict[str, Any], result: AssemblyResult) -> None:
+    """snapshot.json, trace.json and, unless the assembly refused, payload.json."""
     directory.mkdir(parents=True, exist_ok=True)
     (directory / "snapshot.json").write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     (directory / "trace.json").write_text(json.dumps(result.trace, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     if result.payload is not None:
         (directory / "payload.json").write_bytes(result.payload)
-    return directory
 
 
 def replay(path: str | Path, out: TextIO = sys.stdout) -> bool:
@@ -150,14 +159,15 @@ def replay(path: str | Path, out: TextIO = sys.stdout) -> bool:
     return same
 
 
-def main(argv: list[str]) -> int:
+def main(argv: list[str], *, runs: Path = RUNS) -> int:
     parser = cli.parser(__doc__)
     parser.add_argument("--route", choices=routes.names(), help=f"the route to try first (default: {routes.default()})")
     parser.add_argument("--replay", metavar="SNAPSHOT", help="re-assemble a saved snapshot.json and compare it with its trace")
     args = parser.parse_args(argv)
     if args.replay:
         return 0 if replay(args.replay) else 1
-    return cli.run(args, lambda conversation, provider, model: answer(conversation, provider, model, route=args.route), save_turn)
+    return cli.run(args, lambda conversation, provider, model: answer(conversation, provider, model, route=args.route,
+                                                                       runs=runs, record=args.record), save_turn)
 
 
 if __name__ == "__main__":

@@ -149,6 +149,8 @@ Your webhook was disabled because it hit the failure limit – 50 consecutive de
 
 Both snapshots are saved under `runs/`, so the refused attempt can be replayed too. Escalation is the application's decision, not the assembler's: it builds a new snapshot and never trims a payload (R-12, R-17).
 
+`--record DIR` also keeps the run in a folder you name, as in 01 and 02, with one folder per route tried. Here `DIR/account-help-small/` holds the refused snapshot and trace, and `DIR/account-help/` the assembly that was sent, beside `conversation.json` and `run.json` with the provider, model and answer, or the error.
+
 ## Routes
 
 [policy/routes.json](policy/routes.json):
