@@ -56,6 +56,8 @@ def run_with(tmp_path: Path) -> Path:
     run = tmp_path / "results" / "2026-10-02T153007Z-abc1234"
     job = run / "vendor-model" / "01-docs-qa" / "01-answer" / "after" / "1"
     shutil.copytree(ROOT / "01-docs-qa" / "scenarios" / "01-answer", job / "record")
+    (job / "record" / "run.json").write_text(json.dumps({"provider": "openai", "model": "vendor/model",
+                                                          "answer": "Check your inbox.", "error": None}))
     (job / "job.json").write_text(json.dumps({"model": "vendor/model", "example": "01-docs-qa", "case": "01-answer/after",
                                               "repeat": 1, "exit": 0, "seconds": 4.2}))
     (run / "manifest.json").write_text(json.dumps({
@@ -64,6 +66,7 @@ def run_with(tmp_path: Path) -> Path:
         "models": {"vendor/model": {"label": "vendor-model", "input_price": 2e-06, "output_price": 1e-05, "tools": True,
                                     "free": False}},
         "skipped": [], "jobs": ["vendor-model/01-docs-qa/01-answer/after/1", "vendor-model/02-account-aware/01-team-plan/1"]}))
+    (run / "bench.toml").write_text('models = ["vendor/model"]\n\n[run]\nmax_cost_usd = 1.5\n')
     name = "vendor-model/01-docs-qa/01-answer/after/1"
     (run / "calls.jsonl").write_text(json.dumps({"job": name, "call": 1, "status": 200, "error": None, "model": "vendor/model",
                                                  "answered_by": "vendor/model", "host": "SomeHost", "cost": 0.004, "ms": 1500,
@@ -93,11 +96,18 @@ def test_the_summary_holds_each_result_and_the_totals_by_model(tmp_path: Path) -
     assert (model["done"], model["failed"], model["not_run"], model["calls"], model["cost"]) == (1, 0, 1, 1, 0.004)
     assert model["tokens"] == {"prompt": 283, "completion": 400, "reasoning": 100}
     assert model["measures"]["answer"] == [1, 2]
+    # What the viewer reads for a result without listing folders: its checks, its assemblies and its answer.
+    assert {"measure": "answer", "check": "mentions_any", "passed": False, "detail": "mentions none of spam, junk"} in result["checks"]
+    assert result["assemblies"] == [f"{result['job']}/record"]
+    assert result["answer"] == f"{result['job']}/record/run.json"
+    assert written["max_cost_usd"] == 1.5
     case = {c["key"]: c for c in written["cases"]}["01-docs-qa/01-answer"]
     assert case["question"] == "Why didn't I get my password reset email?"
     assert list(case["snapshots"].values()) == [1]  # one snapshot digest across the run's results
     construct = {c["id"]: c for c in written["constructs"]}["relevance-threshold"]
     assert "01-docs-qa/01-answer" in construct["cases"] and construct["spec"] == ["R-13"]
+    placement = {c["id"]: c for c in written["constructs"]}["placement-and-rendering"]
+    assert placement["invariants"] == ["payload_sent"]
 
 
 def test_the_index_lists_every_run_newest_first(tmp_path: Path) -> None:

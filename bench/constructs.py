@@ -32,6 +32,7 @@ class Construct:
     description: str
     measures: tuple[str, ...]
     exercised: Callable[[Facts], bool] = field(compare=False)
+    invariants: tuple[str, ...] = ()  # the invariant checks that show it, when invariant is among its measures
 
 
 CONSTRUCTS = (
@@ -43,7 +44,7 @@ CONSTRUCTS = (
     Construct("evidence-required", "Evidence required", ("R-17",),
               "A route that requires evidence refuses when none is admitted. Nothing is rendered, so no model is asked, "
               "and the application decides what to tell the user. before.py sends the question anyway.",
-              ("invariant", "refusal"), lambda f: "evidence_required" in f.refusals),
+              ("invariant", "refusal"), lambda f: "evidence_required" in f.refusals, ("refused_sends_nothing",)),
     Construct("budget-and-fitting", "Budget and fitting", ("R-16", "R-18"),
               "When what is admitted is more than the route's input budget, the policy decides what gives way: "
               "summaries written ahead of time replace long items first, then the oldest history goes, each recorded "
@@ -53,7 +54,8 @@ CONSTRUCTS = (
               "When protected content cannot fit even on its own, the route refuses rather than truncate it. The "
               "application builds a new snapshot on the route the refusal's reason names, here the large one. A "
               "payload is never trimmed.",
-              ("invariant", "answer"), lambda f: "protected_content_over_budget" in f.refusals and f.payloads > 0),
+              ("invariant", "answer"), lambda f: "protected_content_over_budget" in f.refusals and f.payloads > 0,
+              ("same_context",)),
     Construct("conflicts", "Conflicts", ("R-11",),
               "Producers declare which items state the same fact. The route policy decides each group, here by "
               "producer: the account prevails over a memory, and the losing item is left out as conflict_lost. The "
@@ -86,12 +88,12 @@ CONSTRUCTS = (
     Construct("placement-and-rendering", "Placement and rendering", ("R-7", "R-20"),
               "The profile places each slot in the request and says how it is wrapped, and the renderer writes the "
               "payload. The payload is sent as it comes back: every request the proxy saw is checked against it.",
-              ("invariant",), lambda f: f.payloads > 0),
+              ("invariant",), lambda f: f.payloads > 0, ("payload_sent",)),
     Construct("determinism-and-replay", "Determinism and replay", ("R-23",),
               "A snapshot is the whole input to an assembly. Assembling it again gives the same payload to the byte, "
               "on any machine, so every request can be explained later. In 01-03 every model receives the same "
               "snapshot.",
-              ("invariant",), lambda f: f.assemblies > 0),
+              ("invariant",), lambda f: f.assemblies > 0, ("replays", "same_context")),
     Construct("provenance", "Provenance", ("R-3", "R-20", "R-22"),
               "Every trace names the route policy and profile that built the request, the tokenizer and renderer, and "
               "each item's source version; defaults_filled lists anything the assembler had to assume.",

@@ -13,7 +13,9 @@ summary.json holds, besides the manifest's commit, assembler pins and models:
 from __future__ import annotations
 
 import json
+import tomllib
 from collections import Counter, defaultdict
+from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 from statistics import median
@@ -77,8 +79,10 @@ def write(run: Path, graded: dict[str, list[Check]]) -> dict[str, Any]:
         "graded": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "repository": manifest["repository"], "assembler": manifest["assembler"], "skipped": manifest["skipped"],
         "spent": round(sum(call["cost"] or 0 for lines in calls.values() for call in lines), 6),
+        "max_cost_usd": tomllib.loads((run / "bench.toml").read_text(encoding="utf-8"))["run"]["max_cost_usd"]
+        if (run / "bench.toml").exists() else None,
         "constructs": [{"id": c.id, "title": c.title, "spec": list(c.spec), "description": c.description,
-                        "measures": list(c.measures),
+                        "measures": list(c.measures), "invariants": list(c.invariants),
                         "cases": [key for key, case in cases.items() if c.id in case["constructs"]]}
                        for c in constructs.CONSTRUCTS],
         "cases": list(cases.values()),
@@ -132,14 +136,27 @@ def _results(folder: Path, name: str, model: str, example: str, case: str, repea
             results.append({**base, "case": f"05-production/{graded['id']}", "variant": None,
                             "record": f"{name}/record/{graded['id']}", "measures": {"evals": [int(graded["passed"]), 1]},
                             "failed": failing, "_digest": _digest(record / graded["id"]),
+                            "checks": [{"measure": "evals", **check} for check in graded["checks"]],
+                            "assemblies": _paths(name, folder, checks.turns(record / graded["id"])),
+                            "answer": f"{name}/record/{graded['id']}/run.json", "request": None,
                             "constructs": constructs.exercised(facts(record / graded["id"], example, steps))})
         return results
     steps = len(_read(record / "run.json").get("steps", [])) if (record / "run.json").exists() else 0
     exercised = constructs.exercised(facts(record, example, steps)) if ended else []
+    # Where the viewer finds what it shows, since a static server lists no folders.
     return [{**base, "case": f"{example}/{scenario}", "variant": variant or None, "record": f"{name}/record",
              "measures": {m: counts for m, counts in _tally(found).items()},
              "failed": [f"{c.measure} {c.check}: {c.detail}" for c in found if c.passed is False],
-             "constructs": exercised, "_digest": _digest(record) if ended else None}]
+             "constructs": exercised, "_digest": _digest(record) if ended else None,
+             "checks": [asdict(check) for check in found],
+             "assemblies": _paths(name, folder, checks.assemblies(record)) if ended and record.exists() else [],
+             "answer": f"{name}/record/run.json" if (record / "run.json").exists() else None,
+             "request": f"{name}/record/request.json" if (record / "request.json").exists() else None}]
+
+
+def _paths(name: str, folder: Path, found: list[Path]) -> list[str]:
+    """Folders under a job, as paths from the run's folder."""
+    return [f"{name}/{path.relative_to(folder).as_posix()}" for path in found]
 
 
 def _totals(jobs: list[dict[str, Any]], calls: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
