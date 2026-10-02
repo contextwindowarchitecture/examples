@@ -1,0 +1,34 @@
+{
+  "workspace": "w_kitewood",
+  "user": "u_ben",
+  "session": "s_27916e82",
+  "asked_at": "2026-10-02T12:21:03Z",
+  "faults": [],
+  "turns": [],
+  "question": "Is our webhook still disabled? If so, please turn it back on.",
+  "model": {
+    "source": "recorded from openai/gpt-oss-120b through the openai provider",
+    "replies": [
+      {
+        "text": "",
+        "calls": [
+          {
+            "name": "list_webhooks",
+            "arguments": {
+              "workspace": "w_kitewood"
+            }
+          }
+        ]
+      },
+      {
+        "text": "Yes – the webhook with ID **wh_31c9** is still listed as **disabled** in your workspace [w_kitewood]【obs:1】.  \nTo reactivate it, go to **Settings → Integrations → Webhooks**, locate the disabled entry, and switch its status to **active** (or edit and save it).  \nIf you don’t have permission to modify webhooks, ask a workspace admin to do this or contact support@fernway.example.  \n\n[help:webhooks@2#0]",
+        "calls": []
+      }
+    ]
+  },
+  "clock": [
+    "2026-10-02T12:21:03Z",
+    "2026-10-02T12:21:04Z",
+    "2026-10-02T12:21:04Z"
+  ]
+}

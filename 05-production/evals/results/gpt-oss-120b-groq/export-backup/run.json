@@ -1,0 +1,5 @@
+{
+  "steps": [],
+  "answer": "To back up the entire workspace, follow these steps (you’re an Owner, so you have permission):\n\n1. Open **Settings** in the left‑hand menu.  \n2. Go to the **Data** tab.  \n3. Click **Export workspace** and select **JSON** as the format.  \n4. Fernway will prepare the export in the background and email you a download link (usually within an hour; the link is valid for 24 hours)【help:data-export@6#2】【help:data-export@6#3】.",
+  "refused": null
+}

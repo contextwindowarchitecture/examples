@@ -1,0 +1,21 @@
+{
+  "workspace": "w_kitewood",
+  "user": "u_ada",
+  "session": "s_7cef4d25",
+  "asked_at": "2026-10-02T12:21:05Z",
+  "faults": [],
+  "turns": [],
+  "question": "How do I export the whole workspace as a backup?",
+  "model": {
+    "source": "recorded from openai/gpt-oss-120b through the openai provider",
+    "replies": [
+      {
+        "text": "To back up the entire workspace, follow these steps (you’re an Owner, so you have permission):\n\n1. Open **Settings** in the left‑hand menu.  \n2. Go to the **Data** tab.  \n3. Click **Export workspace** and select **JSON** as the format.  \n4. Fernway will prepare the export in the background and email you a download link (usually within an hour; the link is valid for 24 hours)【help:data-export@6#2】【help:data-export@6#3】.",
+        "calls": []
+      }
+    ]
+  },
+  "clock": [
+    "2026-10-02T12:21:06Z"
+  ]
+}
