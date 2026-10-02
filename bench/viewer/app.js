@@ -9,6 +9,7 @@
 import * as data from "./data.js";
 import * as show from "./decision.js";
 import { count, dollars, html, number, plural, seconds } from "./html.js";
+import { asked, cell } from "./question.js";
 
 const INVARIANTS = [
   ["payload_sent", "Every request the proxy saw carried exactly the payload the assembler rendered.", "R-7 · R-20"],
@@ -162,7 +163,7 @@ function cases(run, s) {
       <div class="row headrow" style="grid-template-columns: ${columns};"><span>Case</span><span>Question</span><span>Constructs</span></div>
       ${s.cases.map((c) => html`<a class="row" href="${caseHref(run, c.key)}" style="grid-template-columns: ${columns};">
         <span>${c.key}${c.variants.length ? html`<span class="sub">${c.variants.join(" and ")}</span>` : ""}</span>
-        <span style="font-family: var(--sans); font-size: 14.5px;">${c.question}</span>
+        ${cell(c.question)}
         <span class="muted">${c.constructs.length ? c.constructs.join(", ") : "none"}</span></a>`)}
     </div></div></section>`;
 }
@@ -197,9 +198,10 @@ function construct(run, s, id) {
     ${c.cases.map((key, n) => {
       const one = s.cases.find((x) => x.key === key);
       const caseResults = ran(s).filter((r) => r.case === key && inRepeat(r));
+      const question = asked(one?.question ?? key, { small: true });
       return html`<section class="band ${n % 2 ? "" : "surface"}"><div class="wrap">
         <div class="label" style="margin-bottom: 10px;"><a href="${caseHref(run, key)}">${key} →</a></div>
-        <h2 class="case">${one?.question ?? key}</h2>
+        <h2 class="case">${question.title}</h2>${question.more}
         <div style="margin: 20px 0 28px;">${later(evidence(run, s, c, key))}</div>
         <div class="label" style="margin-bottom: 10px;">What each run did</div>
         <div class="hair wide">${caseResults.map((r) => resultCard(run, s, r, c))}</div>
@@ -285,11 +287,12 @@ function caseView(run, s, key) {
   const [example, ...rest] = key.split("/");
   const results = ran(s).filter((r) => r.case === key);
   const picked = results[Math.min(state.pick, results.length - 1)];
+  const question = asked(one.question || key);
   return html`
     <section class="wrap head">
       <div class="crumb"><a href="#/${run}/cases">Cases</a> / ${example} / ${rest.join("/")}</div>
       <div class="kicker">Case · ${example}${one.variants.length ? ` · ${one.variants.join(" and ")}` : ""}</div>
-      <h1>${one.question || key}</h1>
+      <h1>${question.title}</h1>${question.more}
       <div class="meta"><span>${plural(results.length, "run")}</span><span>${plural(new Set(results.map((r) => r.model)).size, "model")}</span><span>${plural(Object.keys(one.snapshots).length, "first snapshot")}</span></div>
       <div class="pills">${one.constructs.map((id) => html`<a class="pill" href="#/${run}/construct/${id}">${s.constructs.find((c) => c.id === id)?.title ?? id}</a>`)}</div>
     </section>

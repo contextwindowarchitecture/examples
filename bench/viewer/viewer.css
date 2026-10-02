@@ -119,6 +119,19 @@ a.cell:hover { background: var(--accent-soft); }
 a.row { color: var(--fg); }
 a.row:hover { background: var(--accent-soft); }
 
+/* A case's question. A long one shows about four lines in a list's cell, then scrolls; on a page, its first sentence
+   is the heading and each block pasted into it sits in a panel that scrolls. */
+.question { font-family: var(--sans); font-size: 14.5px; line-height: 1.5; }
+.clamped { align-self: start; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.clamped > .question { max-height: 6em; overflow-y: auto; overscroll-behavior: contain; padding-right: 10px; white-space: pre-wrap; overflow-wrap: anywhere; border-bottom: 1px dashed var(--line); }
+.asked { max-width: 1040px; margin-bottom: 24px; }
+.asked > p { margin: 0 0 18px; font-size: 19px; line-height: 1.6; color: var(--muted); max-width: 64ch; text-wrap: pretty; }
+.asked > p.ask { color: var(--fg); }
+.asked > .pasted { margin-bottom: 18px; }
+.asked pre.raw { max-height: calc(14 * 1.65em + 36px); overscroll-behavior: contain; }
+.asked.small > p { font-size: 16px; }
+.asked.small pre.raw { font-size: 12px; max-height: calc(8 * 1.65em + 36px); }
+
 /* The decision: budget, slot rows, what was left out */
 .split-panel { display: flex; flex-wrap: wrap; border-top: 1px solid var(--line); }
 .split-panel > .main { flex: 999 1 560px; min-width: 0; padding: 18px; display: flex; flex-direction: column; gap: 6px; border-right: 1px solid var(--line); }
