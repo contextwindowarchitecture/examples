@@ -1,0 +1,21 @@
+{
+  "workspace": "w_kitewood",
+  "user": "u_ada",
+  "session": "s_3fab3256",
+  "asked_at": "2026-10-02T06:47:07Z",
+  "faults": [],
+  "turns": [],
+  "question": "Which plan is our workspace on, and can we use SSO?",
+  "model": {
+    "source": "recorded from gpt-oss-20b-MXFP4-Q8 through the openai provider",
+    "replies": [
+      {
+        "text": "Your workspace (w_kitewood) is on the **Business** plan. If the workspace is configured to require SSO (for example if your users are using Okta), members must sign in with “Sign in with SSO” and enter their work email. If the identity provider is unavailable, a Workspace Owner can help or contact support.",
+        "calls": []
+      }
+    ]
+  },
+  "clock": [
+    "2026-10-02T06:47:07Z"
+  ]
+}

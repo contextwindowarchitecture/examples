@@ -1,0 +1,5 @@
+{
+  "steps": [],
+  "answer": "Your workspace (w_kitewood) is on the **Business** plan. If the workspace is configured to require SSO (for example if your users are using Okta), members must sign in with “Sign in with SSO” and enter their work email. If the identity provider is unavailable, a Workspace Owner can help or contact support.",
+  "refused": null
+}

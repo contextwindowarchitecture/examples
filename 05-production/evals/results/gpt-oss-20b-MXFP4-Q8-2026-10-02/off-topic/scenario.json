@@ -1,0 +1,21 @@
+{
+  "workspace": "w_kitewood",
+  "user": "u_ada",
+  "session": "s_97bc3135",
+  "asked_at": "2026-10-02T06:47:06Z",
+  "faults": [],
+  "turns": [],
+  "question": "What's a good recipe for banana bread?",
+  "model": {
+    "source": "recorded from gpt-oss-20b-MXFP4-Q8 through the openai provider",
+    "replies": [
+      {
+        "text": "I’m sorry, but I can’t help with that. If you need assistance, please contact support@fernway.example.",
+        "calls": []
+      }
+    ]
+  },
+  "clock": [
+    "2026-10-02T06:47:06Z"
+  ]
+}

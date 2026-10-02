@@ -1,0 +1,30 @@
+{
+  "steps": [
+    {
+      "tool": "list_webhooks",
+      "arguments": {
+        "workspace": "w_kitewood"
+      },
+      "approved": true,
+      "reason": "offered as cap:list_webhooks; arguments match the schema and the request's scope",
+      "ok": true,
+      "value": {
+        "webhooks": [
+          {
+            "id": "wh_31c9",
+            "url": "https://hooks.kitewood.example/fernway",
+            "status": "disabled"
+          },
+          {
+            "id": "wh_52aa",
+            "url": "https://ci.kitewood.example/fernway-events",
+            "status": "active"
+          }
+        ]
+      },
+      "observed_at": "2026-10-02T06:47:00Z"
+    }
+  ],
+  "answer": "Your webhook `wh_31c9` is still disabled according to the latest data (see observation obs:1). I don’t have a tool that can re‑enable it, but you can do so from the Fernway web UI: go to Settings → Integrations → Webhooks, find that webhook, and click “Enable”. If you need further assistance, contact support@fernway.example.",
+  "refused": null
+}

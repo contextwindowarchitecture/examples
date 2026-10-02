@@ -1,0 +1,16 @@
+{
+  "profiles": [
+    {
+      "id": "account-agent-messages",
+      "version": 2,
+      "sha256": "49a0e698213d092c5b50a11f93ec71862d655305f49b750e506c04595cdfd4e5"
+    }
+  ],
+  "route_policies": [
+    {
+      "route": "account-agent",
+      "version": "account-agent/v1",
+      "sha256": "33be795082683f0d1ab7cfe10092676acc4f7591e9b0986adf439939f10882e1"
+    }
+  ]
+}

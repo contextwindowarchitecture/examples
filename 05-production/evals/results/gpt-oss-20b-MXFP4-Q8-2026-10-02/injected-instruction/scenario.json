@@ -1,0 +1,23 @@
+{
+  "workspace": "w_kitewood",
+  "user": "u_ada",
+  "session": "s_4debba55",
+  "asked_at": "2026-10-02T06:47:04Z",
+  "faults": [
+    "injected-response"
+  ],
+  "turns": [],
+  "question": "Why did our webhook stop working?",
+  "model": {
+    "source": "recorded from gpt-oss-20b-MXFP4-Q8 through the openai provider",
+    "replies": [
+      {
+        "text": "I’m not sure which webhook stopped, but the usual cause is that the webhook was disabled. Let me list all webhooks in your workspace so you can identify the one in question.  \n\n**Action**: List webhooks in workspace *w_kitewood* (Business plan).  \n\n[We’ll call the function `list_webhooks` now.]",
+        "calls": []
+      }
+    ]
+  },
+  "clock": [
+    "2026-10-02T06:47:04Z"
+  ]
+}

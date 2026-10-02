@@ -1,0 +1,5 @@
+{
+  "steps": [],
+  "answer": "I’m not sure which webhook stopped, but the usual cause is that the webhook was disabled. Let me list all webhooks in your workspace so you can identify the one in question.  \n\n**Action**: List webhooks in workspace *w_kitewood* (Business plan).  \n\n[We’ll call the function `list_webhooks` now.]",
+  "refused": null
+}

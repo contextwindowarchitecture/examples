@@ -1,0 +1,151 @@
+{
+  "route": "account-agent",
+  "version": "account-agent/v2",
+  "clock_skew_seconds": 5,
+  "requires_evidence": false,
+  "producers": {
+    "app-policy": {
+      "kind": "policy",
+      "slots": [
+        "governance.instructions"
+      ]
+    },
+    "capability-policy": {
+      "kind": "capability_policy",
+      "slots": [
+        "governance.capabilities"
+      ]
+    },
+    "accounts-db": {
+      "kind": "state",
+      "slots": [
+        "state.user"
+      ]
+    },
+    "agent-controller": {
+      "kind": "state",
+      "slots": [
+        "state.task"
+      ]
+    },
+    "memory-store": {
+      "kind": "memory",
+      "slots": [
+        "interaction.memory"
+      ]
+    },
+    "help-center-search": {
+      "kind": "retrieval",
+      "slots": [
+        "evidence.knowledge"
+      ]
+    },
+    "fernway-api": {
+      "kind": "mcp",
+      "slots": [
+        "evidence.tool_results"
+      ]
+    },
+    "chat-session": {
+      "kind": "interaction",
+      "slots": [
+        "interaction.history",
+        "interaction.query"
+      ]
+    }
+  },
+  "slots": {
+    "state.user": {
+      "max_age_seconds": 300,
+      "required_scope": [
+        "tenant"
+      ]
+    },
+    "state.task": {
+      "max_age_seconds": 60,
+      "required_scope": [
+        "tenant",
+        "task"
+      ]
+    },
+    "evidence.knowledge": {
+      "min_relevance": 2.5,
+      "order_by": [
+        "-relevance",
+        "-freshness"
+      ]
+    },
+    "evidence.tool_results": {
+      "max_age_seconds": 3600,
+      "required_scope": [
+        "tenant",
+        "task"
+      ],
+      "order_by": [
+        "-freshness"
+      ],
+      "supersede": "source"
+    },
+    "interaction.memory": {
+      "source_prefix": "turn:",
+      "required_scope": [
+        "tenant",
+        "user"
+      ],
+      "order_by": [
+        "-freshness"
+      ]
+    },
+    "interaction.history": {
+      "required_scope": [
+        "session"
+      ],
+      "order_by": [
+        "-freshness"
+      ],
+      "max_tokens": 1000
+    },
+    "interaction.query": {
+      "required_scope": [
+        "session"
+      ]
+    }
+  },
+  "tier_upgrades": {
+    "state.user": "protected"
+  },
+  "facts": {
+    "plan": {
+      "precedence": [
+        "accounts-db",
+        "memory-store"
+      ],
+      "scope": [
+        "tenant"
+      ],
+      "on_unresolved": "refuse"
+    }
+  },
+  "fitting_order": [
+    {
+      "slot": "interaction.history",
+      "action": "compress"
+    },
+    {
+      "slot": "evidence.knowledge",
+      "action": "compress"
+    },
+    {
+      "slot": "interaction.history",
+      "action": "omit"
+    },
+    {
+      "slot": "interaction.memory",
+      "action": "omit"
+    },
+    {
+      "slot": "evidence.knowledge",
+      "action": "omit"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "$comment": "The application's capability policy for the account-agent route: which of the tools fernway-api proposes the model may be offered, to whom, and the scope rule each call must satisfy. Each grant pins the server's input schema by SHA-256 of its canonical JSON, and uses the policy's own description rather than the server's, so a server that changes a tool loses it until someone reviews the change. Only this policy emits governance.capabilities (R-15); the guard checks every call before it reaches the server.",
+  "policy_producer": "capability-policy",
+  "allow_list_version": "account-agent/v1",
+  "server": "fernway-api",
+  "grants": {
+    "list_webhooks": {
+      "roles": ["Owner", "Admin", "Member"],
+      "description": "List the signed-in workspace's webhooks with their URL and status. workspace is the workspace id from the account details.",
+      "scope": { "workspace": "tenant" },
+      "schema_sha256": "b31bf1304bc7f765503f8d78cef509ac4793d6c82eb959048bb8077b317bfadd"
+    },
+    "get_webhook": {
+      "roles": ["Owner", "Admin", "Member"],
+      "description": "Get one of the signed-in workspace's webhooks: its events, status, recent failures and the last response its endpoint returned.",
+      "scope": { "workspace": "tenant" },
+      "schema_sha256": "255e69f6b826a3728fd856f4498dadb87c9c7f973f75e3ca624a101f90e591a7"
+    },
+    "enable_webhook": {
+      "roles": ["Owner", "Admin"],
+      "description": "Turn one of the signed-in workspace's disabled webhooks back on. Use it only when the user asks for it.",
+      "scope": { "workspace": "tenant" },
+      "schema_sha256": "01887003891a4ee81fc6b5ad43541eb52ed58490ed04060ee460295b354cf9d2"
+    }
+  },
+  "never": {
+    "delete_webhook": "Deletes data that cannot be restored. A person does this in Settings, not the assistant."
+  }
+}

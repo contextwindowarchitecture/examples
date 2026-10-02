@@ -1,0 +1,10 @@
+{
+  "model": "gpt-oss-20b-MXFP4-Q8",
+  "date": "2026-10-02",
+  "profile": {
+    "id": "account-agent-messages",
+    "version": 2,
+    "sha256": "49a0e698213d092c5b50a11f93ec71862d655305f49b750e506c04595cdfd4e5"
+  },
+  "route_policy": "account-agent/v1"
+}
