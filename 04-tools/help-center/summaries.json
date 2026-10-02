@@ -1,0 +1,402 @@
+{
+  "help:api@5#0": {
+    "sha256": "906474ce1e936f056cd6cffd9b294bb49abc2a96c825e212726cabbb55771dab",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Fernway REST API reads/writes projects, tasks, comments, members; requests go to https://api.fernway.example/v2, sending a personal API token as a bearer token in the Authorization header."
+  },
+  "help:api@5#1": {
+    "sha256": "5c20425587ec3cbc192039ba50a3b50924bd55498073ac67e9c70ea20cb85881",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Create a personal API token under Profile → API tokens; it uses permissions, sees only what you can, doesn't expire, but can be revoked anytime, stopping immediately."
+  },
+  "help:api@5#2": {
+    "sha256": "0940f36de8adc8f647873a9b5bba38254075fe5a07e5362c292ea2118a8ba397",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Rate limits per workspace: 60/min on Free, 300 on Team, 1,000 on Business; exceeding returns HTTP 429 with Retry-After header indicating wait seconds."
+  },
+  "help:api@5#3": {
+    "sha256": "b8823554e9005367304ce6230acf4b500397beaae5f3cbb821e93a25e4318b74",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "List endpoints return at most 100 items per page; follow the next_cursor value to fetch the next page, null next_cursor indicates no more pages."
+  },
+  "help:billing@5#0": {
+    "sha256": "d657853a420a4b81eb46b0dba928d8c525534998b145c0c711ed980b54b3216b",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Workspace owners and billing admins manage billing under Settings, then Billing; Fernway charges per member, each member counts as a seat, guests do not."
+  },
+  "help:billing@5#1": {
+    "sha256": "4ad0d821d2f3ab1bfdfc73d83198a824ce3d719801cff17a47fbdf28fbf874bd",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Fernway accepts Visa, Mastercard, and American Express cards; business workspaces on annual billing can also pay by invoice with 30-day terms, contact sales to switch."
+  },
+  "help:billing@5#2": {
+    "sha256": "a137a7b94911138bc45f631ce9ddeca6b41c981444ffaa7c196451e696c15183",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Invoices emailed to billing contact on every charge, listed under Billing > Invoices as PDFs; edit Billing details to add VAT or tax ID, affecting future invoices."
+  },
+  "help:billing@5#3": {
+    "sha256": "80aaa23b2daaa0854f05feb23123e8aa9bd8c1060c9d50b4109351a1dcb14f96",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Fernway charges a prorated amount for the rest of the billing period; unused time becomes a credit on your next invoice, not a refund."
+  },
+  "help:billing@5#4": {
+    "sha256": "5225d10be53c60ba98034cbc130632b7fb6ad029871c4e8168f491fd01a529ac",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Plans may be changed anytime: upgrades take effect immediately and are prorated, while downgrades take effect at the end of the current billing period."
+  },
+  "help:data-export@6#0": {
+    "sha256": "625f980330fb425fda530c27652d2ab0744a60e54a06dacb87212d63d8013de8",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "You can export a single project or the whole workspace; exports include tasks, subtasks, comments, labels, assignees, and attachments are exported separately as ZIP file."
+  },
+  "help:data-export@6#1": {
+    "sha256": "13f8f7eeba46c6d473bad562969d3a09642707c2877a8e073f41639e1575e708",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Export as CSV via project menu: choose Export then CSV; member on any plan can do it; CSV contains one row per task/subtask with comments."
+  },
+  "help:data-export@6#2": {
+    "sha256": "226dd20235ec7e65270621ea51630377918491a351cdbdb4fb529390544a9c8a",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Owner/Admin opens Settings → Data → Export workspace, selects JSON; JSON preserves structure, dependencies, history, used for migration/backup; available on Team and Business plans."
+  },
+  "help:data-export@6#3": {
+    "sha256": "1a215b46f31fd132825772270839185954d256d7ae4942ac4a756d2f135d8c7f",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Fernway prepares the export in the background, emailing a download link within an hour, valid for 24 hours, usable only by the requester."
+  },
+  "help:deleting-data@3#0": {
+    "sha256": "0c6d07890c5b6725a5ebe237f3722aad6ec5fc0813982758603c72d5184d0b6c",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Deleted tasks and projects move to Trash, remaining 30 days; restore via Settings > Trash; after 30 days they are permanently deleted, unrecoverable by support."
+  },
+  "help:deleting-data@3#1": {
+    "sha256": "d99e99c97714726f43c65a11172a5b71e4aea08f6c8d48264adf12315d3858e6",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Only a workspace Owner can delete a workspace Settings → Data → Delete workspace; locks for 14 days, all projects, tasks, and attachments are deleted."
+  },
+  "help:deleting-data@3#2": {
+    "sha256": "34f8630e72767a7f729661be168e03a7098decaffca363e0b9d221fe56dfb158",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Export your workspace before deleting it, as deletion cancels its plan; an annual plan deleted within a 30-day refund window may still be refunded."
+  },
+  "help:getting-started@7#0": {
+    "sha256": "fdb0a4d035c3d2198d137868f03ff0d86e00f580e8ee74e7e9ed2886e38fdbba",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Fernway tracks tasks teams; a workspace holds projects, projects hold tasks. Sign at fernway.example with email, pick a workspace name, start on the Free plan."
+  },
+  "help:getting-started@7#1": {
+    "sha256": "37a59eaff87ec2cbc04c82841bd31380d7a73fa17ff15254c673465480802c98",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "To invite teammates, Settings > Members > Invite, one email per line; invitations expire after 7 days, can resend; Free plan allows up to 5 members."
+  },
+  "help:getting-started@7#2": {
+    "sha256": "c0a7e27139eee4eb9b12c0bfb5827ab295e965fa14c237b7aa52d2ecea78445d",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Create a project from the sidebar with New project, choose a template (Product launch, Bug triage, Editorial calendar) or blank; templates add columns and tasks delete."
+  },
+  "help:getting-started@7#3": {
+    "sha256": "c558f7f0cabb4951e20dd2c893e25eb84ef547b8ea93ebb2dbf3d904fef24594",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Install desktop app for macOS or Windows, or mobile apps for iOS and Android, from the Downloads page; all apps sync to same workspace."
+  },
+  "help:github@3#0": {
+    "sha256": "65f87a70103020a97d55327a673bf623ff59afa95b339dc3f54e19b11d223607",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "GitHub integration links pull requests commits to Fernway tasks on Team Business plans; an Admin installs app under Settings > Integrations > GitHub, choosing repos."
+  },
+  "help:github@3#1": {
+    "sha256": "5eaaeb86fd607f66137972f93cc1ea7c2eb2e6a82e775f85977fe7bfb7e80ac8",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Mention FW-123 in a pull request title, description, or commit to link it; the task then shows the pull request status: open, merged, or closed."
+  },
+  "help:github@3#2": {
+    "sha256": "f4f2a1ed422d64535e25a4518b747b83b22382217d5067f2fa226c2d42684c11",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Write “Fixes FW-123” or “Closes FW-123” in the pull request description to complete the task automatically when merged into the default branch."
+  },
+  "help:guests@3#0": {
+    "sha256": "f2365d834ca53c8d46d7dd5b72596a4387f16bea5ec5f4f9954d52e6a421c403",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Guests are people, such as clients or contractors, invited to specific projects, available on Team and Business plans, and do not use a paid seat."
+  },
+  "help:guests@3#1": {
+    "sha256": "f36862bec53dc886cf493e394588757a11390d7c732808f80de3d56e6431dece",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "A workspace can have up to 5 guests per paid member; invite a guest via Share menu by email, and they see only that project."
+  },
+  "help:guests@3#2": {
+    "sha256": "07b8db39e5d618924a03c94ccd888e109bda554e1bdbe7389862394e5ecfb471",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Guests can comment on tasks, complete assigned tasks, and upload attachments but cannot view the workspace member list, other projects, or workspace integrations."
+  },
+  "help:mobile-apps@4#0": {
+    "sha256": "bbbbdf1322343880fab4437b55f8bca1cc57bad5fbc5a8887b391d244f9ea5af",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Fernway apps for iOS and Android display inbox, tasks, and projects; download from App Store or Google Play and sign in with the same web account."
+  },
+  "help:mobile-apps@4#1": {
+    "sha256": "602de988ac7c4b57d721145a1eee164b823450f567862bfe3a88fbad50b2c5eb",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Tasks and comments created offline are saved locally and sync when online; if concurrent changes occur, the latest change to each field wins."
+  },
+  "help:mobile-apps@4#2": {
+    "sha256": "2d53d544d77bcf393e92d0be4ae90f6747089881298d4dc792bb065b391afc91",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Push notifications follow your notification settings and quiet hours; to stop them on one device only, turn off notifications for Fernway in that device's settings."
+  },
+  "help:notifications@5#0": {
+    "sha256": "4b2d7a42b17816794e0d4963a24fd2335aa83a152dd7b3ad3182b7e5ce96ee66",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Fernway notifies you when assigned task, mentioned in comment, or followed task changes status; notifications appear inbox, and via email and push per settings."
+  },
+  "help:notifications@5#1": {
+    "sha256": "787261b00ce2dbe65abc464c34f6f4cb6aa1f773058e81fe81060a7608bce8ff",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Profile, Notifications allow each event type to go to inbox, email, push, or nowhere; daily digest sends one email at 08:00 in your time zone."
+  },
+  "help:notifications@5#2": {
+    "sha256": "173bb3273c16507fcf08d5c5a2a52e398f99e02e9336760b7bd16e5506e7e0e6",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Mute a project from its menu with Mute notifications; you still receive task and mention alerts, while Quiet hours pause push notifications during chosen hours."
+  },
+  "help:plans@9#0": {
+    "sha256": "981156518a3ab894ce0e29695a3f4c771bc77bd7e6c0e0ac2160a9792f66affd",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Fernway offers Free, Team, and Business plans, each providing unlimited tasks, the Board, List, and Timeline views, plus desktop and mobile apps."
+  },
+  "help:plans@9#1": {
+    "sha256": "61d4d94e1f1d3ab7f8669766b31a7b91c32021cd0541702164d16789d07884d7",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "The Free plan supports up to 5 members, 3 active projects, 1 GB file storage, 7 days history, and community forum support."
+  },
+  "help:plans@9#2": {
+    "sha256": "43688d30337e85c0e0a951dfa3272b770b393e22bda8eff09e36f4bfafd52de4",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Team plan: $9/member/month (annual) or $11 (monthly), includes unlimited projects, 100 GB storage, guests, recurring tasks, Slack/GitHub integrations, email support within one business day."
+  },
+  "help:plans@9#3": {
+    "sha256": "595466ed13de624e0c4140188af01e5bce6bfc6c3a43069f4cfc50d52d4a6620",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Business plan costs $19/member/month billed annually $23monthly; includes Team, SAML SSO, SCIM, audit log, 99.9% uptime SLA, EU/US data residency, 1 TB, priority support within 4 h."
+  },
+  "help:plans@9#4": {
+    "sha256": "93674169e61027e1b90d644b2b4982b4ba5e6879a7ae50acbb690907992db6ef",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Single sign‑on and SCIM are unavailable on the Team plan; a Team workspace requiring them must upgrade to Business."
+  },
+  "help:projects@4#0": {
+    "sha256": "beedbd21596ca77c58b0d5dd852602dc18891463a87f83d75de2fb307676bd94",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "A project groups related tasks, with three views—Board, List, and Timeline—that can be switched without altering the tasks."
+  },
+  "help:projects@4#1": {
+    "sha256": "6c7cab6579454c2baeb1f753a9d275a25db9188533f5ade27b11db222b81c7f8",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Board columns are workflow stages To do, In progress, Done; rename, reorder, or add column menu, moving a card to last column marks it complete."
+  },
+  "help:projects@4#2": {
+    "sha256": "bbc40d3a75690068ab46269bf400ccbaa8f1cea20217586ae7aa4df7c9efb481",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Archive a finished project menu's Archive project; archived projects are read‑only, hidden from sidebar, searchable, count toward storage, and restorable via Settings > Archived projects."
+  },
+  "help:projects@4#3": {
+    "sha256": "77a2136cefd354e961c81552c114fce6e8f2c6fdd14e2949bd60a29044d91c2b",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "On the Free plan, a workspace can have 3 active projects; archived projects don’t count, while Paid plans allow unlimited projects."
+  },
+  "help:recurring-tasks@3#0": {
+    "sha256": "5dbdefd4c312b54d09d4e9292fc1cc1afda393c83c17b562320dcef14b09b63b",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Recurring tasks repeat daily, weekdays, monthly on a date, or every N days; set schedule date picker with Repeat, available on Team and Business plans."
+  },
+  "help:recurring-tasks@3#1": {
+    "sha256": "0ae11c904a0333f47904dd6ec5d7d92d33d8c8cc582958f574da613f0d361c23",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Fernway creates the instance when you finish the one; the due date derives from the schedule, so a late task does not shift week."
+  },
+  "help:recurring-tasks@3#2": {
+    "sha256": "691346b7451f3be880d3d8ca8e383f736738021822164cd440266ba386dcc192",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "To stop a recurring task, open the latest instance and choose Repeat, then Never. Earlier completed instances stay in the project's history."
+  },
+  "help:refunds@4#0": {
+    "sha256": "1a539d02bea1674d4c3ded701ecbd88037cb8c5d4e9e6ff262108782a7aabd88",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Annual plans may be refunded within 30 days of first payment or renewal, prorated for unused months, returning to payment method within 10 business days."
+  },
+  "help:refunds@4#1": {
+    "sha256": "89323b455c9928192044338e1624e5b39ab7c6f6ab9ad125a226e129c0035ecb",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Monthly plans are not refunded; you may cancel, stopping the next renewal; the workspace keeps paid features until the period ends, then switches to Free."
+  },
+  "help:refunds@4#2": {
+    "sha256": "860f7665130530934f8dc21db2400ac44c48b8c1aa1ef134203f430d2303dd81",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Workspace owner opens Settings > Billing and chooses Cancel plan; to refund an annual plan, contact support within 30‑day window."
+  },
+  "help:roles@4#0": {
+    "sha256": "fe10f8aa74e3c528ebfc25ffebaff582c94b890e2f9cd7f03c73dfad3fa6fca8",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Only Owners can delete the workspace, change the plan, or transfer ownership, and a workspace must have at least one Owner."
+  },
+  "help:roles@4#1": {
+    "sha256": "69470482b3c35be621a2f2a2ce5942e9a1700d7106dcffcc40a082c866d9c1f0",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Admins manage members, projects, integrations, see all workspace projects including private ones, but cannot change billing unless an Owner makes them a billing admin."
+  },
+  "help:roles@4#2": {
+    "sha256": "2e1d355963438fae26dedf658c977d7d0e7f6ce689b8d1d613ef89d245e16b37",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Members create projects and tasks, and see every public project plus private projects they are added to; guests see only invited projects and cannot create projects."
+  },
+  "help:roles@4#3": {
+    "sha256": "768fd8f01b72c02d08a5d387c1fe19396a968d9a2d62c7c7254312781fbafc46",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Change a member’s role under Settings, then Members, from the role menu next to their name; role changes take effect immediately."
+  },
+  "help:security@5#0": {
+    "sha256": "3eeaebc9782493f5b31ea564af7e8a4624d2831557769222a06b3545c2324b95",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Fernway encrypts data in transit with TLS 1.3 and at rest with AES‑256; attachments stored in same region as workspace's data."
+  },
+  "help:security@5#1": {
+    "sha256": "07783f04c4522ade030e7c877448324a6d71433527573fcb56d566f64995fb32",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Fernway holds a SOC 2 Type II report renewed yearly; business customers request the latest under Settings, then Security, after accepting a non-disclosure agreement."
+  },
+  "help:security@5#2": {
+    "sha256": "9df4fbef236d4c0374995dba60bee2b3cc1c5509785a3222da9d9e71ab492425",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Members enable two-factor authentication via Profile→Security with an authenticator app or security key; Owners and Admins enforce it workspace-wide, prompting non‑compliant members at next sign‑in."
+  },
+  "help:security@5#3": {
+    "sha256": "4354b4d63c627bf24fa03998b1d1a9721c588f9d09e1554a4dfff4ddefc3a50d",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Business workspaces select EU or US data location at creation; moving to another region requires support and may take up to 5 business days."
+  },
+  "help:sign-in@6#0": {
+    "sha256": "909338ca12dfeed150f2861f2386ea2e6ec46887add38529967473db32a1d224",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Click Forgot password; Fernway sends a 30‑minute reset link, and if none arrives, check spam then ask a workspace Admin to confirm your address."
+  },
+  "help:sign-in@6#1": {
+    "sha256": "8d613877a73b866628b47dcf826f0a550356c2b74a0ac54e1b905d53548abb40",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Sign in without a password via a magic link: enter email, select Email me a link; it works once and expires after 15 minutes."
+  },
+  "help:sign-in@6#2": {
+    "sha256": "c9be4a53894d7b97f43d99a0f490a1d1191214b9d1f982af6f4f0e2e27a49e01",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "If you lost the device, sign in with a recovery code you saved; otherwise, a Workspace Owner can reset two-factor authentication via Settings, then Members."
+  },
+  "help:sign-in@6#3": {
+    "sha256": "a8bcbbaf5adc5df194b744d0f2c11f982dafec6d1871db3572c61a1a64353224",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Members of SSO-required workspace cannot sign in with a password; sign in with SSO, enter work email, if provider is down, contact workspace Owner."
+  },
+  "help:slack@4#0": {
+    "sha256": "45cd4d1f66226de1b528afb20dad0f54c3ceeee5b6b72be0a73045a136e548e3",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Slack integration posts updates to a channel, turns messages into tasks, available on Team and Business plans; Admin connects it under Settings → Integrations → Slack."
+  },
+  "help:slack@4#1": {
+    "sha256": "f6a2da45be8e942c9b895a8020a9982ef5e919fb0b1eecee4532cef8c1e67da5",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Send project updates by opening project menu, selecting Integrations, then Slack, choosing the channel, and selecting events: new tasks, completed tasks, comments, or all."
+  },
+  "help:slack@4#2": {
+    "sha256": "62a480e215b33c3af3aa6507037d3074538b87f0c8c38bf039ccad7ee13938c3",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Use More actions menu on a Slack message, select Create Fernway task to link back, task description is message text."
+  },
+  "help:sso@8#0": {
+    "sha256": "eef84c8959147dda5b16c14c8817f31247b78c83cceb5625e2e04cebebf20666",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "SAML single sign-on lets members sign in to Fernway is available on the Business plan; it supports Okta, Microsoft Entra ID, Google Workspace, SAML 2.0."
+  },
+  "help:sso@8#1": {
+    "sha256": "108ecb9a5cfc55841d5891c2c05834ba4afe1b82c99f9f3b33359fa30e8718eb",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Owner opens Settings > Security > Single sign‑on, copies Fernway's ACS URL and entity ID into app, pastes provider metadata URL into Fernway, tests connection."
+  },
+  "help:sso@8#2": {
+    "sha256": "4b7a5ab861deb8521ab142c18be4f152a0e30c802a66c5c6fe6888941b9f0878",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Verify your email domain under Settings, then Domains, by adding Fernway's TXT record to DNS; only members with verified-domain addresses may sign in with SSO."
+  },
+  "help:sso@8#3": {
+    "sha256": "1df78f796552831e76a9d80c15c0460e57ee24231c24c0f88719219d68f45444",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Once test succeeds, turn on Require SSO; members sign in via identity provider, password sign-in disabled; owners keep password as recovery if provider down."
+  },
+  "help:sso@8#4": {
+    "sha256": "f8ea2a734651ea7dc9d9927ef56cc364988e4059e3b8315726e2e52f46351578",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Generate a SCIM token under sign‑on, SCIM, paste it with SCIM URL into Okta or Entra ID; deactivating a user removes their Fernway seat within minutes."
+  },
+  "help:status-and-uptime@3#0": {
+    "sha256": "c8c9e57fa559052feb72dec9434129aaf3516f0e6980ae9624fa1d61e86783db",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Check status.fernway.example for current state of web app, mobile sync service, API and integrations; subscribe for incident updates by email or RSS."
+  },
+  "help:status-and-uptime@3#1": {
+    "sha256": "5c7ff91a4ef3ec2f2998cb5a53fe01651184d6ed8220732379f0b596aae2bab4",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Business workspaces have a 99.9% monthly uptime commitment; below this, Owners may claim 10% credit, or 25% if below 99.0%, within 30days after month end."
+  },
+  "help:status-and-uptime@3#2": {
+    "sha256": "735109a4948583d2511ebe9a4389802f237816344b13f2cf88536748bcb4d0bf",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Scheduled maintenance is announced on the status page at least 72 hours in advance and does not count against the uptime commitment."
+  },
+  "help:support@2#0": {
+    "sha256": "c82283f85eab7858b929ac6ce8616514feaca467e11ca65f546c97730bc8fc0b",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Free workspaces get help in the community forum at community.fernway.example, where the Fernway team answers questions on weekdays."
+  },
+  "help:support@2#1": {
+    "sha256": "2472e3b7ff9f17ff3913bd453459280359d2a9d690c21617cb56c84862fdd502",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Team workspaces may email support@fernway.example; Team requests receive first reply within one business day, Business requests within 4 hours, around the clock."
+  },
+  "help:support@2#2": {
+    "sha256": "dc05adf82df795bae8f8b1a3fcdab8f1a0308dd137404414adc9c456636c47e7",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Include your workspace URL and, for a problem with a task, its key such as FW-123; support never asks for your password or API tokens."
+  },
+  "help:tasks@6#0": {
+    "sha256": "845aad23b2a32dcd7bbf0572b6a255f50b950e0f2acae81633ae417f73d39a3a",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Create a task by pressing N anywhere in a project, or with the plus button at the bottom of a column."
+  },
+  "help:tasks@6#1": {
+    "sha256": "4ec0cf2dfa133b0d761970b9c898257c20265e18791bf938dc94daed1fc47dcd",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Subtasks break a task into steps; add them from the task's Subtasks section, each subtask may have its own assignee and due date, and a task shows a progress bar of completed subtasks, but completing the task does not complete its open subtasks."
+  },
+  "help:tasks@6#2": {
+    "sha256": "2fc80ff7d08fd3b91158437191fd5bdd8db62e12deeacf3ebe0a8f256c58d60a",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Dependencies mark a task blocked by another; add dependency, pick blocking task in any project, shown by lock icon until all blockers complete."
+  },
+  "help:tasks@6#3": {
+    "sha256": "eb4e94f12ca12fa683525a629fa5dd98ec9c8d94f03109f8b9f22267f88186db",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Each task gets a short key like FW-123 from prefix and number; use it to link tasks from comments, other tasks, or a GitHub PR."
+  },
+  "help:webhooks@2#0": {
+    "sha256": "3f5a7fe444b36ee55828940aaf2de6142fd2a81c102286db83c812c05d479d66",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Admins create webhooks under Settings → Integrations → Webhooks, sending an HTTP POST to your URL when a task is created, updated, completed, deleted, or a comment is added."
+  },
+  "help:webhooks@2#1": {
+    "sha256": "43737730826c03366447f876710a08fda124ed108c8adaf1c01e7145a53c97f3",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Each delivery carries an X-Fernway-Signature header: HMAC-SHA256 of the request body keyed with the webhook's signing secret; compute and compare before trusting."
+  },
+  "help:webhooks@2#2": {
+    "sha256": "4849b1ee4c7205aab7717178dee404793b0d83cf80ded93f1803646d489afd00",
+    "method": "summarize/v1 gpt-oss-20b-MXFP4-Q8",
+    "text": "Endpoint must return 2xx within 10 s; failed deliveries retried 3 times over 1 h; after 50 consecutive failures, Fernway disables the webhook and emails the Admin."
+  }
+}

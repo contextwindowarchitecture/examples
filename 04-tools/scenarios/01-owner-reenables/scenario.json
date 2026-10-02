@@ -1,0 +1,76 @@
+{
+  "workspace": "w_kitewood",
+  "user": "u_ada",
+  "session": "s_01owner",
+  "asked_at": "2026-10-02T09:00:00Z",
+  "faults": [],
+  "turns": [],
+  "question": "Is our webhook still disabled? If so, please turn it back on.",
+  "model": {
+    "source": "scripted: the replies a capable model gives, written to show the whole loop (the local gpt-oss-20b this example was run against enabled the webhook but did not check it again)",
+    "replies": [
+      {
+        "text": "",
+        "calls": [
+          {
+            "name": "list_webhooks",
+            "arguments": {
+              "workspace": "w_kitewood"
+            }
+          }
+        ]
+      },
+      {
+        "text": "",
+        "calls": [
+          {
+            "name": "get_webhook",
+            "arguments": {
+              "workspace": "w_kitewood",
+              "webhook": "wh_31c9"
+            }
+          }
+        ]
+      },
+      {
+        "text": "",
+        "calls": [
+          {
+            "name": "enable_webhook",
+            "arguments": {
+              "workspace": "w_kitewood",
+              "webhook": "wh_31c9"
+            }
+          }
+        ]
+      },
+      {
+        "text": "",
+        "calls": [
+          {
+            "name": "get_webhook",
+            "arguments": {
+              "workspace": "w_kitewood",
+              "webhook": "wh_31c9"
+            }
+          }
+        ]
+      },
+      {
+        "text": "Yes: wh_31c9 had been disabled since 30 September at 15:58 UTC, after 50 deliveries in a row timed out after 10 seconds. I turned it back on and checked it again: it is active, with its failure count reset. Fernway disables a webhook after 50 consecutive failures, so make sure your endpoint answers with a 2xx status within 10 seconds, or it will be disabled again [help:webhooks@2#2].",
+        "calls": []
+      }
+    ]
+  },
+  "clock": [
+    "2026-10-02T09:00:01Z",
+    "2026-10-02T09:00:02Z",
+    "2026-10-02T09:00:03Z",
+    "2026-10-02T09:00:04Z",
+    "2026-10-02T09:00:06Z",
+    "2026-10-02T09:00:07Z",
+    "2026-10-02T09:00:08Z",
+    "2026-10-02T09:00:09Z",
+    "2026-10-02T09:00:11Z"
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "w_kitewood": {
+    "wh_31c9": {
+      "url": "https://hooks.kitewood.example/fernway",
+      "events": ["task.created", "task.updated", "task.completed", "comment.added"],
+      "status": "disabled",
+      "disabled_at": "2026-09-30T15:58:40Z",
+      "consecutive_failures": 50,
+      "last_failure": "timeout after 10.0s",
+      "last_response_body": null,
+      "created_by": "u_ada"
+    },
+    "wh_52aa": {
+      "url": "https://ci.kitewood.example/fernway-events",
+      "events": ["task.completed"],
+      "status": "active",
+      "disabled_at": null,
+      "consecutive_failures": 0,
+      "last_failure": null,
+      "last_response_body": null,
+      "created_by": "u_ada"
+    }
+  },
+  "w_larkspur": {
+    "wh_7d10": {
+      "url": "https://larkspur.example/hooks/fernway",
+      "events": ["comment.added"],
+      "status": "active",
+      "disabled_at": null,
+      "consecutive_failures": 0,
+      "last_failure": null,
+      "last_response_body": null,
+      "created_by": "u_cho"
+    }
+  }
+}

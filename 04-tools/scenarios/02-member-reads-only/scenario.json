@@ -1,0 +1,34 @@
+{
+  "workspace": "w_kitewood",
+  "user": "u_ben",
+  "session": "s_c38b133c",
+  "asked_at": "2026-10-02T06:35:08Z",
+  "faults": [],
+  "turns": [],
+  "question": "Is our webhook still disabled? If so, please turn it back on.",
+  "model": {
+    "source": "recorded from gpt-oss-20b-MXFP4-Q8 through the openai provider",
+    "replies": [
+      {
+        "text": "",
+        "calls": [
+          {
+            "name": "list_webhooks",
+            "arguments": {
+              "workspace": "w_kitewood"
+            }
+          }
+        ]
+      },
+      {
+        "text": "Yes – webhook **wh_31c9** is still disabled ([help:webhooks@2#0]).  \nTo enable it you’ll need a Workspace Owner or Admin, as only admins can change webhook status. If you’re not an admin, please ask an owner to enable it.",
+        "calls": []
+      }
+    ]
+  },
+  "clock": [
+    "2026-10-02T06:35:09Z",
+    "2026-10-02T06:35:12Z",
+    "2026-10-02T06:35:12Z"
+  ]
+}
