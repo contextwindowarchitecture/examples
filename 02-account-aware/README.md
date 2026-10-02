@@ -166,6 +166,8 @@ Same as 01: `--provider anthropic` or `--provider openai`, with the settings in 
 OPENAI_BASE_URL=http://127.0.0.1:8000/v1 uv run app.py --provider openai --model gpt-oss-20b-MXFP4-Q8 --user u_ben
 ```
 
+`--record DIR` keeps one question's run in a folder, as in 01: `conversation.json` with who asked and when, the assembly's `snapshot.json`, `trace.json` and `payload.json` unless refused, and `run.json` with the provider, model and answer, or the error. `--conversation DIR/conversation.json` asks the same question again and freezes the same snapshot.
+
 ## Limits
 
 - Memories here are written by hand. A real store also saves them from conversations, and the step that decides what to remember, and which fact a memory asserts, is where an application needs the most care. CWA starts at the point where a memory is a candidate.

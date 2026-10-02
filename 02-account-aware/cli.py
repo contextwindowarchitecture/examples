@@ -28,6 +28,8 @@ def parser(doc: str | None) -> argparse.ArgumentParser:
     p.add_argument("--provider", choices=["none", "anthropic", "openai"], default=os.environ.get("DOCS_QA_PROVIDER", "none"),
                    help="where to send the request; none, the default, prints it instead")
     p.add_argument("--model", default=os.environ.get("DOCS_QA_MODEL"), help="the model to ask (default: the provider's)")
+    p.add_argument("--record", metavar="DIR",
+                   help="also write the conversation, what was sent and the reply to DIR, to read or compare later")
     return p
 
 
@@ -54,18 +56,34 @@ def run(args: argparse.Namespace, answer: Answer) -> int:
         else:
             conversation = signed_in(args.user)
             conversation.ask(args.question)
+        if args.record:
+            conversation.save(Path(args.record) / "conversation.json")
         try:
             reply = answer(conversation, args.provider, args.model)
         except ProviderError as error:
             print(f"error: {error}", file=sys.stderr)
+            record_reply(args, None, error)
             return 1
+        record_reply(args, reply)
         if reply is not None:
             print("\n" + reply)
         return 0
+    if args.record:
+        print("--record keeps one question: pass a question or --conversation", file=sys.stderr)
+        return 2
     if args.provider == "none":
         print("chatting needs a model: pass --provider anthropic or --provider openai (see README.md)", file=sys.stderr)
         return 2
     return _chat(args, answer)
+
+
+def record_reply(args: argparse.Namespace, reply: str | None, error: ProviderError | None = None) -> None:
+    """With --record, write run.json: who was asked, and the reply or the error. A null answer and no error means
+    nothing was sent: the assembly refused, or the provider was none."""
+    if args.record:
+        outcome = {"provider": args.provider, "model": args.model, "answer": reply, "error": str(error) if error else None}
+        (Path(args.record) / "run.json").write_text(json.dumps(outcome, indent=2, ensure_ascii=False) + "\n",
+                                                    encoding="utf-8")
 
 
 def _chat(args: argparse.Namespace, answer: Answer) -> int:
