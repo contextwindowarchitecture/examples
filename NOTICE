@@ -1,0 +1,6 @@
+CWA examples
+Copyright 2026 Melvin Hillsman
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+The examples depend on the CWA reference assembler (contextwindowarchitecture/assembler-python),
+licensed the same way. Fernway, the product in the examples' help-center corpus, is fictional.
