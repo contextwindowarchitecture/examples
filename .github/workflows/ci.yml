@@ -1,8 +1,9 @@
 # Every example's suite on every supported Python, and a check that every example pins the same assembler-python
 # tag and locks the same commit. The suite rebuilds each committed scenario from its inputs and assembles it, so a
 # change to a help-center article, the instructions, the route policy or the assembler pin fails here until the
-# scenarios are regenerated and the context diff is committed for review. No model is called. A tag runs it through
-# release.yml, on the tagged commit.
+# scenarios are regenerated and the context diff is committed for review. bench's own suite runs too: its proxy
+# against a stand-in for OpenRouter on localhost, and its replay in an example's environment. No model is called. A
+# tag runs it through release.yml, on the tagged commit.
 name: ci
 
 on:
@@ -49,4 +50,25 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: uv sync --locked
+      - run: uv run pytest
+
+  bench:
+    name: bench (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.14"]
+    defaults:
+      run:
+        working-directory: bench
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - run: uv sync --locked
+      # Two tests run real commands in 01 and 02, which uv syncs on first use; none reaches a model or OpenRouter.
       - run: uv run pytest
