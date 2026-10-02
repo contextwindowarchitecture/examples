@@ -42,6 +42,17 @@ No API key is needed to see what would be sent. Each example's README says how t
 
 Each example commits scenarios: a conversation in, and the snapshot, trace and exact request it produces. CI rebuilds them on every push, so editing a document, the instructions or the policy fails the build until the scenarios are regenerated. The pull request then shows exactly how the context the model receives has changed.
 
+## Benchmark
+
+[bench/](bench/) runs every example against a list of models on OpenRouter and records, for each model, what CWA decided and what the model did with it. Every request is checked against the payload the assembler rendered, and every answer is graded against what its run actually did. A local viewer lays the results out by CWA construct: the cases that exercised each one, and how each model fared with the same decision.
+
+```sh
+cd bench
+uv run --env-file .env plan.py      # what a run would do and cost; nothing is sent
+uv run --env-file .env run.py       # run it, into results/ (gitignored)
+uv run serve.py                     # the viewer, at http://127.0.0.1:8765/
+```
+
 ## Releases
 
 The CWA repositories are released under one tag name: the website, [assembler-python](https://github.com/contextwindowarchitecture/assembler-python) and the other assemblers, the demo, and these examples. Every example pins assembler-python to a tag in its `pyproject.toml`, and its `uv.lock` holds the commit that tag resolved to. [scripts/assembler_pin.py](scripts/assembler_pin.py) checks on every push that all examples pin the same tag and lock the same commit.

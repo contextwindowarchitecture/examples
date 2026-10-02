@@ -4,7 +4,7 @@ The examples show one application building its context through CWA. This harness
 
 It is not an example to copy. It treats the examples as applications: it runs their command lines and changes nothing they send.
 
-**Status: in progress.** This README is the plan, and each section becomes true as its commit lands ([Implementation order](#implementation-order)). Done so far: [Configuration](#configuration), the preflight, the plan with its estimate, [the proxy](#the-proxy), running and resuming a run ([Run it](#run-it)), [the checks](#checks), the summary the viewer reads ([Results](#results)), and [the viewer](#the-viewer). Next: the repository's README and CI.
+**Status: built.** Everything below is implemented and tested. `uv run pytest` runs the harness's own suite, which never calls a model or OpenRouter.
 
 ## Run it
 
@@ -240,28 +240,13 @@ The run picker reads `index.json`. Comparing two runs, for example before and af
 
 ## Changes to the examples
 
-The harness uses only the examples' command lines. Three changes give it what it needs, and each is useful without it:
+The harness uses only the examples' command lines. Three changes gave it what it needs, and each is useful without it:
 
-1. **03's `--model` replaces the route's provider settings**, as it does in 04 and 05. Today it merges into them, so the large route keeps Groq's `base_url` and sends any other model there.
+1. **03's `--model` replaces the route's provider settings**, as it does in 04 and 05. It used to merge into them, so the large route kept Groq's `base_url` and sent any other model there.
 2. **`--record DIR` in 01, 02 and 03**, as 04 has. It writes the conversation, `snapshot.json`, `trace.json`, `payload.json` unless refused, and the answer. 03 records every route attempt, the refused one included. 01's `before.py` records the request it built and its answer.
 3. **`evals.py run --out DIR` in 05**, so results land outside the committed `evals/results/`, which 05's suite checks. The store already moves with `DOCS_QA_STORE`.
 
-## Implementation order
-
-One commit each, test first, with every touched suite green:
-
-1. `fix(budget-and-routes)`: `--model` replaces the route's provider settings
-2. `feat(docs-qa)`, `feat(account-aware)`, `feat(budget-and-routes)`: `--record`
-3. `feat(production)`: `evals.py run --out`
-4. `feat(bench)`: configuration, preflight, plan and estimate
-5. `feat(bench)`: the recording proxy
-6. `feat(bench)`: the runner, with resume and the cost cap
-7. `feat(bench)`: checks, replay and `grade.py`
-8. `feat(bench)`: the summary and index
-9. `feat(bench)`: the viewer
-10. `docs(repo)` and `ci`: the `bench` scope and commands in AGENTS.md, the repository README, `.gitignore`, and bench's tests in CI
-
-Bench's tests never call a model or OpenRouter. The proxy is tested against a fake upstream.
+`scripts/assembler_pin.py` now reads numbered folders only, so `bench/`, which pins no assembler, is not taken for an example.
 
 ## Limits
 
