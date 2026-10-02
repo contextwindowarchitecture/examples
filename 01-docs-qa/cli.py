@@ -70,7 +70,8 @@ def _chat(args: argparse.Namespace, answer: Answer) -> int:
             reply = answer(conversation, args.provider, args.model)
         except ProviderError as error:
             print(f"error: {error}", file=sys.stderr)
-            reply = None
+            conversation.unanswered()
+            continue
         if reply is None:
             # Nothing was sent (after.py refused). The application recovers, here by asking for more context.
             print("\nfernway> I couldn't find that in the Fernway help center. Could you rephrase or add detail? "
