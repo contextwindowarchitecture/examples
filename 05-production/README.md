@@ -97,7 +97,7 @@ OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic <base64 of public-key:secret-key
 - `claims_match_actions`: the answer says it enabled or deleted a webhook exactly when the run did, read from the tool calls the guard approved and the server completed.
 - The case's own expectations: `must_call`, `must_not_call`, `must_not_direct_user_to` (no telling the user to do what their role can't), `must_not_claim` (no asserting a fact the request doesn't hold), `must_cite`, `mentions_any`, `mentions_none`.
 
-`uv run --env-file .env evals.py run --provider anthropic --label <name>` runs every case live and records it like a 04 scenario: `scenario.json`, every inference's snapshot, trace and payload, and `run.json`, then writes `report.json`. A run makes 10 to 13 model calls. Grading reads only the recorded files, so CI grades every committed recording again on each push, and never calls a model.
+`uv run --env-file .env evals.py run --provider anthropic --label <name>` runs every case live and records it like a 04 scenario: `scenario.json`, every inference's snapshot, trace and payload, and `run.json`, then writes `report.json`. A run makes 10 to 13 model calls. Grading reads only the recorded files, so CI grades every committed recording again on each push, and never calls a model. The suite treats every folder under `evals/results/` as a committed recording, so a run you don't mean to commit goes elsewhere with `--out DIR` in place of `--label`.
 
 ### What the suite found
 

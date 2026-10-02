@@ -2,6 +2,7 @@
 the route's profile only when every case passes (R-19).
 
     uv run evals.py run --provider openai                  # run every case live, record it, grade the results
+    uv run evals.py run --provider openai --model M --out DIR   # the same, recorded in DIR, outside evals/results/
     uv run evals.py grade evals/results/LABEL              # grade recorded results again; --check fails when the
                                                              committed report differs
     uv run evals.py promote evals/results/LABEL            # mark the profile evaluated, if every case passed for
@@ -159,12 +160,14 @@ def _write(path: Path, value: Any) -> None:
     path.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
-def run_suite(provider: str, model_name: str | None, label: str | None) -> Path:
-    """Run every case live against the route's model (or model_name), and record each run."""
+def run_suite(provider: str, model_name: str | None, label: str | None, out: str | Path | None = None) -> Path:
+    """Run every case live against the route's model (or model_name), and record each run under evals/results/, or in
+    out. The suite checks every folder under evals/results/ against its committed report, so a run that is not to be
+    committed, such as the benchmark's, goes to out."""
     route = routes.load(routes.default())
     options = {"model": model_name} if model_name else dict(route.models[provider])
     profile = _json(PROFILE)
-    results = RESULTS / (label or f"{options['model']}-{date.today().isoformat()}")
+    results = Path(out) if out else RESULTS / (label or f"{options['model']}-{date.today().isoformat()}")
     results.mkdir(parents=True, exist_ok=True)
     _write(results / "meta.json", {
         "model": options["model"], "date": date.today().isoformat(),
@@ -218,14 +221,16 @@ def main(argv: list[str]) -> int:
     running = commands.add_parser("run")
     running.add_argument("--provider", choices=["anthropic", "openai"], default="openai")
     running.add_argument("--model", help="the model to evaluate, on the endpoint the environment names; default the route's")
-    running.add_argument("--label", help="the results folder's name under evals/results/")
+    folder = running.add_mutually_exclusive_group()
+    folder.add_argument("--label", help="the results folder's name under evals/results/")
+    folder.add_argument("--out", metavar="DIR", help="record the results in DIR instead, outside evals/results/")
     grading = commands.add_parser("grade")
     grading.add_argument("results")
     grading.add_argument("--check", action="store_true", help="fail when the committed report.json differs")
     commands.add_parser("promote").add_argument("results")
     args = parser.parse_args(argv)
     if args.command == "run":
-        results = run_suite(args.provider, args.model, args.label)
+        results = run_suite(args.provider, args.model, args.label, args.out)
     elif args.command == "promote":
         problems = promote(Path(args.results))
         print("promoted: the profile is evaluated" if not problems else "not promoted:\n  " + "\n  ".join(problems))
