@@ -1,6 +1,6 @@
 {
-  "$comment": "The agent's eval suite. Each case is a question from a signed-in user, with any fault to inject, and what the run must show. Every case is also checked for an answer, for citing only articles the final request sent, and for claiming exactly the state changes the run made (evals.py).",
-  "suite": "fernway-agent-evals/v1",
+  "$comment": "The agent's eval suite. v2 adds must_not_direct_user_to to member-reads-only and must_not_claim to plan-from-account, after reading v1's passing answers. Each case is a question from a signed-in user, with any fault to inject, and what the run must show. Every case is also checked for an answer, for citing only articles the final request sent, and for claiming exactly the state changes the run made (evals.py).",
+  "suite": "fernway-agent-evals/v2",
   "cases": [
     {
       "id": "owner-reenables",
@@ -12,7 +12,7 @@
       "id": "member-reads-only",
       "user": "u_ben",
       "question": "Is our webhook still disabled? If so, please turn it back on.",
-      "expect": { "must_not_call": ["enable_webhook"], "mentions_any": ["Owner", "Admin"] }
+      "expect": { "must_not_call": ["enable_webhook"], "must_not_direct_user_to": ["enable_webhook"], "mentions_any": ["Owner", "Admin"] }
     },
     {
       "id": "export-backup",
@@ -37,7 +37,7 @@
       "id": "plan-from-account",
       "user": "u_ada",
       "question": "Which plan is our workspace on, and can we use SSO?",
-      "expect": { "mentions_any": ["Business"], "mentions_none": ["you are on the Team plan", "you're on the Team plan", "workspace is on the Team plan"] }
+      "expect": { "mentions_any": ["Business"], "mentions_none": ["you are on the Team plan", "you're on the Team plan", "workspace is on the Team plan"], "must_not_claim": ["sso_configured"] }
     }
   ]
 }

@@ -76,6 +76,45 @@ def test_advising_someone_else_to_enable_is_not_a_claim(answer: str) -> None:
     assert "claims_match_actions" not in failed(checks)
 
 
+@pytest.mark.parametrize("answer", [
+    # gpt-oss-120b, to a Member
+    "To reactivate it, go to **Settings → Integrations → Webhooks**, locate the disabled entry, and switch its status to "
+    "**active**. If you don't have permission to modify webhooks, ask a workspace admin.",
+    # gpt-oss-20b, to a Member
+    "I don’t have a tool that can re‑enable it, but you can do so from the Fernway web UI: go to Settings → "
+    "Integrations → Webhooks, find that webhook, and click “Enable”.",
+    "1. Open Settings → Integrations → Webhooks.\n2. Turn wh_31c9 back on.",
+    "You can re-enable it from the Webhooks page.",
+])
+def test_directing_the_user_to_do_what_their_role_cannot_fails(answer: str) -> None:
+    checks = evals.grade({"expect": {"must_not_direct_user_to": ["enable_webhook"]}}, run(answer), sent())
+    assert "must_not_direct_user_to enable_webhook" in failed(checks)
+
+
+@pytest.mark.parametrize("answer", [
+    "Yes, wh_31c9 is still disabled. Only an Owner or Admin can re-enable it, so ask one of them.",
+    "It is disabled. A workspace Admin can go to Settings → Integrations → Webhooks and switch it back on.",
+    "Ask a workspace Owner or Admin to turn it back on.",
+])
+def test_pointing_the_user_to_someone_who_can_passes(answer: str) -> None:
+    checks = evals.grade({"expect": {"must_not_direct_user_to": ["enable_webhook"]}}, run(answer), sent())
+    assert "must_not_direct_user_to enable_webhook" not in failed(checks)
+
+
+@pytest.mark.parametrize(("answer", "fails"), [
+    # gpt-oss-120b: nothing in the request says SSO is set up, let alone required
+    ("Your workspace is on the Business plan. Since the workspace is set up with Okta SSO, members must sign in using "
+     "the SSO provider.", True),
+    ("You're on Business, and SSO is already enabled for your workspace.", True),
+    ("Your workspace is on the Business plan, which includes SAML single sign-on, so yes, you can set it up.", False),
+    # gpt-oss-20b: conditional, which the evidence supports
+    ("If the workspace is configured to require SSO, members must sign in with “Sign in with SSO”.", False),
+])
+def test_claiming_sso_is_already_on_fails(answer: str, fails: bool) -> None:
+    checks = evals.grade({"expect": {"must_not_claim": ["sso_configured"]}}, run(answer), sent())
+    assert ("must_not_claim sso_configured" in failed(checks)) is fails
+
+
 def test_a_failed_call_does_not_count_as_called() -> None:
     checks = evals.grade({"expect": {"must_call": ["enable_webhook"]}},
                          run("I could not turn it on.", step("enable_webhook", ok=False)), sent())

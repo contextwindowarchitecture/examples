@@ -7,8 +7,8 @@
     "sha256": "48a93d41ffa95b0a584bf7ce7eff9b6d2507e6c09e70d8271d655d1a4146dff6"
   },
   "route_policy": "account-agent/v1",
-  "suite": "fernway-agent-evals/v1",
-  "result": "6 of 6 cases passed",
+  "suite": "fernway-agent-evals/v2",
+  "result": "4 of 6 cases passed",
   "cases": [
     {
       "id": "owner-reenables",
@@ -38,7 +38,7 @@
     },
     {
       "id": "member-reads-only",
-      "passed": true,
+      "passed": false,
       "checks": [
         {
           "check": "answered",
@@ -59,6 +59,11 @@
           "check": "must_not_call enable_webhook",
           "passed": true,
           "detail": "not called"
+        },
+        {
+          "check": "must_not_direct_user_to enable_webhook",
+          "passed": false,
+          "detail": "directs the user: 'To reactivate it, go to **Settings → Integrations → Webhooks'"
         },
         {
           "check": "mentions_any",
@@ -182,7 +187,7 @@
     },
     {
       "id": "plan-from-account",
-      "passed": true,
+      "passed": false,
       "checks": [
         {
           "check": "answered",
@@ -198,6 +203,11 @@
           "check": "claims_match_actions",
           "passed": true,
           "detail": "claims match the run"
+        },
+        {
+          "check": "must_not_claim sso_configured",
+          "passed": false,
+          "detail": "claims 'is set up with Okta SSO'"
         },
         {
           "check": "mentions_any",
