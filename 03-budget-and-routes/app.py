@@ -62,7 +62,9 @@ def answer(conversation: Conversation, provider: str, model: str | None, *, rout
         return None
     if provider not in chosen.models:
         raise providers.ProviderError(f"route {chosen.name} names no {provider} model in policy/routes.json")
-    options = dict(chosen.models[provider]) | ({"model": model} if model else {})
+    # --model replaces the route's settings for the provider, endpoint included: that model, on the endpoint the
+    # environment names (OPENAI_BASE_URL), whichever route answers. The route still decides the budget and the policy.
+    options = {"model": model} if model else dict(chosen.models[provider])
     return providers.ask(provider, options, system, messages, chosen.budget["reserved_output"])
 
 

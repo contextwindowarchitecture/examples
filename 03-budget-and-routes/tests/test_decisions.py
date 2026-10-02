@@ -112,6 +112,24 @@ def test_the_app_escalates_to_the_large_route_and_asks_its_model(monkeypatch: py
     assert [options["model"] for options in asked] == [routes.load("account-help").models["anthropic"]["model"]]
 
 
+@pytest.mark.parametrize("name", ["02-small-route", "03-pasted-log"])
+def test_a_model_on_the_command_line_replaces_the_routes_settings(name: str, monkeypatch: pytest.MonkeyPatch,
+                                                                  tmp_path: Path) -> None:
+    # --model is that model on the endpoint the environment names, as in 04 and 05, whichever route answers. The small
+    # route's reasoning effort and the large route's own endpoint and key variable belong to the route's model.
+    asked: list[dict[str, Any]] = []
+
+    def model(provider: str, options: dict[str, Any], *args: Any) -> str:
+        asked.append(options)
+        return "answer"
+
+    monkeypatch.setattr(providers, "ask", model)
+    chat = conversation(name)
+    chat.route = None  # the small route first; the pasted log escalates to the large one
+    assert app.answer(chat, "openai", "vendor/some-model", out=io.StringIO(), runs=tmp_path) == "answer"
+    assert asked == [{"model": "vendor/some-model"}]
+
+
 def test_a_summary_is_offered_only_for_the_text_it_was_made_from() -> None:
     node = corpus.nodes()[0]
     assert corpus.summary(node) is not None
