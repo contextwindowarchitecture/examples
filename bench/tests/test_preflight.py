@@ -50,7 +50,7 @@ def test_a_stale_scenario_fails_with_what_the_check_said() -> None:
 
 def test_a_missing_key_fails_and_a_present_one_is_never_shown() -> None:
     assert failures(preflight.checks(CONFIG, CATALOG, {}, Commands())) == {
-        "key": "OPENROUTER_API_KEY is not set; uv run --env-file ../.env reads it from the repository's .env"}
+        "key": "OPENROUTER_API_KEY is not set; uv run --env-file .env reads it from bench/.env"}
     assert all("sk-or-secret" not in check.detail for check in preflight.checks(CONFIG, CATALOG, KEY, Commands()))
 
 

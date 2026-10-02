@@ -44,8 +44,8 @@ def checks(config: Config, catalog: Mapping[str, Listing], environ: Mapping[str,
     if environ.get(config.key_env):
         found.append(Check("key", True, f"{config.key_env} is set"))
     else:
-        found.append(Check("key", False, f"{config.key_env} is not set; uv run --env-file ../.env reads it from the "
-                                         "repository's .env"))
+        found.append(Check("key", False, f"{config.key_env} is not set; uv run --env-file .env reads it from "
+                                         "bench/.env"))
     missing = [model for model in config.models if model not in catalog]
     found.append(Check("models", not missing, f"not on OpenRouter's model list: {', '.join(missing)}" if missing
                        else f"all {len(config.models)} are on OpenRouter's model list"))

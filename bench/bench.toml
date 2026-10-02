@@ -1,5 +1,5 @@
 # The models to benchmark and how to run them (README.md). Model IDs are OpenRouter's, sent as written. The key is read
-# from the variable key_env names; `uv run --env-file ../.env ...` reads it from the repository's .env.
+# from the variable key_env names; `uv run --env-file .env ...` reads it from bench/.env, which git ignores.
 
 models = [
   "inclusionai/ling-3.1-flash",

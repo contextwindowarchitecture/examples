@@ -11,11 +11,11 @@ It is not an example to copy. It treats the examples as applications: it runs th
 ```sh
 cd bench
 uv run pytest                          # the harness's own tests: no model, no network
-uv run --env-file ../.env plan.py      # the preflight, then what a run would do and cost; nothing is sent
+uv run --env-file .env plan.py         # the preflight, then what a run would do and cost; nothing is sent
 ```
 
 ```console
-$ uv run --env-file ../.env plan.py
+$ uv run --env-file .env plan.py
 preflight
   ok    01-docs-qa scenarios: 3 scenarios are current
   ...
@@ -102,7 +102,7 @@ Only `models` and `max_cost_usd` are required. The rest default to every example
 - **A spending cap.** A run without `max_cost_usd` is refused.
 - **No unknown settings,** so a misspelled one is not silently ignored.
 
-The key is read from the environment. `uv run --env-file ../.env ...` reads it from the repository's `.env`, which git ignores, as the examples do.
+The key is read from the environment. `uv run --env-file .env ...` reads it from `bench/.env`, which git ignores, as the examples keep theirs.
 
 Each model's results go in a folder named after its ID, with `/` and `:` replaced by `-`, as in `google-gemma-4-31b-it-free`.
 

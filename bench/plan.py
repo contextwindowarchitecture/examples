@@ -1,7 +1,7 @@
 """What a run would do and what it would likely cost, before anything is sent.
 
     uv run plan.py                          # the preflight, then the plan and its estimate; nothing is sent
-    uv run --env-file ../.env plan.py       # the same, with the key read from the repository's .env
+    uv run --env-file .env plan.py          # the same, with the key read from bench/.env
     uv run plan.py --config other.toml
 
 A job is one case of one example, for one model and repeat. Jobs run repeat by repeat, so a run its spending cap
