@@ -4,7 +4,7 @@ The examples show one application building its context through CWA. This harness
 
 It is not an example to copy. It treats the examples as applications: it runs their command lines and changes nothing they send.
 
-**Status: in progress.** This README is the plan, and each section becomes true as its commit lands ([Implementation order](#implementation-order)). Done so far: [Configuration](#configuration), the preflight, and the plan with its estimate ([Run it](#run-it)).
+**Status: in progress.** This README is the plan, and each section becomes true as its commit lands ([Implementation order](#implementation-order)). Done so far: [Configuration](#configuration), the preflight, the plan with its estimate ([Run it](#run-it)), and [the proxy](#the-proxy).
 
 ## Run it
 
@@ -126,15 +126,17 @@ In 01–03 the context does not depend on the model: every model gets the same s
 
 ## The proxy
 
-A local HTTP server between the examples and OpenRouter. Each case gets its own path prefix, so calls made in parallel are credited to the right case.
+[proxy.py](proxy.py) is a local HTTP server between the examples and OpenRouter. Each job's example gets `OPENAI_BASE_URL=http://127.0.0.1:<port>/<job>`, where `<job>` is the job's folder in the run, and a dummy key. Every call is credited to its job, however many run at once, and the key never reaches an example.
 
 | It adds | It records | It never changes |
 | --- | --- | --- |
-| The OpenRouter key. The examples get a dummy one | The request bytes, the response, latency and attempts | The request body the example sent |
-| | Tokens (prompt, completion, reasoning, cached) and `cost` | |
-| | The model and host that answered | |
+| The OpenRouter key | `calls/<n>.request.json`: the request body exactly as the example sent it | The request body |
+| | `calls/<n>.response.json`: the body the example got back | The response body |
+| | A line in `calls.jsonl`: the model asked for, the model and host that answered (OpenRouter's `model` and `provider`), tokens (prompt, completion, reasoning, cached), `cost`, latency, and each attempt | |
 
-It retries 429 and 5xx responses with backoff and records each attempt. OpenRouter limits free models to 20 requests a minute, and to 1,000 a day once $10 of credit has been bought.
+The key is never written. A path that is not a plain folder under the run is refused.
+
+It retries a 429 or a 5xx, and a connection that drops, after the host's `Retry-After` or with a wait that doubles from 5 seconds to at most 60, six attempts in all. Free models share upstream rate limits, and their 429s carry no `Retry-After`: OpenRouter's error names the host in `error.metadata.provider_name`. OpenRouter also limits free models to 20 requests a minute, and to 1,000 a day once $10 of credit has been bought.
 
 ## Checks
 
@@ -168,7 +170,10 @@ results/<run-id>/                       # for example 2026-10-02T1530Z-bebe9ab
                      # route policies and profiles, the bench.toml digest, models and the prices used
   calls.jsonl        # one line per call: the case, the model asked, the model and host that answered,
                      # tokens, cost, latency, attempts
-  <model>/<example>/<case>/<repeat>/    # the example's record, and checks.json
+  <model>/<example>/<case>/<repeat>/
+    record/          # what the example wrote with --record, or --out for 05's suite
+    calls/           # what the proxy saw: <n>.request.json and <n>.response.json
+    checks.json
   summary.json       # per model: invariants, measures, 05's result, cost, latency
   index.json         # what the viewer reads
 ```
