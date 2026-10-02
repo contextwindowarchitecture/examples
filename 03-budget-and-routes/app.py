@@ -68,7 +68,7 @@ def answer(conversation: Conversation, provider: str, model: str | None, *, rout
     return providers.ask(provider, options, system, messages, chosen.budget["reserved_output"])
 
 
-def record(conversation: Conversation, reply: str, provider: str) -> None:
+def save_turn(conversation: Conversation, reply: str, provider: str) -> None:
     """Save the question and the answer to the history, each with a summary if it is long. The summary is made now,
     when the turn is written, so a later assembly can choose it without calling a model (R-18)."""
     options = dict(routes.load(routes.default()).models[provider])
@@ -157,7 +157,7 @@ def main(argv: list[str]) -> int:
     args = parser.parse_args(argv)
     if args.replay:
         return 0 if replay(args.replay) else 1
-    return cli.run(args, lambda conversation, provider, model: answer(conversation, provider, model, route=args.route), record)
+    return cli.run(args, lambda conversation, provider, model: answer(conversation, provider, model, route=args.route), save_turn)
 
 
 if __name__ == "__main__":

@@ -16,8 +16,8 @@ ACCOUNTS = Path(__file__).parent / "data" / "accounts.json"
 
 # answer(conversation, provider, model) -> the model's reply, or None when nothing was sent
 Answer = Callable[[Conversation, str, str | None], str | None]
-# record(conversation, reply, provider) saves the question and the reply to the conversation's turns
-Record = Callable[[Conversation, str, str], None]
+# save_turn(conversation, reply, provider) saves the question and the reply to the conversation's turns
+SaveTurn = Callable[[Conversation, str, str], None]
 
 
 def parser(doc: str | None) -> argparse.ArgumentParser:
@@ -49,7 +49,7 @@ def signed_in(user: str) -> Conversation:
     return Conversation.new(users[user]["workspace"], user)
 
 
-def run(args: argparse.Namespace, answer: Answer, record: Record) -> int:
+def run(args: argparse.Namespace, answer: Answer, save_turn: SaveTurn) -> int:
     if args.conversation or args.question:
         if args.conversation:
             conversation = Conversation.load(args.conversation)
@@ -67,10 +67,10 @@ def run(args: argparse.Namespace, answer: Answer, record: Record) -> int:
     if args.provider == "none":
         print("chatting needs a model: pass --provider anthropic or --provider openai (see README.md)", file=sys.stderr)
         return 2
-    return _chat(args, answer, record)
+    return _chat(args, answer, save_turn)
 
 
-def _chat(args: argparse.Namespace, answer: Answer, record: Record) -> int:
+def _chat(args: argparse.Namespace, answer: Answer, save_turn: SaveTurn) -> int:
     conversation = signed_in(args.user)
     print(f"Ask about Fernway as {conversation.user} of {conversation.workspace} (session {conversation.session}). "
           "Ctrl-D to quit.")
@@ -97,7 +97,7 @@ def _chat(args: argparse.Namespace, answer: Answer, record: Record) -> int:
             continue
         print(f"\nfernway> {reply}")
         try:
-            record(conversation, reply, args.provider)
+            save_turn(conversation, reply, args.provider)
         except ProviderError as error:  # the answer stands; only its summary failed
             print(f"error: could not summarize the turn: {error}", file=sys.stderr)
             conversation.answered(reply)
