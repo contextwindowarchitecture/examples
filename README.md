@@ -23,7 +23,7 @@ Each example builds on the one before it. Together they add up to the real-world
 | [02-account-aware](02-account-aware/) | The same bot, aware of who is asking: account state from a database and memories from earlier conversations. Expired and revoked memories reported by their producer, an out-of-date memory losing a declared conflict to the account, and another user's memories kept out by scope | ready |
 | [03-budget-and-routes](03-budget-and-routes/) | The same bot on a small and a large model route, each with its own policy and placement. Summaries written ahead of time replace long turns and articles before anything is dropped, and a request too big for the small route is rebuilt on the large one | ready |
 | [04-tools](04-tools/) | The bot as an agent with tools from an MCP server. A capability policy offers tools by role, a guard checks every call before it is made, each inference is its own snapshot, and a later look at the same thing supersedes the earlier one. An instruction injected into a tool result cannot make a call happen | ready |
-| 05-production | A snapshot store with replay, traces in an observability tool, and evals | planned |
+| [05-production](05-production/) | The agent made production-shaped: a snapshot store with replay and what-if analysis of a candidate policy, OpenTelemetry traces of every decision, an eval suite graded against what each run did, and a deployment gate that runs only a profile evaluated for its model | ready |
 
 ## Running one
 
