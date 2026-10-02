@@ -1,0 +1,57 @@
+{
+  "steps": [
+    {
+      "tool": "list_webhooks",
+      "arguments": {
+        "workspace": "w_kitewood"
+      },
+      "approved": true,
+      "reason": "offered as cap:list_webhooks; arguments match the schema and the request's scope",
+      "ok": true,
+      "value": {
+        "webhooks": [
+          {
+            "id": "wh_31c9",
+            "url": "https://hooks.kitewood.example/fernway",
+            "status": "disabled"
+          },
+          {
+            "id": "wh_52aa",
+            "url": "https://ci.kitewood.example/fernway-events",
+            "status": "active"
+          }
+        ]
+      },
+      "observed_at": "2026-10-02T12:47:25Z"
+    },
+    {
+      "tool": "get_webhook",
+      "arguments": {
+        "workspace": "w_kitewood",
+        "webhook": "wh_31c9"
+      },
+      "approved": true,
+      "reason": "offered as cap:get_webhook; arguments match the schema and the request's scope",
+      "ok": true,
+      "value": {
+        "id": "wh_31c9",
+        "url": "https://hooks.kitewood.example/fernway",
+        "events": [
+          "task.created",
+          "task.updated",
+          "task.completed",
+          "comment.added"
+        ],
+        "status": "disabled",
+        "disabled_at": "2026-09-30T15:58:40Z",
+        "consecutive_failures": 50,
+        "last_failure": "timeout after 10.0s",
+        "last_response_body": null,
+        "created_by": "u_ada"
+      },
+      "observed_at": "2026-10-02T12:47:28Z"
+    }
+  ],
+  "answer": "Yes, webhook wh_31c9 (https://hooks.kitewood.example/fernway) is still disabled. Fernway turned it off on 2026-09-30 at 15:58 UTC after 50 failures in a row, and the last one was a timeout after 10 seconds [help:webhooks@2#2]. I can't turn it back on because my tools can only view webhooks, not change them. Webhooks are managed by Admins under Settings → Integrations → Webhooks, so you'll need to ask a workspace Admin, such as Ada (u_ada), who created it [help:webhooks@2#0]. Before it's turned back on, the endpoint needs to be fixed so it sends a 2xx response within 10 seconds, or it will fail again [help:webhooks@2#2]. The help articles don't say how to re-enable a disabled webhook, so if your Admin can't find the option, contact support@fernway.example.",
+  "refused": null
+}

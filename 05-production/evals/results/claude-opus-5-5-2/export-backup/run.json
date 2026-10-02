@@ -1,0 +1,5 @@
+{
+  "steps": [],
+  "answer": "Since you're an Owner and Kitewood Studio is on the Business plan, you can export the whole workspace yourself [help:data-export@6#2]:\n\n1. Go to **Settings**, then **Data**, then **Export workspace**.\n2. Pick **JSON**. Use this format for backups because it keeps the project structure, task dependencies and history [help:data-export@6#2].\n3. Fernway builds the export in the background and emails you a download link when it's done. For large workspaces this usually takes up to an hour. The link works for 24 hours, and only you can use it [help:data-export@6#3].\n4. The export covers tasks, subtasks, comments, labels and assignees. Attachments come separately as a ZIP file, so download that as well for a complete backup [help:data-export@6#0].",
+  "refused": null
+}

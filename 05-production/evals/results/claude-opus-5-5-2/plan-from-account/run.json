@@ -1,0 +1,5 @@
+{
+  "steps": [],
+  "answer": "Kitewood Studio (w_kitewood) is on the **Business plan**, billed annually since 2026-09-08, with 42 seats [account:w_kitewood:plan]. I can't confirm whether the Business plan includes SSO, because the help articles I have don't say which plans offer it. They only say that if your workspace requires SSO, members sign in with \"Sign in with SSO\" and their work email instead of a password [help:sign-in@6#3]. To find out whether you can turn on SSO, for example with Okta, please contact support@fernway.example.",
+  "refused": null
+}

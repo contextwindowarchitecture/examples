@@ -1,0 +1,21 @@
+{
+  "workspace": "w_kitewood",
+  "user": "u_ada",
+  "session": "s_b9e17c3d",
+  "asked_at": "2026-10-02T12:46:55Z",
+  "faults": [],
+  "turns": [],
+  "question": "What's a good recipe for banana bread?",
+  "model": {
+    "source": "recorded from claude-opus-5-5 through the anthropic provider",
+    "replies": [
+      {
+        "text": "I can't help with recipes, sorry. I can only answer questions about Fernway, the team task tracker. If you need help with your Kitewood Studio workspace, like its webhooks, plan or settings, just ask.",
+        "calls": []
+      }
+    ]
+  },
+  "clock": [
+    "2026-10-02T12:46:55Z"
+  ]
+}

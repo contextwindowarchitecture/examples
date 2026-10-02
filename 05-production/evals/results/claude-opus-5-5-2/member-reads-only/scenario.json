@@ -1,0 +1,48 @@
+{
+  "workspace": "w_kitewood",
+  "user": "u_ben",
+  "session": "s_8d2dc112",
+  "asked_at": "2026-10-02T12:47:21Z",
+  "faults": [],
+  "turns": [],
+  "question": "Is our webhook still disabled? If so, please turn it back on.",
+  "model": {
+    "source": "recorded from claude-opus-5-5 through the anthropic provider",
+    "replies": [
+      {
+        "text": "",
+        "calls": [
+          {
+            "name": "list_webhooks",
+            "arguments": {
+              "workspace": "w_kitewood"
+            }
+          }
+        ]
+      },
+      {
+        "text": "",
+        "calls": [
+          {
+            "name": "get_webhook",
+            "arguments": {
+              "workspace": "w_kitewood",
+              "webhook": "wh_31c9"
+            }
+          }
+        ]
+      },
+      {
+        "text": "Yes, webhook wh_31c9 (https://hooks.kitewood.example/fernway) is still disabled. Fernway turned it off on 2026-09-30 at 15:58 UTC after 50 failures in a row, and the last one was a timeout after 10 seconds [help:webhooks@2#2]. I can't turn it back on because my tools can only view webhooks, not change them. Webhooks are managed by Admins under Settings → Integrations → Webhooks, so you'll need to ask a workspace Admin, such as Ada (u_ada), who created it [help:webhooks@2#0]. Before it's turned back on, the endpoint needs to be fixed so it sends a 2xx response within 10 seconds, or it will fail again [help:webhooks@2#2]. The help articles don't say how to re-enable a disabled webhook, so if your Admin can't find the option, contact support@fernway.example.",
+        "calls": []
+      }
+    ]
+  },
+  "clock": [
+    "2026-10-02T12:47:22Z",
+    "2026-10-02T12:47:25Z",
+    "2026-10-02T12:47:25Z",
+    "2026-10-02T12:47:28Z",
+    "2026-10-02T12:47:28Z"
+  ]
+}
