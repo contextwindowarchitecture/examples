@@ -1,5 +1,6 @@
 """Grade a run from its files, without a model: every recorded snapshot is assembled again, then every job's checks
-are written to its checks.json, and a table by model is printed.
+are written to its checks.json, the run's summary.json and results/index.json are written for the viewer, and a
+table by model is printed.
 
     uv run grade.py results/<run-id>
 
@@ -20,6 +21,7 @@ from typing import Any, TextIO
 
 import checks
 import preflight
+import summary
 from checks import Check
 from config import HERE, ROOT
 
@@ -54,6 +56,9 @@ def grade(run: Path, *, replayed: dict[str, dict[str, bool]] | None = None, out:
         graded[name] = checks.check(path.parent, calls[name], replayed, expectations)
         (path.parent / "checks.json").write_text(json.dumps({"job": name, "checks": [asdict(c) for c in graded[name]]},
                                                             indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    if (run / "manifest.json").exists():
+        summary.write(run, graded)  # what the viewer reads
+        summary.index(run.parent)
     report(graded, out)
     return graded
 

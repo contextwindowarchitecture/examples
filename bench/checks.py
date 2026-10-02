@@ -57,23 +57,23 @@ def check(folder: Path, calls: list[dict[str, Any]], replayed: dict[str, dict[st
     found = [] if finished else [Check("run", "finished", False, _tail(folder / "output.txt"))]
     if job["example"] == "05-production":
         suite = [case["id"] for case in _read(ROOT / "05-production" / "evals" / "cases.json")["cases"]]
-        assemblies = [turn for case in suite for turn in _turns(record / case)]
+        made = [turn for case in suite for turn in turns(record / case)]
     else:
-        assemblies = _assemblies(record)
+        made = assemblies(record)
     if finished:
-        found += _sent(folder, assemblies, calls)
-    if job["example"] in ("01-docs-qa", "02-account-aware", "03-budget-and-routes") and assemblies:
-        found.append(_same_context(job["example"], assemblies))
-    if assemblies:
-        unreplayed = [_name(folder, path) for path in assemblies
+        found += _sent(folder, made, calls)
+    if job["example"] in ("01-docs-qa", "02-account-aware", "03-budget-and-routes") and made:
+        found.append(_same_context(job["example"], made))
+    if made:
+        unreplayed = [_name(folder, path) for path in made
                       if not all((replayed.get(str(path / "snapshot.json")) or {"missing": False}).values())]
         found.append(Check("invariant", "replays", not unreplayed, f"differs on replay: {', '.join(unreplayed)}" if unreplayed
-                           else f"{len(assemblies)} snapshot{'s' if len(assemblies) > 1 else ''} assemble again to what was recorded"))
+                           else f"{len(made)} snapshot{'s' if len(made) > 1 else ''} assemble again to what was recorded"))
     if not finished:
         return found
     if job["example"] == "05-production":
         return found + _evals(record)
-    return found + _measures(job, record, assemblies, _rules(expectations, job["example"], job["case"]))
+    return found + _measures(job, record, made, _rules(expectations, job["example"], job["case"]))
 
 
 def request(payload: dict[str, Any]) -> dict[str, Any]:
@@ -243,19 +243,19 @@ def _mentions_none(measure: str, answer: str, phrases: list[str], name: str = "m
     return Check(measure, name, not found, f"mentions {', '.join(found)}" if found else "mentions none of them")
 
 
-def _assemblies(record: Path) -> list[Path]:
+def assemblies(record: Path) -> list[Path]:
     """Every folder holding an assembly, in the order made: 01-02's one, 03's one per route tried (a refused one
     first), or 04's one per inference."""
     if (record / "snapshot.json").exists():
         return [record]
-    turns = _turns(record)
-    if turns:
-        return turns
+    numbered = turns(record)
+    if numbered:
+        return numbered
     routes = [path for path in record.iterdir() if (path / "snapshot.json").exists()] if record.exists() else []
     return sorted(routes, key=lambda path: (path / "payload.json").exists())
 
 
-def _turns(folder: Path) -> list[Path]:
+def turns(folder: Path) -> list[Path]:
     return sorted(folder.glob("turn-*"), key=lambda path: int(path.name.removeprefix("turn-")))
 
 

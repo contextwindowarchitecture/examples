@@ -4,7 +4,7 @@ The examples show one application building its context through CWA. This harness
 
 It is not an example to copy. It treats the examples as applications: it runs their command lines and changes nothing they send.
 
-**Status: in progress.** This README is the plan, and each section becomes true as its commit lands ([Implementation order](#implementation-order)). Done so far: [Configuration](#configuration), the preflight, the plan with its estimate, [the proxy](#the-proxy), running and resuming a run ([Run it](#run-it)), and [the checks](#checks). Next: the summary and the viewer.
+**Status: in progress.** This README is the plan, and each section becomes true as its commit lands ([Implementation order](#implementation-order)). Done so far: [Configuration](#configuration), the preflight, the plan with its estimate, [the proxy](#the-proxy), running and resuming a run ([Run it](#run-it)), [the checks](#checks), and the summary the viewer reads ([Results](#results)). Next: the viewer.
 
 ## Run it
 
@@ -174,7 +174,8 @@ Measures say how a model used the context CWA decided on. A job whose command fa
 ## Results
 
 ```
-results/<run-id>/                       # for example 2026-10-02T1530Z-bebe9ab
+results/index.json   # every graded run, newest first: what the viewer's run picker lists
+results/<run-id>/    # for example 2026-10-02T153007Z-bebe9ab
   manifest.json      # the commit and whether the tree had changes, each example's assembler tag and commit,
                      # the bench.toml digest, the models with their prices and tool support, and the jobs
   bench.toml         # the configuration the run used, which --resume loads
@@ -186,16 +187,25 @@ results/<run-id>/                       # for example 2026-10-02T1530Z-bebe9ab
     output.txt       # what the example printed
     job.json         # its command, exit code and seconds
     store.sqlite     # 05 only: the store its run wrote
-    checks.json
-  summary.json       # per model: invariants, measures, 05's result, cost, latency
-  index.json         # what the viewer reads
+    checks.json      # its checks (grade.py)
+  summary.json       # what the viewer reads (summary.py)
 ```
+
+[summary.py](summary.py) writes `summary.json` when a run is graded:
+
+| Part | What it holds |
+| --- | --- |
+| `constructs` | Each construct: what it is, its requirements, the measures that show it, and the cases that exercised it in this run |
+| `cases` | Each case: its question, the variants run (01's `after` and `before`), the constructs it exercised, and the snapshot digests its results froze. In 01–03 that is one per assembly, whatever the model |
+| `models` | Per model: jobs done, failed and not run; calls, cost, tokens, call latency, and the hosts that answered; checks passed of those graded, by measure |
+| `jobs` | Per job: how it ended, its calls, cost, tokens and hosts, and its checks by measure |
+| `results` | Per case, model and repeat: checks by measure, the checks it failed, the constructs it exercised, and the folder that holds its record. 05's suite is one job and six results, one per eval case |
 
 `results/` is gitignored. A run never overwrites another. `run.py --resume <run-id>` runs the jobs that failed or never started, from an empty folder each; what an earlier attempt sent and spent stays in `calls.jsonl`, and counts toward the cap. It resumes only at the commit the run started from, with the run's own `bench.toml` and the prices it planned with, so one run never mixes two versions of the code.
 
 ## The viewer
 
-`uv run serve.py` serves the viewer and `results/` on localhost. Pick a run, then a construct:
+`uv run serve.py` serves the viewer and `results/` on localhost. Pick a run, then a construct. Which results exercised a construct is read from each result's own traces and tool calls ([constructs.py](constructs.py)), so in 04 and 05 it can differ by model: one that never looks at a webhook twice never exercises supersession. The table names the cases where the committed scenarios exercise each one:
 
 | Construct | Spec | Cases that exercise it | What the page compares across models |
 | --- | --- | --- | --- |
