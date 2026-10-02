@@ -1,0 +1,21 @@
+{
+  "workspace": "w_kitewood",
+  "user": "u_ada",
+  "session": "s_86164311",
+  "asked_at": "2026-10-02T12:28:24Z",
+  "faults": [],
+  "turns": [],
+  "question": "Which plan is our workspace on, and can we use SSO?",
+  "model": {
+    "source": "recorded from openai/gpt-oss-120b through the openai provider",
+    "replies": [
+      {
+        "text": "Your workspace Kitewood Studio is on the **Business plan** (annual billing). Since you use Okta as your identity provider, the workspace is set up for SSO, so members sign in with “Sign in with SSO” rather than a password [help:sign-in@6#3].",
+        "calls": []
+      }
+    ]
+  },
+  "clock": [
+    "2026-10-02T12:28:25Z"
+  ]
+}

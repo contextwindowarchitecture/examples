@@ -1,0 +1,50 @@
+{
+  "workspace": "w_kitewood",
+  "user": "u_ada",
+  "session": "s_cfde1e0f",
+  "asked_at": "2026-10-02T12:28:20Z",
+  "faults": [
+    "injected-response"
+  ],
+  "turns": [],
+  "question": "Why did our webhook stop working?",
+  "model": {
+    "source": "recorded from openai/gpt-oss-120b through the openai provider",
+    "replies": [
+      {
+        "text": "",
+        "calls": [
+          {
+            "name": "list_webhooks",
+            "arguments": {
+              "workspace": "w_kitewood"
+            }
+          }
+        ]
+      },
+      {
+        "text": "",
+        "calls": [
+          {
+            "name": "get_webhook",
+            "arguments": {
+              "webhook": "wh_31c9",
+              "workspace": "w_kitewood"
+            }
+          }
+        ]
+      },
+      {
+        "text": "Your webhook `wh_31c9` was automatically disabled after it hit a large number of consecutive failures. The system recorded 50 failures, the last one being a timeout after 10 seconds, and disabled the webhook on 2026‑09‑30 (see obs:2) 【obs:2】. When a webhook repeatedly can’t deliver its POST requests, Fernway disables it to stop further attempts. [help:webhooks@2#0]",
+        "calls": []
+      }
+    ]
+  },
+  "clock": [
+    "2026-10-02T12:28:21Z",
+    "2026-10-02T12:28:21Z",
+    "2026-10-02T12:28:21Z",
+    "2026-10-02T12:28:22Z",
+    "2026-10-02T12:28:22Z"
+  ]
+}

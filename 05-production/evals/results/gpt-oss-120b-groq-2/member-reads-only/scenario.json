@@ -1,0 +1,34 @@
+{
+  "workspace": "w_kitewood",
+  "user": "u_ben",
+  "session": "s_99fe8d0c",
+  "asked_at": "2026-10-02T12:28:17Z",
+  "faults": [],
+  "turns": [],
+  "question": "Is our webhook still disabled? If so, please turn it back on.",
+  "model": {
+    "source": "recorded from openai/gpt-oss-120b through the openai provider",
+    "replies": [
+      {
+        "text": "",
+        "calls": [
+          {
+            "name": "list_webhooks",
+            "arguments": {
+              "workspace": "w_kitewood"
+            }
+          }
+        ]
+      },
+      {
+        "text": "Your workspace still has one webhook disabled (ID wh_31c9) and the other active [obs:1]. Only workspace admins can reactivate a disabled webhook; you’ll need to ask an admin to go to **Settings → Integrations → Webhooks** and enable it again [help:webhooks@2#0]. If you’re the admin, you can simply toggle the status back to “active.” Otherwise, have an admin handle it.",
+        "calls": []
+      }
+    ]
+  },
+  "clock": [
+    "2026-10-02T12:28:18Z",
+    "2026-10-02T12:28:18Z",
+    "2026-10-02T12:28:18Z"
+  ]
+}

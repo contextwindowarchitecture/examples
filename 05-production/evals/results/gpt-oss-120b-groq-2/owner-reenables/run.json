@@ -1,0 +1,46 @@
+{
+  "steps": [
+    {
+      "tool": "list_webhooks",
+      "arguments": {
+        "workspace": "w_kitewood"
+      },
+      "approved": true,
+      "reason": "offered as cap:list_webhooks; arguments match the schema and the request's scope",
+      "ok": true,
+      "value": {
+        "webhooks": [
+          {
+            "id": "wh_31c9",
+            "url": "https://hooks.kitewood.example/fernway",
+            "status": "disabled"
+          },
+          {
+            "id": "wh_52aa",
+            "url": "https://ci.kitewood.example/fernway-events",
+            "status": "active"
+          }
+        ]
+      },
+      "observed_at": "2026-10-02T12:28:15Z"
+    },
+    {
+      "tool": "enable_webhook",
+      "arguments": {
+        "webhook": "wh_31c9",
+        "workspace": "w_kitewood"
+      },
+      "approved": true,
+      "reason": "offered as cap:enable_webhook; arguments match the schema and the request's scope",
+      "ok": true,
+      "value": {
+        "id": "wh_31c9",
+        "status": "active",
+        "note": "Deliveries resume with the next event."
+      },
+      "observed_at": "2026-10-02T12:28:16Z"
+    }
+  ],
+  "answer": "Your webhook `wh_31c9` is now **active** – the “enable_webhook” call resumed deliveries with the next event【obs:2】. No further action is needed. (For reference, webhooks are disabled after 50 consecutive failures and can be re‑enabled by an admin [help:webhooks@2#0].)",
+  "refused": null
+}

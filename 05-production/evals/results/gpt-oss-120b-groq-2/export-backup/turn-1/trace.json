@@ -1,0 +1,154 @@
+{
+  "profile": {
+    "id": "account-agent-messages",
+    "version": 3
+  },
+  "budget": {
+    "input": 4000,
+    "reserved_output": 8000,
+    "margin_percent": 15
+  },
+  "result": {
+    "input_tokens": 1049,
+    "hash": "a71734065f458cafa4f37f75f9050ed91f41af919bc72556b83a453a79f458de"
+  },
+  "included": [
+    {
+      "slot": "governance.instructions",
+      "item_id": "policy:instructions",
+      "tokens": 363,
+      "source_version": "3",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "governance.capabilities",
+      "item_id": "cap:enable_webhook",
+      "tokens": 95,
+      "source_version": "account-agent/v1",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "governance.capabilities",
+      "item_id": "cap:get_webhook",
+      "tokens": 100,
+      "source_version": "account-agent/v1",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "governance.capabilities",
+      "item_id": "cap:list_webhooks",
+      "tokens": 84,
+      "source_version": "account-agent/v1",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "state.user",
+      "item_id": "account:w_kitewood:plan",
+      "tokens": 32,
+      "source_version": "18",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "state.user",
+      "item_id": "account:w_kitewood:u_ada",
+      "tokens": 12,
+      "source_version": "7",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "state.task",
+      "item_id": "task:t_s_656828f4",
+      "tokens": 8,
+      "source_version": "1",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "evidence.knowledge",
+      "item_id": "help:data-export@6#0",
+      "tokens": 43,
+      "source_version": "6",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "evidence.knowledge",
+      "item_id": "help:data-export@6#1",
+      "tokens": 53,
+      "source_version": "6",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "evidence.knowledge",
+      "item_id": "help:data-export@6#2",
+      "tokens": 77,
+      "source_version": "6",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "evidence.knowledge",
+      "item_id": "help:data-export@6#3",
+      "tokens": 57,
+      "source_version": "6",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "interaction.memory",
+      "item_id": "mem:u_ada:0005",
+      "tokens": 10,
+      "source_version": "1",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "interaction.query",
+      "item_id": "turn:s_656828f4:0001",
+      "tokens": 12,
+      "source_version": "1",
+      "eligibility": "route-policy"
+    }
+  ],
+  "compressed": [],
+  "excluded": [
+    {
+      "item_id": "cap:delete_webhook",
+      "reason": "capability_not_allowed",
+      "stage": "producer"
+    },
+    {
+      "item_id": "help:deleting-data@3#2",
+      "reason": "below_threshold",
+      "stage": "assembler",
+      "slot": "evidence.knowledge"
+    },
+    {
+      "item_id": "mem:u_ada:0003",
+      "reason": "conflict_lost",
+      "stage": "assembler",
+      "slot": "interaction.memory"
+    }
+  ],
+  "conflicts": [
+    {
+      "group_id": "fact:plan",
+      "kind": "fact",
+      "items": [
+        "account:w_kitewood:plan",
+        "mem:u_ada:0003"
+      ],
+      "decided_by": "policy",
+      "resolution": "resolved",
+      "winner": "account:w_kitewood:plan"
+    }
+  ],
+  "refused": {
+    "bool": false,
+    "reason": null
+  },
+  "context": {
+    "spec": "cwa/draft",
+    "assembly_time": "2026-10-02T12:28:20Z",
+    "route_policy_version": "account-agent/v1",
+    "tokenizer": "estimate-utf8/v1",
+    "renderer": "cwa-messages/v1",
+    "snapshot_digest": "a549dfbefc66daf9241ee7ae45633dd2d29b21efe82d4e826876ec38ebf2781f"
+  },
+  "defaults_filled": []
+}

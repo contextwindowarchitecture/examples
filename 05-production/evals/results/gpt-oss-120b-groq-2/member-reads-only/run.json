@@ -1,0 +1,30 @@
+{
+  "steps": [
+    {
+      "tool": "list_webhooks",
+      "arguments": {
+        "workspace": "w_kitewood"
+      },
+      "approved": true,
+      "reason": "offered as cap:list_webhooks; arguments match the schema and the request's scope",
+      "ok": true,
+      "value": {
+        "webhooks": [
+          {
+            "id": "wh_31c9",
+            "url": "https://hooks.kitewood.example/fernway",
+            "status": "disabled"
+          },
+          {
+            "id": "wh_52aa",
+            "url": "https://ci.kitewood.example/fernway-events",
+            "status": "active"
+          }
+        ]
+      },
+      "observed_at": "2026-10-02T12:28:18Z"
+    }
+  ],
+  "answer": "Your workspace still has one webhook disabled (ID wh_31c9) and the other active [obs:1]. Only workspace admins can reactivate a disabled webhook; you’ll need to ask an admin to go to **Settings → Integrations → Webhooks** and enable it again [help:webhooks@2#0]. If you’re the admin, you can simply toggle the status back to “active.” Otherwise, have an admin handle it.",
+  "refused": null
+}

@@ -1,0 +1,5 @@
+{
+  "steps": [],
+  "answer": "Your workspace Kitewood Studio is on the **Business plan** (annual billing). Since you use Okta as your identity provider, the workspace is set up for SSO, so members sign in with “Sign in with SSO” rather than a password [help:sign-in@6#3].",
+  "refused": null
+}

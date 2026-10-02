@@ -1,0 +1,48 @@
+{
+  "workspace": "w_kitewood",
+  "user": "u_ada",
+  "session": "s_a13aee07",
+  "asked_at": "2026-10-02T12:28:14Z",
+  "faults": [],
+  "turns": [],
+  "question": "Is our webhook still disabled? If so, please turn it back on.",
+  "model": {
+    "source": "recorded from openai/gpt-oss-120b through the openai provider",
+    "replies": [
+      {
+        "text": "",
+        "calls": [
+          {
+            "name": "list_webhooks",
+            "arguments": {
+              "workspace": "w_kitewood"
+            }
+          }
+        ]
+      },
+      {
+        "text": "",
+        "calls": [
+          {
+            "name": "enable_webhook",
+            "arguments": {
+              "webhook": "wh_31c9",
+              "workspace": "w_kitewood"
+            }
+          }
+        ]
+      },
+      {
+        "text": "Your webhook `wh_31c9` is now **active** – the “enable_webhook” call resumed deliveries with the next event【obs:2】. No further action is needed. (For reference, webhooks are disabled after 50 consecutive failures and can be re‑enabled by an admin [help:webhooks@2#0].)",
+        "calls": []
+      }
+    ]
+  },
+  "clock": [
+    "2026-10-02T12:28:14Z",
+    "2026-10-02T12:28:15Z",
+    "2026-10-02T12:28:15Z",
+    "2026-10-02T12:28:16Z",
+    "2026-10-02T12:28:16Z"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "model": "openai/gpt-oss-120b",
+  "date": "2026-10-02",
+  "profile": {
+    "id": "account-agent-messages",
+    "version": 3,
+    "sha256": "48a93d41ffa95b0a584bf7ce7eff9b6d2507e6c09e70d8271d655d1a4146dff6"
+  },
+  "route_policy": "account-agent/v1"
+}
