@@ -42,6 +42,31 @@ No API key is needed to see what would be sent. Each example's README says how t
 
 Each example commits scenarios: a conversation in, and the snapshot, trace and exact request it produces. CI rebuilds them on every push, so editing a document, the instructions or the policy fails the build until the scenarios are regenerated. The pull request then shows exactly how the context the model receives has changed.
 
+## Releases
+
+The CWA repositories are released under one tag name: the website, [assembler-python](https://github.com/contextwindowarchitecture/assembler-python) and the other assemblers, the demo, and these examples. Every example pins assembler-python to a tag in its `pyproject.toml`, and its `uv.lock` holds the commit that tag resolved to. [scripts/assembler_pin.py](scripts/assembler_pin.py) checks on every push that all examples pin the same tag and lock the same commit.
+
+Pushing a tag runs [.github/workflows/release.yml](.github/workflows/release.yml):
+
+1. Every example must pin assembler-python at that same tag, locked to the commit the tag points to now. A tag can be moved, so a lock made before the move fails here.
+2. CI runs on the tagged commit.
+3. A GitHub release is created. Its notes name the assembler tag and commit, then list the tag's commits, written by git-cliff from [cliff.toml](cliff.toml). A tag that is not `vX.Y.Z`, such as `draft-release`, is a prerelease.
+
+To release at a new tag, or after the assembler's tag has moved, update every example before tagging:
+
+```sh
+# in each example: set tag = "<tag>" under [tool.uv.sources] in pyproject.toml, then
+uv lock --upgrade-package contextwindowarchitecture-assembler
+uv run scenarios.py --write      # review the scenario diffs: a new assembler can change what is sent
+uv run pytest
+```
+
+Then check from the repository root, and tag:
+
+```sh
+python3 scripts/assembler_pin.py --release <tag> --remote
+```
+
 ## Related
 
 - [Specification](https://contextwindowarchitecture.io/spec.html): the numbered requirements cited in these examples' comments as `R-n`

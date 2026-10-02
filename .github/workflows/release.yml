@@ -1,0 +1,63 @@
+# A GitHub release for each tag, made once every example pins assembler-python at the same tag, locked to the commit
+# that tag points to now, and ci passes on the tagged commit. The CWA repositories are released under one tag name,
+# so an examples release at TAG is tested against assembler-python at TAG. The notes name the assembler tag and
+# commit, then list the tag's own commits, written by git-cliff from cliff.toml. A tag that is not vX.Y.Z, such as
+# draft-release, is a prerelease. A tag pushed before this workflow existed is released by hand:
+# gh workflow run release.yml -f tag=<tag>
+name: release
+
+on:
+  push:
+    tags: ["*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The existing tag to release
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  aligned:
+    name: every example pins assembler-python at this tag
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: refs/tags/${{ env.TAG }}
+      - run: python3 scripts/assembler_pin.py --release "$TAG" --remote
+
+  ci:
+    needs: aligned
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: refs/tags/${{ inputs.tag || github.ref_name }}
+
+  release:
+    name: GitHub release
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: refs/tags/${{ env.TAG }}
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+      - run: |
+          python3 scripts/assembler_pin.py --release "$TAG" --notes > notes.md
+          echo >> notes.md
+          uvx git-cliff@2.14.2 --current --strip all >> notes.md
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prerelease=()
+          [[ $TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || prerelease=(--prerelease)
+          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md "${prerelease[@]}"

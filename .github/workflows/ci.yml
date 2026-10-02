@@ -1,17 +1,35 @@
-# Every example's suite on every supported Python. The suite rebuilds each committed scenario from its inputs and
-# assembles it, so a change to a help-center article, the instructions, the route policy or the assembler pin fails
-# here until the scenarios are regenerated and the context diff is committed for review. No model is called.
+# Every example's suite on every supported Python, and a check that every example pins the same assembler-python
+# tag and locks the same commit. The suite rebuilds each committed scenario from its inputs and assembles it, so a
+# change to a help-center article, the instructions, the route policy or the assembler pin fails here until the
+# scenarios are regenerated and the context diff is committed for review. No model is called. A tag runs it through
+# release.yml, on the tagged commit.
 name: ci
 
 on:
   push:
     branches: ["**"]
   pull_request:
+  workflow_call:
+    inputs:
+      ref:
+        description: The commit to test; release.yml passes the tag
+        type: string
+        default: ""
 
 permissions:
   contents: read
 
 jobs:
+  assembler-pin:
+    name: every example pins the same assembler
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+      - run: python3 -m unittest discover -s scripts
+      - run: python3 scripts/assembler_pin.py
+
   example:
     name: ${{ matrix.example }} (Python ${{ matrix.python }})
     runs-on: ubuntu-latest
@@ -25,6 +43,8 @@ jobs:
         working-directory: ${{ matrix.example }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python }}
