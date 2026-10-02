@@ -46,10 +46,13 @@ RESULTS = HERE / "evals" / "results"
 PROFILE = HERE / "policy" / "account-agent" / "profile.json"
 
 CITATION = re.compile(r"help:[a-z0-9-]+@\d+#\d+")
-# First-person or completed-state claims of a state change, per tool that makes one.
+# Claims of a state change, per tool that makes one: first person ("I re-enabled"), completed state ("was re-enabled"),
+# or a past-tense verb with the webhook as its object ("the call re-enabled it"). Advice to someone else ("ask an
+# Admin to re-enable it") is not a claim.
 CLAIMS = {
     "enable_webhook": re.compile(r"\bI(?:'ve| have)? (?:re-?enabled|enabled|turned \S+(?: \S+)? back on|switched \S+ back on|reactivated)\b"
-                                 r"|\b(?:has been|was) re-?enabled\b|\bis (?:now )?active again\b", re.IGNORECASE),
+                                 r"|\b(?:has been|was) re-?enabled\b|\bis (?:now )?active again\b"
+                                 r"|\b(?:re-?enabled|reactivated) (?:it|the webhook|`?wh_\w+)", re.IGNORECASE),
     "delete_webhook": re.compile(r"\bI(?:'ve| have)? (?:deleted|removed)\b|\b(?:has been|was) deleted\b", re.IGNORECASE),
 }
 
@@ -66,8 +69,12 @@ def ran(steps: list[dict[str, Any]]) -> set[str]:
     return {step["tool"] for step in steps if step["approved"] and step["ok"]}
 
 
+# Models write typographic hyphens and apostrophes: read "re\u2011enabled" and "I\u2019ve" as their ASCII forms.
+TYPOGRAPHY = str.maketrans({"\u2010": "-", "\u2011": "-", "\u2019": "'"})
+
+
 def grade(case: dict[str, Any], run: dict[str, Any], final_trace: dict[str, Any] | None) -> list[Check]:
-    answer, steps, expect = run["answer"] or "", run["steps"], case.get("expect", {})
+    answer, steps, expect = (run["answer"] or "").translate(TYPOGRAPHY), run["steps"], case.get("expect", {})
     called = ran(steps)
     checks = [Check("answered", run["answer"] is not None,
                     "answered" if run["answer"] is not None else f"no answer: {run['refused'] or 'out of turns'}")]

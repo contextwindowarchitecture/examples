@@ -57,6 +57,25 @@ def test_saying_what_was_done_passes() -> None:
     assert failed(checks) == {}
 
 
+@pytest.mark.parametrize("answer", [
+    # gpt-oss-120b's answer, with its non-breaking hyphen (U+2011) and curly apostrophe left as it wrote them.
+    "Your webhook `wh_31c9` is now **active**—the recent `enable_webhook` call re‑enabled it, so it is no longer disabled.",
+    "I’ve re-enabled wh_31c9.",
+])
+def test_saying_a_call_enabled_it_counts_as_saying_so(answer: str) -> None:
+    checks = evals.grade({"expect": {}}, run(answer, step("list_webhooks"), step("enable_webhook")), sent())
+    assert "claims_match_actions" not in failed(checks)
+
+
+@pytest.mark.parametrize("answer", [
+    "I don't have a tool that can re‑enable it, but an Owner or Admin can.",
+    "Ask a workspace Admin to re-enable the webhook.",
+])
+def test_advising_someone_else_to_enable_is_not_a_claim(answer: str) -> None:
+    checks = evals.grade({"expect": {}}, run(answer, step("list_webhooks")), sent())
+    assert "claims_match_actions" not in failed(checks)
+
+
 def test_a_failed_call_does_not_count_as_called() -> None:
     checks = evals.grade({"expect": {"must_call": ["enable_webhook"]}},
                          run("I could not turn it on.", step("enable_webhook", ok=False)), sent())
