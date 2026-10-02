@@ -119,7 +119,8 @@ def _job(name: str, model: str, example: str, case: str, repeat: int, ended: dic
             "calls": len(lines), "cost": round(sum(line["cost"] or 0 for line in lines), 6),
             "tokens": _tokens(lines), "ms": [line["ms"] for line in answered],
             "hosts": dict(Counter(line["host"] for line in answered if line.get("host"))),
-            "measures": _tally(found)}
+            "measures": _tally(found),
+            "invariants": [asdict(check) for check in found if check.measure in ("invariant", "run")]}
 
 
 def _results(folder: Path, name: str, model: str, example: str, case: str, repeat: int, ended: dict[str, Any] | None,

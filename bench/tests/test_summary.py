@@ -101,6 +101,9 @@ def test_the_summary_holds_each_result_and_the_totals_by_model(tmp_path: Path) -
     assert result["assemblies"] == [f"{result['job']}/record"]
     assert result["answer"] == f"{result['job']}/record/run.json"
     assert written["max_cost_usd"] == 1.5
+    # A job's invariants, whole: 05's suite is one job whose results carry only its eval cases.
+    [job] = [j for j in written["jobs"] if j["exit"] is not None]
+    assert job["invariants"] == [{"measure": "invariant", "check": "payload_sent", "passed": True, "detail": ""}]
     case = {c["key"]: c for c in written["cases"]}["01-docs-qa/01-answer"]
     assert case["question"] == "Why didn't I get my password reset email?"
     assert list(case["snapshots"].values()) == [1]  # one snapshot digest across the run's results
