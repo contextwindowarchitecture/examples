@@ -20,7 +20,7 @@ Each example builds on the one before it. Together they add up to the real-world
 | Example | What it adds | Status |
 | --- | --- | --- |
 | [01-docs-qa](01-docs-qa/) | A help-center Q&A bot over a fictional product's docs, with LlamaIndex retrieval. Retrieved chunks below the route's threshold, history over its cap, and questions the docs cannot answer, each decided by policy and recorded in the trace | ready |
-| 02-account-aware | Per-user account state and memory: scope, expiry, and a declared conflict when the memory disagrees with the account | planned |
+| [02-account-aware](02-account-aware/) | The same bot, aware of who is asking: account state from a database and memories from earlier conversations. Expired and revoked memories reported by their producer, an out-of-date memory losing a declared conflict to the account, and another user's memories kept out by scope | ready |
 | 03-budget-and-routes | Summaries computed ahead of time as variants, and a second model route with its own placement profile | planned |
 | 04-tools | Tools through MCP, a capability policy and a guard, in an agent loop that freezes a snapshot for every inference | planned |
 | 05-production | A snapshot store with replay, traces in an observability tool, and evals | planned |
