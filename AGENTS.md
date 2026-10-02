@@ -41,7 +41,7 @@ Behavior changes follow red → green → refactor. Write the smallest failing t
 ## Commits
 
 - **Commit unasked at each green step.** One behavior, or one refactor, per commit. Every commit passes the suite of every example it touches.
-- **Conventional Commits 1.0.0, signed off.** `git commit -s` with `type(scope): summary` in the imperative mood, lower case, no trailing period, at most 72 characters. Types: `feat`, `fix`, `test`, `refactor`, `docs`, `build`, `ci`, `chore`. Scopes: the example's folder name without its number (`docs-qa`), or `repo` and `ci` for shared files. Don't add `Co-Authored-By` trailers.
+- **Conventional Commits 1.0.0, signed off.** `git commit -s` with `type(scope): summary` in the imperative mood, lower case, no trailing period, at most 72 characters. Types: `feat`, `fix`, `test`, `refactor`, `docs`, `build`, `ci`, `chore`. Scopes: the example's folder name without its number (`docs-qa`), `bench` for the benchmark harness in `bench/`, or `repo` and `ci` for shared files. Don't add `Co-Authored-By` trailers.
 - **Never push, and never tag.** The remote is `origin` (https://github.com/contextwindowarchitecture/examples). The maintainer publishes commits and pushes tags. A tag starts `release.yml`, which releases only when every example pins assembler-python at that same tag (the README's Releases section).
 - **The changelog is generated** from the commit history by git-cliff (`cliff.toml`). Never edit `CHANGELOG.md` by hand.
 - Stage paths explicitly. Never commit `.venv/`, `runs/`, `.env` or anything under `.claude/`.
