@@ -4,7 +4,36 @@ The examples show one application building its context through CWA. This harness
 
 It is not an example to copy. It treats the examples as applications: it runs their command lines and changes nothing they send.
 
-**Status: in progress.** This README is the plan, and each section becomes true as its commit lands ([Implementation order](#implementation-order)). Done so far: [Configuration](#configuration) and the preflight.
+**Status: in progress.** This README is the plan, and each section becomes true as its commit lands ([Implementation order](#implementation-order)). Done so far: [Configuration](#configuration), the preflight, and the plan with its estimate ([Run it](#run-it)).
+
+## Run it
+
+```sh
+cd bench
+uv run pytest                          # the harness's own tests: no model, no network
+uv run --env-file ../.env plan.py      # the preflight, then what a run would do and cost; nothing is sent
+```
+
+```console
+$ uv run --env-file ../.env plan.py
+preflight
+  ok    01-docs-qa scenarios: 3 scenarios are current
+  ...
+  ok    models: all 9 are on OpenRouter's model list
+
+plan: 459 jobs, 9 models x 3 repeats
+  01-docs-qa             6 cases, 5 calls, per model and repeat
+  02-account-aware       3 cases, 3 calls, per model and repeat
+  03-budget-and-routes   4 cases, 4 calls, per model and repeat
+  04-tools               3 cases, 10 calls, at most 18, per model and repeat
+  05-production          1 case, 11 calls, at most 36, per model and repeat
+
+  estimate for 3 repeats                      likely   at most
+  inclusionai/ling-3.1-flash                   $0.00     $0.00  free
+  ...
+  anthropic/claude-sonnet-5.5                  $1.23    $19.85
+  total                                        $3.62    $57.45
+```
 
 ## What it measures
 
@@ -39,7 +68,7 @@ flowchart LR
 ```
 
 1. **Preflight** ([preflight.py](preflight.py)). Every selected example's `scenarios.py --check` and `scripts/assembler_pin.py` pass, so the run records the context the repository commits; 05 commits eval recordings instead, which its own suite checks. The key's variable is set, and every model is on OpenRouter's public model list ([catalog.py](catalog.py)), which also gives its prices and whether it takes tools.
-2. **Plan.** The cases, the number of calls, and a cost range from OpenRouter's prices for each model. With `confirm = true` the runner waits for a yes.
+2. **Plan** ([plan.py](plan.py), [cases.py](cases.py)). A job is one case of one example, for one model and repeat, and jobs run repeat by repeat, so a run the spending cap stops still holds whole repeats across every model. The estimate gives a likely cost and a ceiling from OpenRouter's prices. Likely takes the calls and input sizes from the committed files, and 1,000 output tokens a call. The ceiling is a real bound, because CWA never sends more input than a route's budget or asks for more output than it reserves. With `confirm = true` the runner waits for a yes.
 3. **Run.** Each case runs the example's own command in the example's uv environment, with `OPENAI_BASE_URL` pointing at the proxy. Free models run one call at a time, the rest up to `concurrency`.
 4. **Grade.** The checks read only the recorded files. Then every recorded snapshot is replayed.
 5. **Summarize.** A table of models by example in the terminal, and the files the viewer reads.
@@ -90,6 +119,8 @@ For each model and each repeat:
 | [05-production](../05-production/) | the 6 eval cases | `evals.py run --out DIR`, then `evals.py grade DIR` |
 
 03's summaries are committed inputs and are not rewritten for each model. Sampling settings stay at the host's defaults, as the examples leave them, and the proxy records what was sent.
+
+05's suite is one job: `evals.py run` asks all six cases. 04 and 05 send tool definitions, so a model OpenRouter lists without tool support skips them, and the plan says so.
 
 In 01–03 the context does not depend on the model: every model gets the same snapshot, and only the answers differ. In 04 and 05 each model's tool calls feed its next inference, so the snapshots differ from the second inference on, and which constructs a case exercises depends on what the model did.
 
