@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        example: ["01-docs-qa", "02-account-aware", "03-budget-and-routes"]
+        example: ["01-docs-qa", "02-account-aware", "03-budget-and-routes", "04-tools"]
         python: ["3.12", "3.13", "3.14"]
     defaults:
       run:
