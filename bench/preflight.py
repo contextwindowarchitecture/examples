@@ -48,7 +48,7 @@ def checks(config: Config, catalog: Mapping[str, Listing], environ: Mapping[str,
                                          "bench/.env"))
     missing = [model for model in config.models if model not in catalog]
     found.append(Check("models", not missing, f"not on OpenRouter's model list: {', '.join(missing)}" if missing
-                       else f"all {len(config.models)} are on OpenRouter's model list"))
+                       else "every model is on OpenRouter's model list"))
     return found
 
 

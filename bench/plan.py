@@ -77,16 +77,18 @@ def cost(job: Job, listing: Listing) -> tuple[float, float]:
 
 def report(config: Config, planned: Plan, listings: Mapping[str, Listing], out: TextIO = sys.stdout) -> None:
     models = sorted({job.model for job in planned.jobs}, key=config.models.index)
-    print(f"\nplan: {len(planned.jobs)} jobs, {len(models)} models x {config.repeats} repeats", file=out)
+    print(f"\nplan: {_count(len(planned.jobs), 'job')}, {_count(len(models), 'model')} x "
+          f"{_count(config.repeats, 'repeat')}", file=out)
     first = [job for job in planned.jobs if job.repeat == 1 and job.model == models[0]] if models else []
     for example in dict.fromkeys(job.case.example for job in first):
         found = [job.case for job in first if job.case.example == example]
         likely, most = sum(case.calls for case in found), sum(case.most_calls for case in found)
         calls = f"{likely} calls" + (f", at most {most}" if most != likely else "")
-        print(f"  {example:<22} {len(found)} case{'s' if len(found) > 1 else ''}, {calls}, per model and repeat", file=out)
+        print(f"  {example:<22} {_count(len(found), 'case')}, {calls}, per model and repeat", file=out)
     for reason in planned.skipped:
         print(f"  {reason}", file=out)
-    print(f"\n  {f'estimate for {config.repeats} repeats':<40} {'likely':>9} {'at most':>9}", file=out)
+    heading = f"estimate for {_count(config.repeats, 'repeat')}"
+    print(f"\n  {heading:<40} {'likely':>9} {'at most':>9}", file=out)
     totals = [0.0, 0.0]
     for model in models:
         spent = [cost(job, listings[model]) for job in planned.jobs if job.model == model]
@@ -98,6 +100,10 @@ def report(config: Config, planned: Plan, listings: Mapping[str, Listing], out: 
     print(f"  {'total':<40} {_dollars(totals[0])} {_dollars(totals[1])}", file=out)
     print(f"\nLikely assumes {LIKELY_OUTPUT_TOKENS:,} output tokens a call. A run starts no job once it has spent "
           f"max_cost_usd, ${config.max_cost_usd:.2f}.", file=out)
+
+
+def _count(number: int, noun: str) -> str:
+    return f"{number} {noun}{'' if number == 1 else 's'}"
 
 
 def _dollars(amount: float) -> str:

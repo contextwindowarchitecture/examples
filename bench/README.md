@@ -4,7 +4,7 @@ The examples show one application building its context through CWA. This harness
 
 It is not an example to copy. It treats the examples as applications: it runs their command lines and changes nothing they send.
 
-**Status: in progress.** This README is the plan, and each section becomes true as its commit lands ([Implementation order](#implementation-order)). Done so far: [Configuration](#configuration), the preflight, the plan with its estimate ([Run it](#run-it)), and [the proxy](#the-proxy).
+**Status: in progress.** This README is the plan, and each section becomes true as its commit lands ([Implementation order](#implementation-order)). Done so far: [Configuration](#configuration), the preflight, the plan with its estimate, [the proxy](#the-proxy), and running and resuming a run ([Run it](#run-it)). Next: the checks, the summary and the viewer.
 
 ## Run it
 
@@ -12,6 +12,8 @@ It is not an example to copy. It treats the examples as applications: it runs th
 cd bench
 uv run pytest                          # the harness's own tests: no model, no network
 uv run --env-file .env plan.py         # the preflight, then what a run would do and cost; nothing is sent
+uv run --env-file .env run.py          # the same, a confirmation, then the run, in results/<run-id>/
+uv run --env-file .env run.py --resume <run-id>    # the jobs a run has not finished, at the commit it ran
 ```
 
 ```console
@@ -19,7 +21,7 @@ $ uv run --env-file .env plan.py
 preflight
   ok    01-docs-qa scenarios: 3 scenarios are current
   ...
-  ok    models: all 9 are on OpenRouter's model list
+  ok    models: every model is on OpenRouter's model list
 
 plan: 459 jobs, 9 models x 3 repeats
   01-docs-qa             6 cases, 5 calls, per model and repeat
@@ -69,7 +71,7 @@ flowchart LR
 
 1. **Preflight** ([preflight.py](preflight.py)). Every selected example's `scenarios.py --check` and `scripts/assembler_pin.py` pass, so the run records the context the repository commits; 05 commits eval recordings instead, which its own suite checks. The key's variable is set, and every model is on OpenRouter's public model list ([catalog.py](catalog.py)), which also gives its prices and whether it takes tools.
 2. **Plan** ([plan.py](plan.py), [cases.py](cases.py)). A job is one case of one example, for one model and repeat, and jobs run repeat by repeat, so a run the spending cap stops still holds whole repeats across every model. The estimate gives a likely cost and a ceiling from OpenRouter's prices. Likely takes the calls and input sizes from the committed files, and 1,000 output tokens a call. The ceiling is a real bound, because CWA never sends more input than a route's budget or asks for more output than it reserves. With `confirm = true` the runner waits for a yes.
-3. **Run.** Each case runs the example's own command in the example's uv environment, with `OPENAI_BASE_URL` pointing at the proxy. Free models run one call at a time, the rest up to `concurrency`.
+3. **Run** ([run.py](run.py), [runner.py](runner.py)). Before the first job, [manifest.py](manifest.py) writes what the run was made from. Each job runs the example's own command in the example's folder and uv environment, with `OPENAI_BASE_URL` pointing at the proxy and a dummy key; the real key and bench's own `VIRTUAL_ENV` are never passed on, and 05 gets a store of its own. Jobs start in the plan's order, up to `concurrency` at a time, and a free model runs one job at a time. No job starts once the run has spent `max_cost_usd`.
 4. **Grade.** The checks read only the recorded files. Then every recorded snapshot is replayed.
 5. **Summarize.** A table of models by example in the terminal, and the files the viewer reads.
 
@@ -166,19 +168,23 @@ Construct measures, for the cases they apply to:
 
 ```
 results/<run-id>/                       # for example 2026-10-02T1530Z-bebe9ab
-  manifest.json      # commit and dirty state, assembler tag and locked commit per example, spec version,
-                     # route policies and profiles, the bench.toml digest, models and the prices used
+  manifest.json      # the commit and whether the tree had changes, each example's assembler tag and commit,
+                     # the bench.toml digest, the models with their prices and tool support, and the jobs
+  bench.toml         # the configuration the run used, which --resume loads
   calls.jsonl        # one line per call: the case, the model asked, the model and host that answered,
                      # tokens, cost, latency, attempts
   <model>/<example>/<case>/<repeat>/
     record/          # what the example wrote with --record, or --out for 05's suite
     calls/           # what the proxy saw: <n>.request.json and <n>.response.json
+    output.txt       # what the example printed
+    job.json         # its command, exit code and seconds
+    store.sqlite     # 05 only: the store its run wrote
     checks.json
   summary.json       # per model: invariants, measures, 05's result, cost, latency
   index.json         # what the viewer reads
 ```
 
-`results/` is gitignored. A run never overwrites another. `uv run run.py --resume <run-id>` runs only the cases missing from a run, with the same models.
+`results/` is gitignored. A run never overwrites another. `run.py --resume <run-id>` runs the jobs that failed or never started, from an empty folder each; what an earlier attempt sent and spent stays in `calls.jsonl`, and counts toward the cap. It resumes only at the commit the run started from, with the run's own `bench.toml` and the prices it planned with, so one run never mixes two versions of the code.
 
 ## The viewer
 

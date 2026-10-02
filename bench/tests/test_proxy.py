@@ -160,6 +160,13 @@ def test_spent_adds_up_what_every_call_cost(running: proxy.Proxy, upstream: Upst
     assert running.spent == 0.75
 
 
+def test_a_resumed_run_starts_from_what_it_had_spent(tmp_path: Path, upstream: Upstream) -> None:
+    upstream.replies.append((200, {}, answer(cost=0.25)))
+    with proxy.Proxy(tmp_path, KEY, upstream=upstream.url, spent=1.5) as resumed:
+        call(resumed)
+        assert resumed.spent == 1.75
+
+
 def test_the_key_is_never_written(running: proxy.Proxy, upstream: Upstream, tmp_path: Path) -> None:
     upstream.replies += [(200, {}, answer()), (429, {}, RATE_LIMITED), (200, {}, answer())]
     call(running)

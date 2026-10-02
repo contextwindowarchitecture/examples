@@ -37,9 +37,10 @@ SEGMENT = re.compile(r"[A-Za-z0-9_.-]+")
 
 class Proxy:
     def __init__(self, run: Path, key: str, *, upstream: str = UPSTREAM, attempts: int = ATTEMPTS,
-                 sleep: Callable[[float], None] = time.sleep) -> None:
+                 sleep: Callable[[float], None] = time.sleep, spent: float = 0.0) -> None:
+        """spent: what the run had spent before, when it is resumed."""
         self.run, self.key, self.upstream, self.attempts, self.sleep = run, key, upstream, attempts, sleep
-        self.spent = 0.0  # dollars, as OpenRouter charged them
+        self.spent = spent  # dollars, as OpenRouter charged them
         self._lock = threading.Lock()
         self._calls: dict[str, int] = {}
         self._server = ThreadingHTTPServer(("127.0.0.1", 0), _handler(self))
