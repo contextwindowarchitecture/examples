@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import secrets
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -38,6 +38,12 @@ class Conversation:
         data = json.loads(Path(path).read_text(encoding="utf-8"))
         return cls(session=data["session"], turns=[Turn(**turn) for turn in data["turns"]],
                    question=data["question"], asked_at=data["asked_at"])
+
+    def save(self, path: str | Path) -> None:
+        """Write the conversation file load() reads."""
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(asdict(self), indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     def ask(self, question: str) -> None:
         self.question, self.asked_at = question, now()

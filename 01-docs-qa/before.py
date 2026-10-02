@@ -5,9 +5,13 @@ Compare build_request() with the one in after.py.
     uv run before.py "How do I export all my projects?"                          # prints the request it would send
     uv run before.py --conversation scenarios/02-long-conversation/conversation.json
     uv run --env-file .env before.py --provider anthropic "How do I export all my projects?"
+    uv run --env-file .env before.py --provider anthropic --record runs/export-before "How do I export all my projects?"
+
+--record DIR writes the conversation (conversation.json), the request as built (request.json) and the reply (run.json).
 """
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 from typing import TextIO
@@ -33,13 +37,24 @@ def build_request(conversation: Conversation) -> tuple[list[str], list[dict[str,
     return [system], messages
 
 
-def answer(conversation: Conversation, provider: str, model: str | None, *, out: TextIO = sys.stdout) -> str | None:
+def answer(conversation: Conversation, provider: str, model: str | None, *, out: TextIO = sys.stdout,
+           record: str | Path | None = None) -> str | None:
     system, messages = build_request(conversation)
+    if record:
+        # --record: the request as built. Nothing recorded what was left out, so there is no trace to keep beside it.
+        Path(record).mkdir(parents=True, exist_ok=True)
+        request = {"system": system, "messages": messages}
+        (Path(record) / "request.json").write_text(json.dumps(request, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     if provider == "none":
         cli.show_request(system, messages, out)
         return None
     return providers.ask(provider, model, system, messages, MAX_OUTPUT_TOKENS)
 
 
+def main(argv: list[str]) -> int:
+    args = cli.parser(__doc__).parse_args(argv)
+    return cli.run(args, lambda conversation, provider, model: answer(conversation, provider, model, record=args.record))
+
+
 if __name__ == "__main__":
-    sys.exit(cli.run(cli.parser(__doc__).parse_args(), answer))
+    sys.exit(main(sys.argv[1:]))

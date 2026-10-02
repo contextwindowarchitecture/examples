@@ -6,8 +6,10 @@ Compare build_request() with the one in before.py.
     uv run after.py --conversation scenarios/02-long-conversation/conversation.json
     uv run after.py --replay runs/<digest>/snapshot.json                        # re-assemble a saved request
     uv run --env-file .env after.py --provider anthropic "How do I export all my projects?"
+    uv run --env-file .env after.py --provider anthropic --record runs/export "How do I export all my projects?"
 
-Every assembly is saved under runs/<digest>/ as snapshot.json, trace.json and, unless refused, payload.json.
+Every assembly is saved under runs/<digest>/ as snapshot.json, trace.json and, unless refused, payload.json. --record DIR
+also writes them to DIR, with the conversation (conversation.json) and the reply (run.json).
 """
 from __future__ import annotations
 
@@ -32,9 +34,11 @@ def build_request(conversation: Conversation) -> tuple[dict[str, Any], AssemblyR
 
 
 def answer(conversation: Conversation, provider: str, model: str | None, *,
-           out: TextIO = sys.stdout, runs: Path = RUNS) -> str | None:
+           out: TextIO = sys.stdout, runs: Path = RUNS, record: str | Path | None = None) -> str | None:
     document, result = build_request(conversation)
     save(document, result, runs)
+    if record:
+        write(Path(record), document, result)  # --record: this assembly, beside the conversation and the reply
     report(document, result, out)
     if result.payload is None:
         return None  # refused: there is no payload, so nothing can reach a model (R-17)
@@ -75,12 +79,17 @@ def report(document: dict[str, Any], result: AssemblyResult, out: TextIO = sys.s
 def save(document: dict[str, Any], result: AssemblyResult, runs: Path = RUNS) -> Path:
     """Keep the frozen input with its outcome, keyed by the snapshot digest: enough to replay this exact request."""
     directory = runs / result.trace["context"]["snapshot_digest"][:16]
+    write(directory, document, result)
+    return directory
+
+
+def write(directory: Path, document: dict[str, Any], result: AssemblyResult) -> None:
+    """snapshot.json, trace.json and, unless the assembly refused, payload.json."""
     directory.mkdir(parents=True, exist_ok=True)
     (directory / "snapshot.json").write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     (directory / "trace.json").write_text(json.dumps(result.trace, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     if result.payload is not None:
         (directory / "payload.json").write_bytes(result.payload)
-    return directory
 
 
 def replay(path: str | Path, out: TextIO = sys.stdout) -> bool:
@@ -98,13 +107,14 @@ def replay(path: str | Path, out: TextIO = sys.stdout) -> bool:
     return same
 
 
-def main(argv: list[str]) -> int:
+def main(argv: list[str], *, runs: Path = RUNS) -> int:
     parser = cli.parser(__doc__)
     parser.add_argument("--replay", metavar="SNAPSHOT", help="re-assemble a saved snapshot.json and compare it with its trace")
     args = parser.parse_args(argv)
     if args.replay:
         return 0 if replay(args.replay) else 1
-    return cli.run(args, answer)
+    return cli.run(args, lambda conversation, provider, model: answer(conversation, provider, model, runs=runs,
+                                                                       record=args.record))
 
 
 if __name__ == "__main__":

@@ -203,6 +203,22 @@ replay: same outcome, byte for byte
 
 When a user reports a bad answer, the snapshot shows what the model was given. You can then check it against a new policy or a new assembler before you ship either.
 
+## Recording a run
+
+`--record DIR` keeps one question's run in a folder you name, to read or compare later, such as the same question sent to two models:
+
+```sh
+uv run --env-file .env after.py --provider anthropic --record runs/sso "How do I set up SSO with Okta?"
+uv run --env-file .env before.py --provider anthropic --record runs/sso-before "How do I set up SSO with Okta?"
+```
+
+| File | `after.py` | `before.py` |
+| --- | --- | --- |
+| `conversation.json` | The question and the turns before it. `--conversation` asks it again | The same |
+| `snapshot.json`, `trace.json`, `payload.json` | The assembly, as under `runs/<digest>/`. No `payload.json` when refused | None: nothing recorded what was left out |
+| `request.json` | | The system text and messages it built |
+| `run.json` | The provider and model, and the answer, or the error. The answer is null when nothing was sent | The same |
+
 ## Context changes in review
 
 `uv run pytest` rebuilds each scenario from its `conversation.json` and compares it with the committed `snapshot.json`, `trace.json` and `payload.json`. Edit an article, the instructions or the route policy, and the suite fails:
