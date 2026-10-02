@@ -42,6 +42,14 @@ class Check(unittest.TestCase):
         write(self.root, "02-b")
         self.assertEqual(self.problems(), [])
 
+    def test_only_numbered_folders_are_examples(self) -> None:
+        write(self.root, "01-a")
+        bench = self.root / "bench"  # a project of the repository's own, such as the benchmark harness
+        bench.mkdir()
+        (bench / "pyproject.toml").write_text('[project]\nname = "bench"\n')
+        (bench / "uv.lock").write_text('[[package]]\nname = "pytest"\nversion = "8.0.0"\n')
+        self.assertEqual(self.problems(), [])
+
     def test_examples_on_different_tags_fail(self) -> None:
         write(self.root, "01-a")
         write(self.root, "02-b", tag="v0.1.0")

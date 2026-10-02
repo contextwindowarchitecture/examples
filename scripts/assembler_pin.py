@@ -42,9 +42,10 @@ class Pin:
 
 
 def pins(root: Path = ROOT) -> list[Pin]:
-    """The assembler pin of every example under root: each folder with a pyproject.toml and a uv.lock."""
+    """The assembler pin of every example under root: each numbered folder, such as 01-docs-qa, with a pyproject.toml
+    and a uv.lock. Other projects in the repository, such as bench/, are not examples and pin no assembler."""
     found = []
-    for project in sorted(root.glob("*/pyproject.toml")):
+    for project in sorted(root.glob("[0-9]*/pyproject.toml")):
         folder = project.parent
         if not (folder / "uv.lock").exists():
             continue
