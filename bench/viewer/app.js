@@ -75,6 +75,15 @@ function checksOf(s, r, c) {
     .filter((check) => !c || (c.measures.includes(check.measure) && (check.measure !== "invariant" || c.invariants.includes(check.check))));
 }
 
+// Which run's files a section shows. A case has a run per model and repeat, too many to lay out as buttons, so they
+// are options grouped by model; each option's value is the run's place in the list given.
+function picker(runs, picked) {
+  const models = [...new Set(runs.map((r) => r.model))];
+  return html`<label class="runpick">Run <select data-action="pick" aria-label="The run whose files to show">${models.map((model) => html`
+    <optgroup label="${model}">${runs.map((r, n) => r.model === model ? html`
+      <option value="${n}"${n === picked ? html` selected` : ""}>${short(r.model)} · ${r.variant ? `${r.variant} · ` : ""}repeat ${r.repeat}</option>` : "")}</optgroup>`)}</select></label>`;
+}
+
 function repeatChips(s) {
   const repeats = [...new Set(ran(s).map((r) => String(r.repeat)))].sort();
   if (repeats.length < 2) return "";
@@ -291,7 +300,8 @@ function caseView(run, s, key) {
   if (!one) return html`<section class="wrap head"><h1>No such case</h1></section>`;
   const [example, ...rest] = key.split("/");
   const results = ran(s).filter((r) => r.case === key);
-  const picked = results[Math.min(state.pick, results.length - 1)];
+  const index = Math.min(state.pick, results.length - 1);
+  const picked = results[index];
   const question = asked(one.question || key);
   return html`
     <section class="wrap head">
@@ -305,7 +315,7 @@ function caseView(run, s, key) {
       <div class="kicker">What CWA decided</div>
       <h2>The request the model answered from.</h2>
       <p class="body">Each run gets a snapshot per inference, so a model that takes another path is sent other requests. Pick a run, and for an agent, an inference.</p>
-      <div class="pills" style="margin-bottom: 18px;">${results.map((r, n) => html`<button type="button" class="ghost" data-action="pick" data-value="${n}" aria-pressed="${r === picked}">${short(r.model)} · ${r.variant ? `${r.variant} · ` : ""}${r.repeat}</button>`)}</div>
+      <div class="toolbar">${picker(results, index)}</div>
       ${picked ? later(decided(run, picked)) : html`<p class="body">No run of this case finished.</p>`}
     </div></section>
     <section class="band"><div class="wrap">
@@ -398,8 +408,15 @@ view.addEventListener("click", (event) => {
   if (!button) return;
   const { action, value } = button.dataset;
   if (action === "repeat") state.repeat = value;
-  if (action === "pick") { state.pick = Number(value); state.inference = null; }
   if (action === "inference") state.inference = Number(value);
+  draw();
+});
+
+view.addEventListener("change", (event) => {
+  const select = event.target.closest("select[data-action='pick']");
+  if (!select) return;
+  state.pick = Number(select.value);
+  state.inference = null;
   draw();
 });
 

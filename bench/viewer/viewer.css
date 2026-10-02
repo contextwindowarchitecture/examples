@@ -159,6 +159,9 @@ a.row:hover { background: var(--accent-soft); }
 .relbar > .threshold { position: absolute; top: 0; width: 1px; height: 22px; background: var(--accent); }
 .clip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* A section's toolbar: the run picker, and what it applies to */
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 24px; margin: 0 0 18px; }
+
 /* Pills, run chips */
 .pills { display: flex; flex-wrap: wrap; gap: 10px; }
 .pill { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg); border: 1px solid var(--line); border-radius: var(--pill); padding: 7px 14px; }
