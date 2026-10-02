@@ -48,12 +48,14 @@ def nodes() -> tuple[TextNode, ...]:
 
 
 @cache
-def _retriever(top_k: int) -> BM25Retriever:
-    return BM25Retriever.from_defaults(nodes=list(nodes()), similarity_top_k=top_k)
+def _retriever() -> BM25Retriever:
+    # Every chunk is scored. BM25's own top-k picks among equal scores in whatever order numpy's argpartition leaves
+    # them, which differs between machines (arm64 and x86_64 use different sorting kernels).
+    return BM25Retriever.from_defaults(nodes=list(nodes()), similarity_top_k=len(nodes()))
 
 
 def retrieve(question: str, top_k: int) -> list[NodeWithScore]:
-    """The top_k chunks for a question, best first. Equal scores are ordered by chunk id, so the order never depends
-    on how the index was built."""
-    hits = _retriever(top_k).retrieve(question)
-    return sorted(hits, key=lambda hit: (-(hit.score or 0.0), hit.node.node_id))
+    """The top_k chunks for a question, best first. Every chunk is ranked by score, then by chunk id, before the top
+    k are taken, so equal scores resolve the same way on every machine and the committed scenarios hold everywhere."""
+    hits = _retriever().retrieve(question)
+    return sorted(hits, key=lambda hit: (-(hit.score or 0.0), hit.node.node_id))[:top_k]

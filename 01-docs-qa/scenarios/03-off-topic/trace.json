@@ -13,25 +13,25 @@
   "compressed": [],
   "excluded": [
     {
+      "item_id": "help:api@5#0",
+      "reason": "below_threshold",
+      "stage": "assembler",
+      "slot": "evidence.knowledge"
+    },
+    {
       "item_id": "help:api@5#1",
       "reason": "below_threshold",
       "stage": "assembler",
       "slot": "evidence.knowledge"
     },
     {
-      "item_id": "help:guests@3#0",
+      "item_id": "help:api@5#2",
       "reason": "below_threshold",
       "stage": "assembler",
       "slot": "evidence.knowledge"
     },
     {
-      "item_id": "help:guests@3#2",
-      "reason": "below_threshold",
-      "stage": "assembler",
-      "slot": "evidence.knowledge"
-    },
-    {
-      "item_id": "help:mobile-apps@4#1",
+      "item_id": "help:api@5#3",
       "reason": "below_threshold",
       "stage": "assembler",
       "slot": "evidence.knowledge"
@@ -54,7 +54,7 @@
     "route_policy_version": "docs-qa/v1",
     "tokenizer": "estimate-utf8/v1",
     "renderer": "cwa-messages/v1",
-    "snapshot_digest": "15746b34ed4e48770acb0ff7f715df83dcbec66521ee4f936dd31a93de39a519"
+    "snapshot_digest": "60cf189cec2f462782295b14424ffb2ba041a0b53c8d12ec4127f1b0648330c9"
   },
   "defaults_filled": [],
   "recovery": {

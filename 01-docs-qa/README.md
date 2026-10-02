@@ -115,12 +115,14 @@ Eight prior turns about setting up SSO with Okta, then a question about the Team
 ```console
 $ uv run after.py --conversation scenarios/03-off-topic/conversation.json
 refused: evidence_required, recovery request_context. No request is sent.
+  - evidence.knowledge       help:api@5#0                 below_threshold  relevance 0
   - evidence.knowledge       help:api@5#1                 below_threshold  relevance 1.201
-  - evidence.knowledge       help:guests@3#0              below_threshold  relevance 0
-  - evidence.knowledge       help:guests@3#2              below_threshold  relevance 0
-  - evidence.knowledge       help:mobile-apps@4#1         below_threshold  relevance 0
+  - evidence.knowledge       help:api@5#2                 below_threshold  relevance 0
+  - evidence.knowledge       help:api@5#3                 below_threshold  relevance 0
   - evidence.knowledge       help:notifications@5#1       below_threshold  relevance 1.273
 ```
+
+Three of the five chunks share no word with the question and score 0. Retrieval ranks every chunk by score and then by chunk id, so ties like these resolve the same way on every machine, and this scenario's committed files hold on Linux CI as on a Mac.
 
 "What's a good recipe for banana bread?" No chunk clears the threshold, and the route sets `requires_evidence`, so the assembler refuses (R-12). There is no payload, so no request can be made. The recovery action, `request_context`, tells the application what to do next; in chat, the bot asks the user to rephrase. `before.py` sends the question with five unrelated chunks. A capable model usually declines, as the instructions ask, but that costs a model call and depends on the model following its instructions. CWA enforces the rule outside the model (R-5).
 
