@@ -4,7 +4,7 @@ The examples show one application building its context through CWA. This harness
 
 It is not an example to copy. It treats the examples as applications: it runs their command lines and changes nothing they send.
 
-**Status: in progress.** This README is the plan, and each section becomes true as its commit lands ([Implementation order](#implementation-order)). Done so far: [Configuration](#configuration), the preflight, the plan with its estimate, [the proxy](#the-proxy), running and resuming a run ([Run it](#run-it)), [the checks](#checks), and the summary the viewer reads ([Results](#results)). Next: the viewer.
+**Status: in progress.** This README is the plan, and each section becomes true as its commit lands ([Implementation order](#implementation-order)). Done so far: [Configuration](#configuration), the preflight, the plan with its estimate, [the proxy](#the-proxy), running and resuming a run ([Run it](#run-it)), [the checks](#checks), the summary the viewer reads ([Results](#results)), and [the viewer](#the-viewer). Next: the repository's README and CI.
 
 ## Run it
 
@@ -15,6 +15,7 @@ uv run --env-file .env plan.py         # the preflight, then what a run would do
 uv run --env-file .env run.py          # the same, a confirmation, then the run, in results/<run-id>/
 uv run --env-file .env run.py --resume <run-id>    # the jobs a run has not finished, at the commit it ran
 uv run grade.py results/<run-id>       # grade a run again from its files, without a model
+uv run serve.py                        # the viewer, at http://127.0.0.1:8765/
 ```
 
 ```console
@@ -205,7 +206,16 @@ results/<run-id>/    # for example 2026-10-02T153007Z-bebe9ab
 
 ## The viewer
 
-`uv run serve.py` serves the viewer and `results/` on localhost. Pick a run, then a construct. Which results exercised a construct is read from each result's own traces and tool calls ([constructs.py](constructs.py)), so in 04 and 05 it can differ by model: one that never looks at a webhook twice never exercises supersession. The table names the cases where the committed scenarios exercise each one:
+`uv run serve.py` serves the viewer ([viewer/](viewer/)) and `results/` at http://127.0.0.1:8765/, on this machine only. Nothing else in `bench/` is served, `.env` included, and no folder is listed. The viewer is static HTML and JavaScript with no build step, in the site's visual language, and reads `results/index.json`, the run's `summary.json` and the job files the summary names:
+
+| Page | What it shows |
+| --- | --- |
+| Constructs, a run's home | The run's commit, assembler and spend, the four invariants with any failure called out, a card per construct with its requirements and the checks of the cases that exercised it, and the models |
+| A construct | Its description and requirements, then for each case that exercised it the evidence from a run's own trace (the chunks against the relevance threshold, the budget by plane, the routes an escalation took, the conflict groups, what was left out and why), and every run's answer with the checks of that construct's measures |
+| A case | What CWA decided for a picked run and inference: the budget by plane, the items sent as slot rows with their authority, trust and injection risk, what was left out and why, conflicts and provenance, with the raw trace, snapshot and payload a click away. Then every run's tool calls with the guard's decision, its answer as it came back, and its checks. For 01's `before.py`, the request it built |
+| Models, Cases, Runs | The models' calls, tokens, latency, cost, hosts and checks; every case; every graded run |
+
+Answers are model output and are escaped before they reach the page. Pick a run, then a construct. Which results exercised a construct is read from each result's own traces and tool calls ([constructs.py](constructs.py)), so in 04 and 05 it can differ by model: one that never looks at a webhook twice never exercises supersession. The table names the cases where the committed scenarios exercise each one:
 
 | Construct | Spec | Cases that exercise it | What the page compares across models |
 | --- | --- | --- | --- |

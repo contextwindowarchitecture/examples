@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CWA bench — Context Window Architecture</title>
+<meta name="description" content="The CWA examples run against a list of models: what CWA decided, and what each model did with it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="viewer.css">
+</head>
+<body>
+<header class="hdr">
+  <div class="wrap hdr-row">
+    <a class="brand" href="#/" aria-label="CWA bench, home">
+      <span class="mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+      <span class="wordmark">CWA bench</span>
+    </a>
+    <nav class="nav" aria-label="Viewer">
+      <a data-nav="constructs" href="#/">Constructs</a>
+      <a data-nav="cases" href="#/">Cases</a>
+      <a data-nav="models" href="#/">Models</a>
+      <a data-nav="runs" href="#/runs">Runs</a>
+    </nav>
+    <span class="spacer"></span>
+    <label class="runpick" for="run">Run <select id="run"></select></label>
+    <button type="button" class="ghost" id="theme">Dark</button>
+  </div>
+</header>
+<main id="view"><section class="wrap head"><div class="loading">Reading the results…</div></section></main>
+<footer class="foot">
+  <div class="wrap">
+    <span>Context Window Architecture is a context assembler specification, not a library.</span>
+    <span class="links"><a href="https://contextwindowarchitecture.io/spec.html">Spec</a><a href="https://github.com/contextwindowarchitecture/examples">Examples</a></span>
+  </div>
+</footer>
+<script type="module" src="app.js"></script>
+</body>
+</html>
