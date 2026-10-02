@@ -130,27 +130,39 @@ The last case is also a lesson about evals. Its first draft checked only that no
 
 ## The deployment gate
 
-The route's profile, [account-agent-messages v2](policy/account-agent/profile.json), names the model it is meant for (`model_family: gpt-oss-20b-MXFP4-Q8`) and starts `unevaluated`. [policy/registry.lock.json](policy/registry.lock.json) pins the profile and the route policy by digest. `evals.py promote` marks the profile evaluated, with the suite, date, result and the report as its artifact, but only if every case passed, for this exact profile and the model it names (R-19). Only the evaluation changes, so the profile keeps its version and lock entry (R-20).
+A profile names the model it is meant for in `model_family`, and starts `unevaluated`. [policy/registry.lock.json](policy/registry.lock.json) pins each profile version and the route policy by digest. `evals.py promote` marks the profile evaluated, with the suite, date, result and the report as its artifact, but only if every case passed, for this exact profile and the model it names (R-19). Only the evaluation changes, so the profile keeps its version and lock entry (R-20).
+
+`--deployment` loads the route policy and profile through the assembler's registry. Content changed without a version increase is refused, an unevaluated profile is refused, and a model other than the profile's `model_family` is refused.
+
+### v2: gpt-oss-20b, not promoted
+
+Profile v2 named the local gpt-oss-20b. Its results, above, failed four of six cases, so promotion refused and the gate held: that model is not good enough for this agent, and it was never deployed. The v2 entry stays in the lock, because the committed results were recorded under it and replay under it.
+
+### v3: gpt-oss-120b on Groq, awaiting its evals
+
+A new model target needs a new profile version (R-20). [account-agent-messages v3](policy/account-agent/profile.json) names `openai/gpt-oss-120b`, the route's `openai` model now reaches it on Groq ([policy/routes.json](policy/routes.json), key from `GROQ_API_KEY`), and the lock pins v3 beside v2. v3 is unevaluated, so the gate refuses it until it passes:
 
 ```console
-$ uv run evals.py promote evals/results/gpt-oss-20b-MXFP4-Q8-2026-10-02
-not promoted:
-  2 of 6 cases passed; failing: owner-reenables, member-reads-only, export-backup, injected-instruction
-
 $ uv run agent.py --deployment --provider openai "Is our webhook still disabled?"
 not deployable: registry:
-  profile account-agent-messages v2 is unevaluated; a deployment needs an evaluated profile (R-19)
+  profile account-agent-messages v3 is unevaluated; a deployment needs an evaluated profile (R-19)
+
+$ uv run evals.py promote evals/results/gpt-oss-20b-MXFP4-Q8-2026-10-02
+not promoted:
+  the results are for a different profile (sha256 49a0e698213d); run the suite again
+  the results are for gpt-oss-20b-MXFP4-Q8, the profile names openai/gpt-oss-120b
+  2 of 6 cases passed; failing: owner-reenables, member-reads-only, export-backup, injected-instruction
 ```
 
-`--deployment` loads the route policy and profile through the assembler's registry. Content changed without a version increase is refused, an unevaluated profile is refused, and a model other than the profile's `model_family` is refused. The gate held: this model is not good enough for this agent, and it won't be deployed.
+The old results can't promote the new profile: they were recorded under v2, for another model. To evaluate v3, put `GROQ_API_KEY` in `.env` and run the suite, then promote if every case passes:
 
-To deploy on another model, such as gpt-oss-120b on Groq or `claude-opus-5-5`:
+```sh
+uv run --env-file .env evals.py run --provider openai --label gpt-oss-120b-groq
+uv run evals.py promote evals/results/gpt-oss-120b-groq
+uv run --env-file .env agent.py --deployment --provider openai "Is our webhook still disabled?"
+```
 
-1. Copy the profile to a new version naming that model; a new model target needs a new version (R-20).
-2. Add it to the lock with `cwa.registry.lock`.
-3. Point the route at the model.
-4. Run the suite: `uv run --env-file .env evals.py run --provider openai --label <name>`.
-5. Promote if it passes.
+The same steps work for any model, such as `claude-opus-5-5`: copy the profile to a new version naming it, add it to the lock with `cwa.registry.lock(..., existing=...)`, point the route at the model, run the suite, and promote.
 
 ## Files
 
@@ -163,8 +175,8 @@ New or changed since 04:
 | [evals.py](evals.py), [evals/cases.json](evals/cases.json) | The suite, the graders, `run`, `grade` and `promote` |
 | [evals/results/](evals/results/) | Recorded runs and their graded report |
 | [agent.py](agent.py) | Spans around every step, every run saved to the store, and `--deployment` |
-| [policy/account-agent/profile.json](policy/account-agent/profile.json) | Version 2, naming its model |
-| [policy/registry.lock.json](policy/registry.lock.json) | The profile and route policy pinned by digest |
+| [policy/account-agent/profile.json](policy/account-agent/profile.json) | Version 3, naming gpt-oss-120b; version 2 named gpt-oss-20b |
+| [policy/registry.lock.json](policy/registry.lock.json) | Profiles v2 and v3 and the route policy, pinned by digest |
 | [policy/candidates/](policy/candidates/) | A candidate policy to try with `store.py whatif` |
 
 ## Limits

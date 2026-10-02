@@ -81,6 +81,18 @@ def test_committed_results_grade_to_their_committed_report(results: Path) -> Non
     assert evals.report(folder) == json.loads((folder / "report.json").read_text(encoding="utf-8"))
 
 
+@pytest.mark.parametrize("results", sorted(evals.RESULTS.glob("*/meta.json")), ids=lambda path: path.parent.name)
+def test_results_promote_only_the_profile_and_model_they_were_recorded_for(results: Path) -> None:
+    meta = json.loads(results.read_text(encoding="utf-8"))
+    profile = json.loads(evals.PROFILE.read_text(encoding="utf-8"))
+    if (meta["profile"]["version"], meta["model"]) == (profile["version"], profile["model_family"]):
+        pytest.skip("these results are for the current profile")
+    before = evals.PROFILE.read_bytes()
+    problems = evals.promote(results.parent)
+    assert any("different profile" in problem for problem in problems)
+    assert evals.PROFILE.read_bytes() == before
+
+
 def test_promotion_refuses_results_with_a_failing_case(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     profile = tmp_path / "profile.json"
     shutil.copy(evals.PROFILE, profile)

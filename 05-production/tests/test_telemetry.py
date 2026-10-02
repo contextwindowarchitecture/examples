@@ -47,7 +47,7 @@ def test_an_assembly_span_carries_cwas_decisions(spans: list[ReadableSpan]) -> N
     trace_json = json.loads((RESULTS[0] / "owner-reenables" / "turn-1" / "trace.json").read_text(encoding="utf-8"))
     assert first["cwa.snapshot.digest"] == trace_json["context"]["snapshot_digest"]
     assert first["cwa.payload.sha256"] == trace_json["result"]["hash"]
-    assert first["cwa.profile"] == "account-agent-messages v2"
+    assert first["cwa.profile"] == f"{trace_json['profile']['id']} v{trace_json['profile']['version']}"
     assert "cap:delete_webhook: capability_not_allowed" in first["cwa.excluded"]
 
 
