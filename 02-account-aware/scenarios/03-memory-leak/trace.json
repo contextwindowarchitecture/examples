@@ -1,0 +1,126 @@
+{
+  "profile": {
+    "id": "account-help-messages",
+    "version": 1
+  },
+  "budget": {
+    "input": 2000,
+    "reserved_output": 16000,
+    "margin_percent": 15
+  },
+  "result": {
+    "input_tokens": 611,
+    "hash": "db10d680d6be5c30233f9070368e23dec4402f4489ea08fb817a0f6d95986088"
+  },
+  "included": [
+    {
+      "slot": "governance.instructions",
+      "item_id": "policy:instructions",
+      "tokens": 244,
+      "source_version": "2",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "state.user",
+      "item_id": "account:w_kitewood:plan",
+      "tokens": 28,
+      "source_version": "18",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "state.user",
+      "item_id": "account:w_kitewood:u_ben",
+      "tokens": 12,
+      "source_version": "3",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "evidence.knowledge",
+      "item_id": "help:mobile-apps@4#2",
+      "tokens": 42,
+      "source_version": "4",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "evidence.knowledge",
+      "item_id": "help:notifications@5#0",
+      "tokens": 57,
+      "source_version": "5",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "evidence.knowledge",
+      "item_id": "help:notifications@5#1",
+      "tokens": 53,
+      "source_version": "5",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "evidence.knowledge",
+      "item_id": "help:notifications@5#2",
+      "tokens": 55,
+      "source_version": "5",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "interaction.memory",
+      "item_id": "mem:u_ben:0001",
+      "tokens": 14,
+      "source_version": "1",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "interaction.query",
+      "item_id": "turn:s_03leak:0001",
+      "tokens": 11,
+      "source_version": "1",
+      "eligibility": "route-policy"
+    }
+  ],
+  "compressed": [],
+  "excluded": [
+    {
+      "item_id": "help:support@2#1",
+      "reason": "below_threshold",
+      "stage": "assembler",
+      "slot": "evidence.knowledge"
+    },
+    {
+      "item_id": "mem:u_ada:0003",
+      "reason": "out_of_scope",
+      "stage": "assembler",
+      "slot": "interaction.memory"
+    },
+    {
+      "item_id": "mem:u_ada:0005",
+      "reason": "out_of_scope",
+      "stage": "assembler",
+      "slot": "interaction.memory"
+    }
+  ],
+  "conflicts": [
+    {
+      "group_id": "fact:plan",
+      "kind": "fact",
+      "items": [
+        "account:w_kitewood:plan",
+        "mem:u_ada:0003"
+      ],
+      "decided_by": "moot",
+      "resolution": "moot"
+    }
+  ],
+  "refused": {
+    "bool": false,
+    "reason": null
+  },
+  "context": {
+    "spec": "cwa/draft",
+    "assembly_time": "2026-09-30T16:00:00Z",
+    "route_policy_version": "account-help/v1",
+    "tokenizer": "estimate-utf8/v1",
+    "renderer": "cwa-messages/v1",
+    "snapshot_digest": "af81910cd8e7db4c9fd5e1070e5372f34071b8b4d6d5a21b91ccbdc1d98aea0f"
+  },
+  "defaults_filled": []
+}

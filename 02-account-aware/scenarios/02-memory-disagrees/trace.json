@@ -1,0 +1,122 @@
+{
+  "profile": {
+    "id": "account-help-messages",
+    "version": 1
+  },
+  "budget": {
+    "input": 2000,
+    "reserved_output": 16000,
+    "margin_percent": 15
+  },
+  "result": {
+    "input_tokens": 680,
+    "hash": "a002ea1bbb4f3410ad63c3844537e954c2ea59933f6e9527a3ec2fe0f73de4e4"
+  },
+  "included": [
+    {
+      "slot": "governance.instructions",
+      "item_id": "policy:instructions",
+      "tokens": 244,
+      "source_version": "2",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "state.user",
+      "item_id": "account:w_kitewood:plan",
+      "tokens": 28,
+      "source_version": "18",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "state.user",
+      "item_id": "account:w_kitewood:u_ada",
+      "tokens": 12,
+      "source_version": "7",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "evidence.knowledge",
+      "item_id": "help:plans@9#4",
+      "tokens": 30,
+      "source_version": "9",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "evidence.knowledge",
+      "item_id": "help:security@5#2",
+      "tokens": 68,
+      "source_version": "5",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "evidence.knowledge",
+      "item_id": "help:sso@8#0",
+      "tokens": 55,
+      "source_version": "8",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "evidence.knowledge",
+      "item_id": "help:sso@8#1",
+      "tokens": 65,
+      "source_version": "8",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "evidence.knowledge",
+      "item_id": "help:sso@8#3",
+      "tokens": 59,
+      "source_version": "8",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "interaction.memory",
+      "item_id": "mem:u_ada:0005",
+      "tokens": 10,
+      "source_version": "1",
+      "eligibility": "route-policy"
+    },
+    {
+      "slot": "interaction.query",
+      "item_id": "turn:s_02memory:0001",
+      "tokens": 12,
+      "source_version": "1",
+      "eligibility": "route-policy"
+    }
+  ],
+  "compressed": [],
+  "excluded": [
+    {
+      "item_id": "mem:u_ada:0003",
+      "reason": "conflict_lost",
+      "stage": "assembler",
+      "slot": "interaction.memory"
+    }
+  ],
+  "conflicts": [
+    {
+      "group_id": "fact:plan",
+      "kind": "fact",
+      "items": [
+        "account:w_kitewood:plan",
+        "mem:u_ada:0003"
+      ],
+      "decided_by": "policy",
+      "resolution": "resolved",
+      "winner": "account:w_kitewood:plan"
+    }
+  ],
+  "refused": {
+    "bool": false,
+    "reason": null
+  },
+  "context": {
+    "spec": "cwa/draft",
+    "assembly_time": "2026-09-30T16:00:00Z",
+    "route_policy_version": "account-help/v1",
+    "tokenizer": "estimate-utf8/v1",
+    "renderer": "cwa-messages/v1",
+    "snapshot_digest": "db1c7fbf65daef479fbc60f62efd5e56b287f2498128d21cbfa90c8c9d7e8b51"
+  },
+  "defaults_filled": []
+}

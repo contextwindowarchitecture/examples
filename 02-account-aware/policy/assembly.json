@@ -1,0 +1,6 @@
+{
+  "tokenizer": "estimate-utf8/v1",
+  "renderer": "cwa-messages/v1",
+  "budget": { "input": 2000, "reserved_output": 16000, "margin_percent": 15 },
+  "retrieval": { "top_k": 5 }
+}
