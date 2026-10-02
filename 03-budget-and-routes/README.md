@@ -160,10 +160,10 @@ Both snapshots are saved under `runs/`, so the refused attempt can be replayed t
 | Budget | 1,000 input, 4,000 reserved for output | 6,000 input, 16,000 reserved for output |
 | History cap | 200 tokens | 1,500 tokens |
 | `anthropic` | `claude-haiku-4-5` | `claude-opus-5-5`, low effort, with server-side refusal fallbacks |
-| `openai` | `gpt-oss-20b-MXFP4-Q8`, low reasoning effort | `Qwen3.6-35B-A3B-8bit` |
+| `openai` | `gpt-oss-20b-MXFP4-Q8` on a local server (`OPENAI_BASE_URL`), low reasoning effort | `openai/gpt-oss-120b` on Groq, its key from `GROQ_API_KEY` |
 | Escalates | on `protected_content_over_budget`, to `account-help` | never |
 
-The two `openai` models are the local ones this example was run against through `OPENAI_BASE_URL`. Replace them with yours, or pass `--model` to send every route to one model. Every trace names its route policy version and profile, so a request is never ambiguous about the rules that built it (R-20).
+These are the models this example was run against. A route's `openai` entry can name its own `base_url` and the environment variable that holds its key (`api_key_env`), so one escalation can go from a local server to a hosted one. Without them, the route uses `OPENAI_BASE_URL` and `OPENAI_API_KEY`. Replace the models with yours, or pass `--model` to send the chosen route to another model on the same endpoint. Every trace names its route policy version and profile, so a request is never ambiguous about the rules that built it (R-20).
 
 The two profiles place the same slots differently, and that is a choice, not a finding. Both are unevaluated (R-19). Which placement serves a small model better is a question for the evals in 05.
 

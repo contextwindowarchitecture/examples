@@ -53,9 +53,13 @@ def _anthropic(options: dict[str, Any], system: list[str], messages: list[dict[s
 def _openai(options: dict[str, Any], system: list[str], messages: list[dict[str, str]], max_tokens: int) -> str:
     import openai
 
-    base_url = os.environ.get("OPENAI_BASE_URL")
+    # A route may name its own OpenAI-compatible endpoint, and the environment variable that holds its key, so one
+    # escalation can go from a local server to a hosted one. Otherwise OPENAI_BASE_URL and OPENAI_API_KEY apply.
+    options = dict(options)
+    base_url = options.pop("base_url", None) or os.environ.get("OPENAI_BASE_URL")
+    key_variable = options.pop("api_key_env", "OPENAI_API_KEY")
     # A local server usually checks no key, but the SDK insists on one.
-    client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY") or "local")
+    client = openai.OpenAI(base_url=base_url, api_key=os.environ.get(key_variable) or "local")
     # Chat completions takes one system message; some local servers honor only the first.
     request = ([{"role": "system", "content": "\n\n".join(system)}] if system else []) + messages
     # OpenAI's reasoning models reject max_tokens; many local servers know only max_tokens.
@@ -64,7 +68,7 @@ def _openai(options: dict[str, Any], system: list[str], messages: list[dict[str,
     try:
         completion = client.chat.completions.create(messages=request, **limit, **options)
     except openai.AuthenticationError as error:
-        raise ProviderError("no OpenAI credentials: set OPENAI_API_KEY") from error
+        raise ProviderError(f"{base_url or 'OpenAI'} rejected the key: set {key_variable}") from error
     except openai.NotFoundError as error:
         raise ProviderError(f"{base_url or 'OpenAI'} does not know model {model!r}") from error
     except openai.APIStatusError as error:

@@ -1,5 +1,5 @@
 {
-  "$comment": "The application's routes: for each, the CWA route policy and profile, the snapshot settings, and the model to send to per provider. The openai models are the local ones this example was run against through OPENAI_BASE_URL; replace them with yours. escalate names the route to rebuild the snapshot on when an assembly refuses for that reason.",
+  "$comment": "The application's routes: for each, the CWA route policy and profile, the snapshot settings, and the model to send to per provider. For openai, the small route's model is a local one this example was run against through OPENAI_BASE_URL, and the large route's is gpt-oss-120b on Groq, whose key it reads from GROQ_API_KEY; replace them with yours. A route's base_url and api_key_env, when set, override OPENAI_BASE_URL and OPENAI_API_KEY for that route. escalate names the route to rebuild the snapshot on when an assembly refuses for that reason.",
   "default": "account-help-small",
   "routes": {
     "account-help-small": {
@@ -30,7 +30,11 @@
           "betas": ["server-side-fallback-2026-07-01"],
           "fallbacks": "default"
         },
-        "openai": { "model": "Qwen3.6-35B-A3B-8bit" }
+        "openai": {
+          "model": "openai/gpt-oss-120b",
+          "base_url": "https://api.groq.com/openai/v1",
+          "api_key_env": "GROQ_API_KEY"
+        }
       }
     }
   }
