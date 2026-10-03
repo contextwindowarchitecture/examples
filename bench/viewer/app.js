@@ -80,9 +80,9 @@ function checksOf(s, r, c) {
 // are options grouped by model; each option's value is the run's place in the list given.
 function picker(runs, picked) {
   const models = [...new Set(runs.map((r) => r.model))];
-  return html`<label class="runpick">Run <select data-action="pick" aria-label="The run whose files to show">${models.map((model) => html`
+  return html`<span class="runpick"><label for="pick-run">Run</label><select id="pick-run" data-action="pick">${models.map((model) => html`
     <optgroup label="${model}">${runs.map((r, n) => r.model === model ? html`
-      <option value="${n}"${n === picked ? html` selected` : ""}>${short(r.model)} · ${r.variant ? `${r.variant} · ` : ""}repeat ${r.repeat}</option>` : "")}</optgroup>`)}</select></label>`;
+      <option value="${n}"${n === picked ? html` selected` : ""}>${short(r.model)} · ${r.variant ? `${r.variant} · ` : ""}repeat ${r.repeat}</option>` : "")}</optgroup>`)}</select></span>`;
 }
 
 function repeatChips(s) {
@@ -513,7 +513,8 @@ function header(index, run, page) {
 }
 
 view.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-action]");
+  // Buttons only: the run picker is a select, and redrawing on its click would close it as it opens.
+  const button = event.target.closest("button[data-action]");
   if (!button) return;
   const { action, value } = button.dataset;
   if (action === "repeat") state.repeat = value;
