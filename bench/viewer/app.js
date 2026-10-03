@@ -457,7 +457,7 @@ async function decided(run, r) {
 function modelCard(run, s, r) {
   const found = checksOf(s, r, null);
   return html`<div class="cell" style="gap: 16px;">
-    <div><div class="label split" style="margin-bottom: 8px;"><span>${r.variant ? `${r.variant} · ` : ""}repeat ${r.repeat}</span><span>${plural(r.assemblies.length, "assembly")}</span></div>
+    <div><div class="label split" style="margin-bottom: 8px;"><span>${r.variant ? `${r.variant} · ` : ""}repeat ${r.repeat}</span><span>${plural(r.assemblies.length, "assembly", "assemblies")}</span></div>
       <div class="card-title">${r.model}</div></div>
     ${r.answer ? later(data.file(run, r.answer).then((answered) => html`
       ${answered.steps ? html`<div><div class="label" style="margin-bottom: 8px;">Tool calls</div>${show.steps(answered)}</div>` : ""}

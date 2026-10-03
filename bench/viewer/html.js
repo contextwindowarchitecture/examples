@@ -21,7 +21,7 @@ function render(value) {
 export const number = (n) => (n ?? 0).toLocaleString("en-US");
 export const dollars = (n) => `$${(n ?? 0).toFixed(2)}`;
 export const seconds = (ms) => (ms === null || ms === undefined ? "—" : `${(ms / 1000).toFixed(1)} s`);
-export const plural = (n, noun) => `${number(n)} ${noun}${n === 1 ? "" : "s"}`;
+export const plural = (n, noun, many = `${noun}s`) => `${number(n)} ${n === 1 ? noun : many}`;
 
 // A count of checks passed of those graded, in the foreground, or the accent when one failed.
 export function count(name, [passed, graded]) {
