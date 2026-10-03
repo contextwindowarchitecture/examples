@@ -202,7 +202,9 @@ details.full[open] > summary { border-bottom: 0; }
 .toolbar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px 16px; margin: 0 0 18px; }
 .toolbar > .label { grid-column: 1; }
 .toolbar > .changed { grid-column: 2; justify-self: end; }
-.toolbar > .runpick { grid-column: 3; }
+.toolbar > .runpick { grid-column: 3; min-width: 0; }
+/* In a toolbar the drop-down takes the room the toolbar has, not the header's cap, so a phone shows a run's name whole. */
+.toolbar .runpick select { max-width: none; min-width: 0; }
 .changed { visibility: hidden; max-width: 100%; min-height: 18px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: var(--mono); font-size: 12px; line-height: 18px; color: var(--fg); }
 .changed::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 8px; border-radius: 50%; background: var(--accent); vertical-align: 1px; }
 .changed.shown { visibility: visible; animation: changed 3.2s ease-out forwards; }
