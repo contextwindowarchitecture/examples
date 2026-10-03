@@ -85,12 +85,14 @@ function checksOf(s, r, c) {
 }
 
 // Which run's files a section shows. A case has a run per model and repeat, too many to lay out as buttons, so they
-// are options grouped by model; each option's value is the run's place in the list given.
-function picker(runs, picked) {
+// are options grouped by model; each option's value is the run's place in the list given. `shows` names what the
+// section shows of the run picked, for the line that says so after a pick.
+function picker(runs, picked, shows) {
   const models = [...new Set(runs.map((r) => r.model))];
-  return html`<span class="runpick"><label for="pick-run">Run</label><select id="pick-run" data-action="pick">${models.map((model) => html`
+  return html`<span class="pickgroup"><span class="runpick"><label for="pick-run">Run</label><select id="pick-run" data-action="pick" data-shows="${shows}">${models.map((model) => html`
     <optgroup label="${model}">${runs.map((r, n) => r.model === model ? html`
-      <option value="${n}"${n === picked ? html` selected` : ""}>${short(r.model)} · ${r.variant ? `${r.variant} · ` : ""}repeat ${r.repeat}</option>` : "")}</optgroup>`)}</select></span>`;
+      <option value="${n}"${n === picked ? html` selected` : ""}>${short(r.model)} · ${r.variant ? `${r.variant} · ` : ""}repeat ${r.repeat}</option>` : "")}</optgroup>`)}</select></span>
+    <span class="changed" aria-hidden="true"></span></span>`;
 }
 
 function repeatChips(s) {
@@ -325,7 +327,7 @@ function caseView(run, s, key) {
       <div class="kicker">What CWA decided</div>
       <h2>The request the model answered from.</h2>
       <p class="body">Each run gets a snapshot per inference, so a model that takes another path is sent other requests. Pick a run, and for an agent, an inference.</p>
-      <div class="toolbar">${picker(results, index)}</div>
+      <div class="toolbar">${picker(results, index, "the decision for")}</div>
       ${picked ? later(decided(run, picked)) : html`<p class="body">No run of this case finished.</p>`}
     </div></section>
     <section class="band"><div class="wrap">
@@ -363,7 +365,7 @@ function pairedCase(run, s, key, one) {
       <h2>What each script sent.</h2>
       <p class="body">${snapshots.length === 1 ? `after.py froze the same snapshot in all ${runsOf("after")} of its runs, so every model was sent the same request.` : `after.py's runs froze ${snapshots.length} different snapshots; this is the picked run's.`}
         Below is every item in it, with what before.py did with it and what after.py's assembly decided. before.py records nothing, so where it put each item is read from its request.</p>
-      ${pairs[index] ? later(sentBoth(run, pairs[index], picker(pairs, index))) : html`<p class="body">No run of this case finished.</p>`}
+      ${pairs[index] ? later(sentBoth(run, pairs[index], picker(pairs, index, "the files of"))) : html`<p class="body">No run of this case finished.</p>`}
     </div></section>
     <section class="band"><div class="wrap">
       <div class="kicker">What each model did</div>
@@ -523,8 +525,8 @@ function header(index, run, page) {
 // A control on the page redraws it where the reader is. The first time a run's files are read, its parts show
 // "Reading…" until they arrive, so the page would shrink and the browser would scroll to keep up, then scroll again as
 // they fill in. Until every part has filled in, the page keeps its height, the browser does not anchor the scroll,
-// and the scroll position stays; then the control used has the focus again.
-async function redraw(control) {
+// and the scroll position stays; then the control used has the focus again, and what it changed is said.
+async function redraw(control, notice) {
   const top = window.scrollY;
   view.style.minHeight = `${view.offsetHeight}px`;
   document.documentElement.classList.add("redrawing");
@@ -537,6 +539,15 @@ async function redraw(control) {
     document.documentElement.classList.remove("redrawing");
   }
   document.querySelector(control)?.focus({ preventScroll: true });
+  if (notice) announce(notice);
+}
+
+// What a control changed, said once: beside the control, where it fades out, and to a screen reader through the
+// page's status region, which stays in the page so the change is announced.
+function announce(text) {
+  const shown = view.querySelector(".changed");
+  if (shown) { shown.textContent = text; shown.classList.add("shown"); }
+  document.getElementById("status").textContent = text;
 }
 
 view.addEventListener("click", (event) => {
@@ -554,7 +565,7 @@ view.addEventListener("change", (event) => {
   if (!select) return;
   state.pick = Number(select.value);
   state.inference = null;
-  redraw("#pick-run");
+  redraw("#pick-run", `Now showing ${select.dataset.shows} ${select.selectedOptions[0].text}`);
 });
 
 document.getElementById("run").addEventListener("change", (event) => { location.hash = `#/${event.target.value}`; });
