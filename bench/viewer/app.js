@@ -22,18 +22,26 @@ const MEASURES = ["run", "invariant", "answer", "grounding", "conflict", "exclud
 const view = document.getElementById("view");
 const state = { repeat: "1", pick: 0, inference: null };
 let fills = 0;
+const pending = new Set();
 
 // Parts of a page that read more files fill in when they arrive.
 function later(promise) {
   const id = `fill-${++fills}`;
-  promise.then((markup) => {
+  const filled = promise.then((markup) => {
     const node = document.getElementById(id);
     if (node) { node.innerHTML = String(markup); node.classList.remove("loading"); }
   }).catch((error) => {
     const node = document.getElementById(id);
     if (node) node.textContent = `Could not read it: ${error.message}`;
   });
+  pending.add(filled);
+  filled.finally(() => pending.delete(filled));
   return html`<div id="${id}" class="loading">Reading…</div>`;
+}
+
+// Once every part has filled in, the parts they added included.
+async function settled() {
+  while (pending.size) await Promise.all([...pending]);
 }
 
 const short = (model) => model.split("/").pop();
@@ -512,6 +520,25 @@ function header(index, run, page) {
   }
 }
 
+// A control on the page redraws it where the reader is. The first time a run's files are read, its parts show
+// "Reading…" until they arrive, so the page would shrink and the browser would scroll to keep up, then scroll again as
+// they fill in. Until every part has filled in, the page keeps its height, the browser does not anchor the scroll,
+// and the scroll position stays; then the control used has the focus again.
+async function redraw(control) {
+  const top = window.scrollY;
+  view.style.minHeight = `${view.offsetHeight}px`;
+  document.documentElement.classList.add("redrawing");
+  try {
+    await draw();
+    await settled();
+    window.scrollTo(0, top);
+  } finally {
+    view.style.minHeight = "";
+    document.documentElement.classList.remove("redrawing");
+  }
+  document.querySelector(control)?.focus({ preventScroll: true });
+}
+
 view.addEventListener("click", (event) => {
   // Buttons only: the run picker is a select, and redrawing on its click would close it as it opens.
   const button = event.target.closest("button[data-action]");
@@ -519,7 +546,7 @@ view.addEventListener("click", (event) => {
   const { action, value } = button.dataset;
   if (action === "repeat") state.repeat = value;
   if (action === "inference") state.inference = Number(value);
-  draw();
+  redraw(`button[data-action="${action}"][data-value="${CSS.escape(value)}"]`);
 });
 
 view.addEventListener("change", (event) => {
@@ -527,7 +554,7 @@ view.addEventListener("change", (event) => {
   if (!select) return;
   state.pick = Number(select.value);
   state.inference = null;
-  draw();
+  redraw("#pick-run");
 });
 
 document.getElementById("run").addEventListener("change", (event) => { location.hash = `#/${event.target.value}`; });

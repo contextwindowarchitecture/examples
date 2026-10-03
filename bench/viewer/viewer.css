@@ -32,6 +32,7 @@ html[data-theme="dark"] {
   --p-inter: oklch(0.76 0.13 310);
 }
 html { background: var(--bg); scroll-padding-top: 88px; }
+html.redrawing { overflow-anchor: none; }
 body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
 * { box-sizing: border-box; }
 a { color: var(--accent); text-decoration: none; }
