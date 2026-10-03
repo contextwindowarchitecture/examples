@@ -239,14 +239,19 @@ pre.raw { margin: 0; padding: 18px; overflow: auto; font-family: var(--mono); fo
 html[data-theme="dark"] { --dim: oklch(0.06 0.005 80 / 0.74); }
 .tour-shade { position: fixed; inset: 0; z-index: 90; background: var(--dim); }
 .tour-hole { position: fixed; z-index: 90; pointer-events: none; outline: 1px solid var(--accent); box-shadow: 0 0 0 100vmax var(--dim); transition: left 0.25s ease, top 0.25s ease, width 0.25s ease, height 0.25s ease; }
-.tour-card { position: fixed; z-index: 100; width: min(420px, calc(100vw - 32px)); background: var(--bg); color: var(--fg); border: 1px solid var(--fg); padding: 20px 24px; display: flex; flex-direction: column; gap: 12px; }
+/* A card is never taller than the window: in a short one its text scrolls inside it, and the row with End tour stays
+   at its top, so the tour can always be ended. The card itself does not scroll, so its arrow, outside its edge, shows. */
+.tour-card { position: fixed; z-index: 100; width: min(420px, calc(100vw - 32px)); background: var(--bg); color: var(--fg); border: 1px solid var(--fg); }
+.tour-body { max-height: calc(100dvh - 34px); overflow-y: auto; overscroll-behavior: contain; padding: 20px 24px; display: flex; flex-direction: column; gap: 12px; --pad: 20px; }
 .tour-card:focus-visible { outline: none; }
-.tour-card.alone { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(560px, calc(100vw - 32px)); padding: 30px 32px 26px; }
+.tour-card.alone { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(560px, calc(100vw - 32px)); }
+.tour-card.alone .tour-body { padding: 30px 32px 26px; --pad: 30px; }
 .tour-card .kicker { margin: 0; }
 .tour-card h2 { margin: 0; font-size: 22px; letter-spacing: -0.025em; line-height: 1.15; text-wrap: balance; }
 .tour-card.alone h2 { font-size: 34px; }
 .tour-card p { margin: 0; font-size: 15px; line-height: 1.55; color: var(--muted); text-wrap: pretty; }
-.tour-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.tour-top { position: sticky; top: calc(-1 * var(--pad)); z-index: 1; margin-top: calc(-1 * var(--pad)); padding-top: var(--pad); background: var(--bg); flex: none; display: flex; justify-content: space-between; align-items: center; gap: 12px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.tour-body > * { flex: none; }
 .tour-end { font: inherit; letter-spacing: inherit; text-transform: inherit; color: var(--muted); background: none; border: 0; padding: 0; min-height: 32px; cursor: pointer; }
 .tour-end:hover { color: var(--fg); }
 .tour-links { display: flex; flex-wrap: wrap; gap: 4px 18px; font-family: var(--mono); font-size: 12px; }
@@ -263,7 +268,8 @@ html[data-theme="dark"] { --dim: oklch(0.06 0.005 80 / 0.74); }
 .tour-card[data-arrow="down"]::before { display: block; bottom: -7px; left: var(--arrow, 28px); border-bottom: 1px solid var(--fg); border-right: 1px solid var(--fg); }
 .tour-card[data-arrow="left"]::before { display: block; left: -7px; top: 28px; border-bottom: 1px solid var(--fg); border-left: 1px solid var(--fg); }
 @media (max-width: 620px) {
-  .tour-card:not(.alone) { left: 0; right: 0; top: auto; bottom: 0; width: auto; border-width: 1px 0 0; padding: 18px 20px 22px; }
+  .tour-card:not(.alone) { left: 0; right: 0; top: auto; bottom: 0; width: auto; border-width: 1px 0 0; }
+  .tour-card:not(.alone) .tour-body { max-height: 60dvh; padding: 18px 20px 22px; --pad: 18px; }
   .tour-card:not(.alone)::before { display: none; }
   .tour-card.alone h2 { font-size: 26px; }
 }

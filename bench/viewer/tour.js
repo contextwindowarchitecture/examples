@@ -126,6 +126,7 @@ async function show(at) {
   const target = (step.parts ?? []).map(shown).find(Boolean) ?? null;
   card.innerHTML = String(content(step, at));
   card.hidden = false;
+  card.firstElementChild.scrollTop = 0;
   card.classList.toggle("alone", !target);
   tour.target = target;
   // On a phone the card is a sheet over the bottom of the page, so the page gets room below it for its last parts.
@@ -137,7 +138,7 @@ async function show(at) {
 
 function content(step, at) {
   const last = at === tour.steps.length - 1;
-  return html`
+  return html`<div class="tour-body">
     <div class="tour-top"><span>Tour · ${at + 1} of ${tour.steps.length}</span>
       <button type="button" class="tour-end" data-step="end">${step.end ?? "End tour"}</button></div>
     <div class="kicker">${step.kicker}</div>
@@ -146,7 +147,8 @@ function content(step, at) {
     ${step.links ? html`<div class="tour-links">${step.links()}</div>` : ""}
     <div class="tour-progress" aria-hidden="true">${tour.steps.map((_, n) => html`<span class="${n <= at ? "done" : ""}"></span>`)}</div>
     <div class="tour-nav">${at ? html`<button type="button" class="ghost" data-step="back">Back</button>` : html`<span></span>`}
-      <button type="button" class="tour-next" data-step="next">${step.next ?? (last ? "Finish" : "Next →")}</button></div>`;
+      <button type="button" class="tour-next" data-step="next">${step.next ?? (last ? "Finish" : "Next →")}</button></div>
+  </div>`;
 }
 
 // The part sits just below the sticky header when the card fits under it. When it does not, the part sits lower, with
