@@ -169,7 +169,7 @@ export function decision(a, links, highlight) {
   return html`<div class="panel">
     <div class="panel-head"><span>${a.trace.profile.id} v${a.trace.profile.version} · ${a.trace.context.route_policy_version}</span>
       <span><a href="${links.trace}" target="_blank" rel="noopener">trace</a> · <a href="${links.snapshot}" target="_blank" rel="noopener">snapshot</a>${a.trace.result ? html` · <a href="${links.payload}" target="_blank" rel="noopener">payload</a>` : ""}</span></div>
-    <div class="panel-body">${budget(a)}</div>
+    <div class="panel-body" data-tour="budget">${budget(a)}</div>
     <div class="split-panel">
       <div class="main">${a.trace.result ? sent(a, highlight) : refusal(a)}</div>
       <div class="side"><div>${leftOut(a)}</div><div>${conflicts(a)}</div>

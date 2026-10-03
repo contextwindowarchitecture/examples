@@ -64,18 +64,19 @@ export function compared(a, request) {
   const chunks = (test) => rows.filter((row) => row.item.slot === "evidence.knowledge" && test(row)).length;
   const turns = (test) => rows.filter((row) => row.item.slot.startsWith("interaction.") && test(row)).length;
   const columns = "16px minmax(260px, 2.2fr) minmax(170px, 1fr) minmax(190px, 1.1fr)";
-  return html`<div class="panel scroll"><div style="min-width: 820px;">
+  const shown = rows.find((row) => row.differs);
+  return html`<div class="panel scroll" data-tour="compared"><div style="min-width: 820px;">
     <div class="panel-head"><span>Every item after.py's snapshot holds${threshold === undefined ? "" : ` · min_relevance ${threshold}`}</span>
       <span class="legend" style="margin: 0;"><span><i class="dot" aria-hidden="true"></i>before and after differ</span></span></div>
     <div class="row headrow" style="grid-template-columns: ${columns};"><span></span><span>Item</span><span>Before · before.py</span><span>After · after.py</span></div>
-    ${rows.map(({ item, before, sent, after, differs }) => html`<div class="row compare" style="grid-template-columns: ${columns}; --plane: ${planeOf(item.slot)};">
+    ${rows.map((row) => { const { item, before, sent, after, differs } = row; return html`<div class="row compare" style="grid-template-columns: ${columns}; --plane: ${planeOf(item.slot)};"${row === shown ? html` data-tour="differs"` : ""}>
       <span>${differs ? html`<i class="dot" title="before and after differ"></i>` : ""}</span>
       <span style="min-width: 0;"><span class="fg" style="display: block; overflow-wrap: anywhere;">${item.id}</span>
         <span class="slotname" style="display: block;">${item.slot}${typeof item.relevance === "number" ? ` · relevance ${item.relevance.toFixed(3)}` : ""}</span>
         <span class="excerpt clip" style="display: block;">${item.body}</span></span>
       <span class="${before ? "fg" : "muted"}">${before ?? "not sent · nothing records it"}</span>
       <span class="${differs ? "fail" : sent ? "fg" : "muted"}">${after}</span>
-    </div>`)}
+    </div>`; })}
     <div class="row compare total" style="grid-template-columns: ${columns};"><span></span><span class="muted">In all</span>
       <span class="fg">${plural(chunks((row) => row.before), "chunk")} in the system prompt · ${plural(request.messages.length, "message")}</span>
       <span class="fg">${refused ? `nothing: refused, ${a.trace.refused.reason}`

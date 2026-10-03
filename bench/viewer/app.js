@@ -11,6 +11,7 @@ import * as show from "./decision.js";
 import { count, dollars, html, number, plural, seconds } from "./html.js";
 import { citedLeftOut, compared, marked, ordered, pairsOf } from "./beforeafter.js";
 import { asked, cell } from "./question.js";
+import * as tour from "./tour.js";
 
 const INVARIANTS = [
   ["payload_sent", "Every request the proxy saw carried exactly the payload the assembler rendered.", "R-7 · R-20"],
@@ -116,10 +117,11 @@ function home(run, s) {
       <div class="kicker ruled">Benchmark · run ${run}</div>
       <h1>Constructs</h1>
       <p class="lede">The decisions the assembler made for every request in this run. Each card names the requirement behind it, the cases that exercised it, and how the models did with the context it produced.</p>
-      <div class="meta"><span>commit <b>${s.repository.commit.slice(0, 7)}</b></span>
-        <span>assembler ${[...new Map(s.assembler.map((pin) => [`${pin.tag} ${pin.commit}`, pin])).values()].map((pin) => html`<a href="${ASSEMBLER}/tree/${pin.commit ?? pin.tag}" target="_blank" rel="noopener">assembler-python</a> <b>${pin.tag} · ${(pin.commit ?? "").slice(0, 7)}</b>`)}</span>
+      <div class="meta" data-tour="run"><span>commit <b>${s.repository.commit.slice(0, 7)}</b></span>
+        <span data-tour="assembler">assembler ${[...new Map(s.assembler.map((pin) => [`${pin.tag} ${pin.commit}`, pin])).values()].map((pin) => html`<a href="${ASSEMBLER}/tree/${pin.commit ?? pin.tag}" target="_blank" rel="noopener">assembler-python</a> <b>${pin.tag} · ${(pin.commit ?? "").slice(0, 7)}</b>`)}</span>
         <span>${plural(Object.keys(s.models).length, "model")} · ${plural(s.jobs.length, "job")} · ${plural(calls, "call")}</span>
         <span>spent <b>${dollars(s.spent)}</b>${s.max_cost_usd ? ` of ${dollars(s.max_cost_usd)}` : ""}</span><span>started ${s.started}</span></div>
+      <button type="button" class="ghost" data-action="tour">New here? Take the tour →</button>
       ${s.repository.dirty ? html`<div class="note">This run started from a tree with uncommitted changes. The manifest records it, and commit ${s.repository.commit.slice(0, 7)} alone won't reproduce it.</div>` : ""}
       ${s.skipped.length ? html`<div class="note">${s.skipped.join(". ")}.</div>` : ""}
     </section>
@@ -128,7 +130,7 @@ function home(run, s) {
       <h2>${broken.length ? "Broken in this run." : "Held in every job."}</h2>
       <p class="body">These hold for every model, whatever it answers. A failure here is a bug in an example or the assembler, not a finding about a model.</p>
       ${broken.map((c) => html`<div class="note"><b class="mono">${c.check}</b> failed in <span class="mono">${c.job}</span>: ${c.detail}</div>`)}
-      <div class="hair four">${INVARIANTS.map(([name, copy, requirement]) => {
+      <div class="hair four" data-tour="invariants">${INVARIANTS.map(([name, copy, requirement]) => {
         const [passed, graded] = data.tally(invariantChecks, (c) => c.check === name);
         return html`<div class="cell"><div class="label">${name}</div><div class="big ${passed < graded ? "fail" : ""}">${graded ? `${passed} / ${graded}` : "—"}</div>
           <div class="card-copy">${copy}</div><div class="mono muted" style="margin-top: auto; font-size: 11.5px;">${requirement}</div></div>`;
@@ -139,6 +141,7 @@ function home(run, s) {
       <h2>${s.constructs.length} decisions, by what this run exercised.</h2>
       <p class="body">Which results exercised a construct is read from their own traces and tool calls, so in 04 and 05 it follows each model's path. Faded cards were not exercised in this run.</p>
       <div class="hair cards">${s.constructs.map((construct) => {
+        const first = construct === s.constructs.find((one) => one.cases.length);
         const results = s.results.filter((r) => construct.cases.includes(r.case));
         if (!construct.cases.length) {
           return html`<div class="cell faded"><div class="fade" style="display: flex; flex-direction: column; gap: 10px;">
@@ -146,7 +149,7 @@ function home(run, s) {
             <div class="card-title">${construct.title}</div><div class="card-copy">${construct.description}</div></div>
             <div class="card-foot muted">Not exercised in this run</div></div>`;
         }
-        return html`<a class="cell" href="#/${run}/construct/${construct.id}">
+        return html`<a class="cell" href="#/${run}/construct/${construct.id}"${first ? html` data-tour="construct"` : ""}>
           <div class="label split"><span>${construct.spec.join(" · ")}</span><span>${plural(construct.cases.length, "case")}</span></div>
           <div class="card-title">${construct.title}</div><div class="card-copy">${construct.description}</div>
           <div class="card-foot">${measurePills(s, construct, results)}</div></a>`;
@@ -156,7 +159,7 @@ function home(run, s) {
       <div class="kicker">Models</div>
       <h2>What each model was sent, and what it cost.</h2>
       <p class="body">Every call went through the recording proxy. Hosts are the ones OpenRouter says answered; checks count those graded, and a count in the accent colour has a failure in it.</p>
-      ${modelsTable(s)}
+      <div data-tour="models">${modelsTable(s)}</div>
     </div></section>`;
 }
 
@@ -231,7 +234,7 @@ function construct(run, s, id) {
       return html`<section class="band ${n % 2 ? "" : "surface"}"><div class="wrap">
         <div class="label" style="margin-bottom: 10px;"><a href="${caseHref(run, key)}">${key} →</a></div>
         <h2 class="case">${question.title}</h2>${question.more}
-        <div style="margin: 20px 0 28px;">${later(evidence(run, s, c, key))}</div>
+        <div style="margin: 20px 0 28px;"${n ? "" : html` data-tour="evidence"`}>${later(evidence(run, s, c, key))}</div>
         ${one?.variants.length ? html`<div class="label" style="margin-bottom: 10px;">What each model did, before and after</div>${pairRows(run, s, pairsOf(caseResults), c)}`
           : html`<div class="label" style="margin-bottom: 10px;">What each run did</div><div class="hair wide">${caseResults.map((r) => resultCard(run, s, r, c))}</div>`}
       </div></section>`;
@@ -404,9 +407,11 @@ async function sentBoth(run, pair, choose) {
 // Each model's two answers to a case, before.py's then after.py's, with each one's checks: on a construct's page, only
 // that construct's.
 function pairRows(run, s, pairs, c) {
+  // The tour points at a model whose before.py answer cited a chunk CWA left out, if one did.
+  const shown = pairs.find((p) => citedLeftOut(p.before).length) ?? pairs[0];
   return html`<div class="pairs">
     <div class="pair head label"><span>Model</span><span>Before · before.py, built by hand</span><span>After · after.py, through CWA</span></div>
-    ${pairs.map((p) => html`<div class="pair">
+    ${pairs.map((p) => html`<div class="pair"${p === shown ? html` data-tour="pair"` : ""}>
       <div><div class="card-title">${p.model}</div><div class="label">repeat ${p.repeat}</div><p class="card-copy" style="margin: 0;">${verdict(s, p)}</p></div>
       ${side(run, s, p.before, c, "Before", citedLeftOut(p.before))}
       ${side(run, s, p.after, c, "After", [])}
@@ -557,6 +562,7 @@ view.addEventListener("click", (event) => {
   const button = event.target.closest("button[data-action]");
   if (!button) return;
   const { action, value } = button.dataset;
+  if (action === "tour") { startTour(); return; }
   if (action === "repeat") state.repeat = value;
   if (action === "inference") state.inference = Number(value);
   redraw(`button[data-action="${action}"][data-value="${CSS.escape(value)}"]`);
@@ -581,5 +587,24 @@ function setTheme(name) {
 theme.addEventListener("click", () => setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
 try { setTheme(localStorage.getItem("cwa-theme") ?? "light"); } catch { setTheme("light"); }
 
-window.addEventListener("hashchange", () => { state.pick = 0; state.inference = null; draw().then(() => window.scrollTo(0, 0)); });
+let drawing = Promise.resolve();
+window.addEventListener("hashchange", () => { state.pick = 0; state.inference = null; drawing = draw().then(() => window.scrollTo(0, 0)); });
+
+// The tour opens pages itself: visit resolves once the page it opened has drawn. This listener is added after the one
+// above, so it runs after that one has started the draw.
+function visit(hash) {
+  const opened = new Promise((resolve) => window.addEventListener("hashchange", resolve, { once: true }));
+  location.hash = hash;
+  return opened.then(() => drawing);
+}
+
+// The tour runs on the run being read, or the newest when none is.
+async function startTour() {
+  const index = await data.index();
+  const [first] = route();
+  const run = first && first !== "runs" ? first : index.runs[0]?.run;
+  if (!run) return;
+  tour.start({ run, s: await data.summary(run), visit, ready: settled, opener: document.getElementById("tour") });
+}
+document.getElementById("tour").addEventListener("click", startTour);
 draw().catch((error) => { view.innerHTML = String(html`<section class="wrap head"><h1>Could not read the results</h1><p class="lede">${error.message}</p></section>`); });
