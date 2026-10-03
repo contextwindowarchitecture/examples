@@ -85,14 +85,13 @@ function checksOf(s, r, c) {
 }
 
 // Which run's files a section shows. A case has a run per model and repeat, too many to lay out as buttons, so they
-// are options grouped by model; each option's value is the run's place in the list given. `shows` names what the
-// section shows of the run picked, for the line that says so after a pick.
-function picker(runs, picked, shows) {
+// are options grouped by model; each option's value is the run's place in the list given. It goes in a toolbar, after
+// the place where the line saying what a pick changed appears.
+function picker(runs, picked) {
   const models = [...new Set(runs.map((r) => r.model))];
-  return html`<span class="pickgroup"><span class="runpick"><label for="pick-run">Run</label><select id="pick-run" data-action="pick" data-shows="${shows}">${models.map((model) => html`
+  return html`<span class="changed" aria-hidden="true"></span><span class="runpick"><label for="pick-run">Run</label><select id="pick-run" data-action="pick">${models.map((model) => html`
     <optgroup label="${model}">${runs.map((r, n) => r.model === model ? html`
-      <option value="${n}"${n === picked ? html` selected` : ""}>${short(r.model)} · ${r.variant ? `${r.variant} · ` : ""}repeat ${r.repeat}</option>` : "")}</optgroup>`)}</select></span>
-    <span class="changed" aria-hidden="true"></span></span>`;
+      <option value="${n}"${n === picked ? html` selected` : ""}>${short(r.model)} · ${r.variant ? `${r.variant} · ` : ""}repeat ${r.repeat}</option>` : "")}</optgroup>`)}</select></span>`;
 }
 
 function repeatChips(s) {
@@ -327,7 +326,7 @@ function caseView(run, s, key) {
       <div class="kicker">What CWA decided</div>
       <h2>The request the model answered from.</h2>
       <p class="body">Each run gets a snapshot per inference, so a model that takes another path is sent other requests. Pick a run, and for an agent, an inference.</p>
-      <div class="toolbar">${picker(results, index, "the decision for")}</div>
+      <div class="toolbar">${picker(results, index)}</div>
       ${picked ? later(decided(run, picked)) : html`<p class="body">No run of this case finished.</p>`}
     </div></section>
     <section class="band"><div class="wrap">
@@ -365,7 +364,7 @@ function pairedCase(run, s, key, one) {
       <h2>What each script sent.</h2>
       <p class="body">${snapshots.length === 1 ? `after.py froze the same snapshot in all ${runsOf("after")} of its runs, so every model was sent the same request.` : `after.py's runs froze ${snapshots.length} different snapshots; this is the picked run's.`}
         Below is every item in it, with what before.py did with it and what after.py's assembly decided. before.py records nothing, so where it put each item is read from its request.</p>
-      ${pairs[index] ? later(sentBoth(run, pairs[index], picker(pairs, index, "the files of"))) : html`<p class="body">No run of this case finished.</p>`}
+      ${pairs[index] ? later(sentBoth(run, pairs[index], picker(pairs, index))) : html`<p class="body">No run of this case finished.</p>`}
     </div></section>
     <section class="band"><div class="wrap">
       <div class="kicker">What each model did</div>
@@ -565,7 +564,7 @@ view.addEventListener("change", (event) => {
   if (!select) return;
   state.pick = Number(select.value);
   state.inference = null;
-  redraw("#pick-run", `Now showing ${select.dataset.shows} ${select.selectedOptions[0].text}`);
+  redraw("#pick-run", `Showing ${select.selectedOptions[0].text}`);
 });
 
 document.getElementById("run").addEventListener("change", (event) => { location.hash = `#/${event.target.value}`; });
