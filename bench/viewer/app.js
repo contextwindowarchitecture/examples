@@ -19,6 +19,9 @@ const INVARIANTS = [
   ["replays", "Every recorded snapshot assembled again to the payload and outcome recorded beside it.", "R-23"],
 ];
 const MEASURES = ["run", "invariant", "answer", "grounding", "conflict", "excluded", "untrusted", "actions", "refusal", "claims", "evals"];
+// Every example pins contextwindowarchitecture-assembler to a tag of assembler-python (scripts/assembler_pin.py checks
+// they agree); the run records the tag and the commit it locked.
+const ASSEMBLER = "https://github.com/contextwindowarchitecture/assembler-python";
 const view = document.getElementById("view");
 const state = { repeat: "1", pick: 0, inference: null };
 let fills = 0;
@@ -114,7 +117,7 @@ function home(run, s) {
       <h1>Constructs</h1>
       <p class="lede">The decisions the assembler made for every request in this run. Each card names the requirement behind it, the cases that exercised it, and how the models did with the context it produced.</p>
       <div class="meta"><span>commit <b>${s.repository.commit.slice(0, 7)}</b></span>
-        <span>assembler <b>${[...new Set(s.assembler.map((pin) => `${pin.tag} · ${(pin.commit ?? "").slice(0, 7)}`))].join(", ")}</b></span>
+        <span>assembler ${[...new Map(s.assembler.map((pin) => [`${pin.tag} ${pin.commit}`, pin])).values()].map((pin) => html`<a href="${ASSEMBLER}/tree/${pin.commit ?? pin.tag}" target="_blank" rel="noopener">assembler-python</a> <b>${pin.tag} · ${(pin.commit ?? "").slice(0, 7)}</b>`)}</span>
         <span>${plural(Object.keys(s.models).length, "model")} · ${plural(s.jobs.length, "job")} · ${plural(calls, "call")}</span>
         <span>spent <b>${dollars(s.spent)}</b>${s.max_cost_usd ? ` of ${dollars(s.max_cost_usd)}` : ""}</span><span>started ${s.started}</span></div>
       ${s.repository.dirty ? html`<div class="note">This run started from a tree with uncommitted changes. The manifest records it, and commit ${s.repository.commit.slice(0, 7)} alone won't reproduce it.</div>` : ""}
