@@ -470,7 +470,7 @@ wheels = [
 [[package]]
 name = "contextwindowarchitecture-assembler"
 version = "0.0.1"
-source = { git = "https://github.com/contextwindowarchitecture/assembler-python?tag=draft-release#49b321e4f525d8c879934f28e1c316bb8fc33f6f" }
+source = { git = "https://github.com/contextwindowarchitecture/assembler-python?tag=draft-release#bb3e0fa02ebce9001e5090273898bee083d90f45" }
 dependencies = [
     { name = "jsonschema" },
     { name = "referencing" },
