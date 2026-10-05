@@ -118,3 +118,66 @@ def test_05s_calls_belong_to_the_eval_case_that_made_them(tmp_path: Path) -> Non
     calls, _ = metrics.facts(tmp_path, graded(tmp_path, [name]))
     assert [call.task for call in calls] == [f"05-production/{first}", f"05-production/{second}"]
     assert calls[0].estimate == json.loads((OWNER / "turn-1" / "trace.json").read_text())["result"]["input_tokens"]
+
+
+# The arithmetic, and each page's numbers, on facts written out by hand.
+
+def call(**given: Any) -> metrics.Call:
+    return metrics.Call(**({
+        "job": "j", "model": MODEL, "example": "01-docs-qa", "task": "01-docs-qa/01-answer", "variant": "after", "repeat": 1,
+        "prompt": 300, "completion": 200, "reasoning": 50, "cached": 0, "cost": 0.004, "ms": 1500, "host": "SomeHost",
+        "attempts": 1, "finish": "stop", "prompt_cost": None, "completion_cost": None, "assembly": "record",
+        "estimate": 283, "budget": 1500, "margin": 15} | given))
+
+
+def values(page: dict[str, Any], number: str) -> dict[str, Any]:
+    return next(one for one in page["numbers"] if one["id"] == number)["values"]
+
+
+def rows(page: dict[str, Any], table: str) -> list[dict[str, Any]]:
+    return next(one for one in page["tables"] if one["id"] == table)["rows"]
+
+
+def test_a_line_is_not_moved_by_one_point_off_the_others() -> None:
+    # Four requests on a line that starts at 1,000 and climbs one for one, and a fifth whose text counts for far more.
+    assert metrics.line([(100, 1100), (200, 1200), (300, 1300), (400, 1400), (500, 3000)]) == (1000, 1)
+    assert metrics.line([(100, 1100), (100, 1150)]) is None  # one size of request gives no slope
+
+
+def test_tokens_splits_what_a_host_adds_from_how_it_counts() -> None:
+    sizes = (("01-docs-qa/01-answer", 100), ("02-account-aware/01-team-plan", 200), ("03-budget-and-routes/01-large-route", 300))
+    log = "03-budget-and-routes/03-pasted-log"
+    # One host adds 1,000 tokens to every request and counts the rest as the assembler does; the other counts 10% more.
+    # Both count a pasted log, estimated at 400, for more than they count prose: twice the estimate, and three times.
+    adds = [call(model="a/adds", task=task, example=task.split("/")[0], estimate=size, prompt=size + 1000) for task, size in sizes]
+    counts = [call(model="b/counts", task=task, example=task.split("/")[0], estimate=size, prompt=size * 11 // 10) for task, size in sizes]
+    pasted = [call(model=model, task=log, example="03-budget-and-routes", estimate=400, prompt=prompt, budget=6000)
+              for model, prompt in (("a/adds", 1800), ("b/counts", 1200))]
+    page = metrics.tokens(adds + counts + pasted, ["a/adds", "b/counts"], frozenset({log}))
+    assert values(page, "tokens_per_estimated") == {"a/adds": 1, "b/counts": 1.1}
+    assert values(page, "tokens_added") == {"a/adds": 1000, "b/counts": 0}
+    assert values(page, "tokens_per_estimated_pasted") == {"a/adds": 2, "b/counts": 3}
+    # The margin a route would need: the largest count over its estimate, less one. 1,100 for 100 needs 1,000%.
+    assert values(page, "margin_needed") == {"a/adds": 10, "b/counts": 2}
+    # The routes declared 15%: it covers a count 10% over the estimate, but not the log, nor a request 1,000 tokens over.
+    assert values(page, "margin_covered") == {"a/adds": 0, "b/counts": 0.75}
+    assert values(page, "over_budget") == {"a/adds": 0, "b/counts": 0}
+    [answer, _, _, pasted_log] = rows(page, "by_case")
+    assert answer == {"case": "01-docs-qa/01-answer", "question": "one line", "estimate": 100, "budget": 1500,
+                      "used": round(100 / 1500, 4), "a/adds": 1100, "b/counts": 110}
+    assert (pasted_log["question"], pasted_log["b/counts"]) == ("pastes a block", 1200)
+    assert rows(page, "margin_by_case")[0] == {"case": "01-docs-qa/01-answer", "declared": 0.15, "a/adds": 10, "b/counts": 0.1}
+
+
+def test_tokens_counts_the_calls_a_host_counted_over_the_routes_budget() -> None:
+    page = metrics.tokens([call(prompt=1400), call(repeat=2, prompt=1501), call(variant="before", estimate=None, budget=None, prompt=9000)], [MODEL])
+    assert values(page, "over_budget") == {MODEL: 1}  # before.py's call has no budget to be over
+
+
+def test_an_agent_sends_its_context_again_at_every_inference() -> None:
+    inferences = [call(example="04-tools", task="04-tools/01-owner-reenables", assembly=f"turn-{n}", prompt=prompt, cached=cached)
+                  for n, (prompt, cached) in enumerate(((1000, 0), (1100, 500), (1200, 550)), start=1)]
+    page = metrics.tokens(inferences, [MODEL])
+    assert values(page, "resend_factor") == {MODEL: 2.75}  # 3,300 tokens sent, to end with a request of 1,200
+    assert values(page, "cached_share") == {MODEL: round(1050 / 3300, 4)}
+    assert values(page, "tokens_per_estimated") == {MODEL: None}  # 04 sends each model its own context: nothing to line up

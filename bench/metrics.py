@@ -2,6 +2,8 @@
 a model.
 
     facts    one row per answered call, joined to the assembly whose payload it carried, and one per result
+    pages    each a list of numbers, one value per model with the formula behind it, and tables that break them down:
+             tokens   what the same context costs in each model's own tokens, and the margin a route would need
 
 The checks say whether an answer passed. The numbers say what the same context cost each model in tokens, dollars and
 seconds, how much its answers moved between repeats, and how far the checks tell the models apart.
@@ -10,12 +12,18 @@ from __future__ import annotations
 
 import json
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass
+from itertools import combinations
 from pathlib import Path
+from statistics import mean, median
 from typing import Any
 
 import checks
 from config import ROOT
+
+# 01-03 send every model the same payloads (same_context), so what differs there is the model's or its host's.
+SAME_CONTEXT = ("01-docs-qa", "02-account-aware", "03-budget-and-routes")
 
 
 @dataclass(frozen=True)
@@ -123,6 +131,163 @@ def _result(run: Path, result: dict[str, Any]) -> Result:
         answer=answer, cited=cited, left_out=left_out,
         steps=tuple((step["tool"], step["approved"]) for step in answered.get("steps", [])),
         estimates=tuple(trace["result"]["input_tokens"] for trace in traces if trace["result"]))
+
+
+# The arithmetic
+
+def line(points: Iterable[tuple[float, float]]) -> tuple[float, float] | None:
+    """The line through points, as where it starts and its slope: the median slope between pairs of points, then the
+    median of what that leaves (Theil-Sen), so a point off the others does not move it. None when no two differ in x."""
+    points = list(points)
+    slopes = [(y2 - y1) / (x2 - x1) for (x1, y1), (x2, y2) in combinations(points, 2) if x1 != x2]
+    if not slopes:
+        return None
+    slope = median(slopes)
+    return median(y - slope * x for x, y in points), slope
+
+
+# Pages
+
+def tokens(calls: list[Call], models: list[str], pasted: frozenset[str] = frozenset()) -> dict[str, Any]:
+    """pasted: the cases whose question pastes a block of text, such as 03's delivery log. A tokenizer counts a log
+    unlike prose, so the line is drawn through the other requests, and a pasted block gets a rate of its own."""
+    counted = [call for call in calls if call.estimate]  # the calls that carried an assembled payload
+    same = [call for call in counted if call.example in SAME_CONTEXT]
+    task = {_case(call): call.task for call in same}
+    first = {case: next(call for call in same if _case(call) == case) for case in sorted(task)}
+    here = lambda case, model: [call for call in _of(same, model) if _case(call) == case]
+    # Each request once per model: the assembler's estimate, and the median of what the host counted across repeats.
+    requests = {model: {case: (first[case].estimate, median(call.prompt for call in here(case, model)))
+                        for case in first if here(case, model)} for model in models}
+    fits = {model: line(point for case, point in requests[model].items() if task[case] not in pasted) for model in models}
+    on_pasted = {model: _mean((count - fits[model][0]) / estimate for case, (estimate, count) in requests[model].items()
+                              if task[case] in pasted) if fits[model] else None for model in models}
+    # R-16: a payload fits when its count times (100 + margin_percent) / 100, rounded up, is within budget.input.
+    covered = lambda call: (call.estimate * (100 + (call.margin or 0)) + 99) // 100 >= call.prompt
+    tasks: dict[tuple[str, str, str], list[Call]] = defaultdict(list)
+    for call in calls:
+        if call.example not in SAME_CONTEXT:
+            tasks[call.model, call.job, call.task].append(call)
+    resent = {key: sum(call.prompt for call in found) / found[-1].prompt for key, found in tasks.items() if len(found) > 1}
+    return {"id": "tokens", "title": "Tokens", "lede": (
+        "What the same context costs in each model's own tokens. The assembler counts a payload with the tokenizer its "
+        "route declares, an estimate in every example, and fits it to the route's budget.input with a margin for the "
+        "estimate's error (R-16). The host then counts the request its own way. In 01–03 every model is sent the same "
+        "payloads, so the two counts can be set side by side."),
+        "numbers": [
+            _number("tokens_per_estimated", "Tokens per estimated token", "ratio",
+                    "The slope of the line through a model's 01–03 requests: the tokens its host counted against the "
+                    "assembler's estimate. It is the median slope between pairs of requests, so one that counts "
+                    "differently does not move it. Requests whose question pastes a block of text are left off the line.",
+                    {model: fits[model] and fits[model][1] for model in models},
+                    {model: sum(task[case] not in pasted for case in requests[model]) for model in models}),
+            _number("tokens_added", "Tokens added to every request", "tokens",
+                    "Where that line starts: what the host counts whatever the payload holds, such as a system prompt "
+                    "of its own. A percentage margin cannot cover it; an application subtracts it from budget.input.",
+                    {model: fits[model] and fits[model][0] for model in models}),
+            _number("tokens_per_estimated_pasted", "Tokens per estimated token, pasted text", "ratio",
+                    "For the requests whose question pastes a block of text, such as a log: the host's count less the "
+                    "tokens added to every request, over the estimate. An estimate from bytes runs low on digits and "
+                    "punctuation.",
+                    on_pasted, {model: sum(task[case] in pasted for case in requests[model]) for model in models}),
+            _number("margin_needed", "Margin needed", "percent",
+                    "The smallest budget.margin_percent that would have covered every 01–03 request: the largest host "
+                    "count over its estimate, less one. The table below sets it against the margin each route declares.",
+                    {model: max((max(call.prompt / call.estimate - 1, 0) for call in _of(same, model)), default=None)
+                     for model in models}, _count(same, models)),
+            _number("margin_covered", "Requests the declared margin covered", "percent",
+                    "Of a model's 01–03 calls, those whose host count is within the estimate plus the route's declared "
+                    "margin_percent.",
+                    {model: _share(covered(call) for call in _of(same, model)) for model in models}, _count(same, models)),
+            _number("over_budget", "Calls over the route's budget", "count",
+                    "Calls whose host count is more than the route's budget.input, 04 and 05 included. The assembler "
+                    "fitted each to that budget by its own count.",
+                    {model: sum(call.prompt > call.budget for call in _of(counted, model)) if _of(counted, model) else None
+                     for model in models}, _count(counted, models)),
+            _number("cached_share", "Prompt tokens read from cache", "percent",
+                    "Cached prompt tokens over prompt tokens, across every call. Hosts bill cached tokens for less.",
+                    {model: _ratio(sum(call.cached for call in _of(calls, model)), sum(call.prompt for call in _of(calls, model)))
+                     for model in models}),
+            _number("resend_factor", "Tokens sent per token of final request", "ratio",
+                    "An agent sends its context again at every inference. For each 04–05 task with more than one: the "
+                    "prompt tokens of all its inferences over those of its last, then the mean across tasks.",
+                    {model: _mean(factor for (owner, _, _), factor in resent.items() if owner == model) for model in models},
+                    {model: sum(owner == model for owner, _, _ in resent) for model in models}),
+        ],
+        "tables": [
+            _table("by_case", "The same request, counted by each model",
+                   "Each 01–03 request: the assembler's estimate, the route's budget.input and how much of it the "
+                   "estimate uses, then the tokens each model's host counted, the median across repeats.",
+                   [_column("case", "Request"), _column("question", "Question"), _column("estimate", "Estimate", "tokens"),
+                    _column("budget", "Budget", "tokens"), _column("used", "Used", "percent"),
+                    *(_column(model, _short(model), "tokens") for model in models)],
+                   [{"case": case, "question": "pastes a block" if task[case] in pasted else "one line",
+                     "estimate": call.estimate, "budget": call.budget, "used": _r(call.estimate / call.budget),
+                     **{model: requests[model].get(case, (None, None))[1] for model in models}} for case, call in first.items()]),
+            _table("margin_by_case", "The margin each request needed",
+                   "Each 01–03 request: the margin its route declares, then for each model the host's count over the "
+                   "estimate, less one. A request is covered when that is within the declared margin.",
+                   [_column("case", "Request"), _column("declared", "Declared", "percent"),
+                    *(_column(model, _short(model), "percent") for model in models)],
+                   [{"case": case, "declared": (call.margin or 0) / 100,
+                     **{model: _r(requests[model][case][1] / call.estimate - 1) if case in requests[model] else None
+                        for model in models}} for case, call in first.items()]),
+        ]}
+
+
+def _case(call: Call) -> str:
+    """A request's name: its case, and in 03 the route that sent it."""
+    return call.task if call.assembly in (None, "record") else f"{call.task} · {call.assembly}"
+
+
+def _of(found: list[Any], model: str) -> list[Any]:
+    return [one for one in found if one.model == model]
+
+
+def _number(id: str, label: str, unit: str, how: str, values: dict[str, Any], n: dict[str, int] | None = None) -> dict[str, Any]:
+    """One value per model, with the formula behind it and, when it rests on a count of observations, that count."""
+    return {"id": id, "label": label, "unit": unit, "how": how, "values": {model: _r(value) for model, value in values.items()},
+            **({"n": n} if n is not None else {})}
+
+
+def _table(id: str, title: str, how: str, columns: list[dict[str, str]], rows: list[dict[str, Any]]) -> dict[str, Any]:
+    return {"id": id, "title": title, "how": how, "columns": columns, "rows": rows}
+
+
+def _column(id: str, label: str, unit: str = "text") -> dict[str, str]:
+    return {"id": id, "label": label, "unit": unit}
+
+
+def _count(found: list[Any], models: list[str]) -> dict[str, int]:
+    return {model: len(_of(found, model)) for model in models}
+
+
+def _short(model: str) -> str:
+    return model.split("/")[-1]
+
+
+def _share(flags: Iterable[bool]) -> float | None:
+    flags = list(flags)
+    return sum(flags) / len(flags) if flags else None
+
+
+def _ratio(part: float, whole: float) -> float | None:
+    return part / whole if whole else None
+
+
+def _mean(found: Iterable[float]) -> float | None:
+    found = list(found)
+    return mean(found) if found else None
+
+
+def _median(found: Iterable[float]) -> float | None:
+    found = list(found)
+    return median(found) if found else None
+
+
+def _r(value: Any) -> Any:
+    """A figure as numbers.json holds it: four decimal places, and no negative zero."""
+    return round(value, 4) + 0 if isinstance(value, float) else value
 
 
 def _read(path: Path) -> Any:
