@@ -3,7 +3,8 @@ a model.
 
     facts    one row per answered call, joined to the assembly whose payload it carried, one per result, and one per
              assembly: what it was offered, what it sent, and what it left out and why
-    write    numbers.json, which grade.py writes beside summary.json: the run's models and its pages
+    write    numbers.json, which grade.py writes beside summary.json: the run's models and its pages, each with what
+             it says about CWA and a reading of the run (meaning.py)
     pages    each a list of numbers, one value per model with the formula behind it, and tables that break them down:
              decisions   what the assembler did with what it was offered: sent, left out and why, summarized, refused
              tokens   what the same context costs in each model's own tokens, and the margin a route would need
@@ -32,6 +33,7 @@ from statistics import mean, median
 from typing import Any
 
 import checks
+import meaning
 from config import ROOT
 
 # A word, for holding an answer to the request it answered: four letters or more, whatever its case. Short words are
@@ -204,7 +206,7 @@ def write(run: Path, summary: dict[str, Any]) -> dict[str, Any]:
              stability(results, models, summary["models"]),
              grounding(results, models), before_after(calls, results, models), agents(results, models),
              verdicts(calls, results, models)]
-    written = {"run": summary["run"], "graded": summary["graded"], "models": models, "pages": pages}
+    written = {"run": summary["run"], "graded": summary["graded"], "models": models, "pages": meaning.explain(pages, models)}
     (run / "numbers.json").write_text(json.dumps(written, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return written
 
@@ -293,7 +295,7 @@ def decisions(assemblies: list[Assembly], models: list[str]) -> dict[str, Any]:
                     {model: _mean(len(made.left_out) for made in own[model]) for model in models}),
             _number("not_offered", "Tools not offered", "count",
                     "Capabilities the capability policy kept out of a snapshot because the user's role does not have "
-                    "them: reason capability_not_allowed (R-5).",
+                    "them: reason capability_not_allowed (R-15).",
                     {model: count(model, "capability_not_allowed") for model in models}),
             _number("superseded", "Looks replaced by a newer one", "count",
                     "Tool results left out because a newer result from the same source replaced them: reason "

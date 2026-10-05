@@ -24,6 +24,23 @@ export function shown(value, unit) {
 }
 
 const numeric = (unit) => unit !== "text" && unit !== undefined;
+
+// Text from meaning.py names the requirements it speaks to, as R-16: each becomes a link to it in the specification.
+const SPEC = "https://contextwindowarchitecture.io/spec.html";
+function cited(text) {
+  return html`${String(text ?? "").split(/(R-\d+)/).map((part) => (/^R-\d+$/.test(part)
+    ? html`<a href="${SPEC}#${part}" target="_blank" rel="noopener">${part}</a>` : part))}`;
+}
+
+// What the page's numbers have to do with CWA, beside what this run's values say.
+function says(page) {
+  return html`<div class="hair wide" style="margin-bottom: 40px;" data-tour="numbers-says">
+    <div class="cell"><div class="label">In this run</div>
+      ${page.reading.length ? html`<ul class="reading">${page.reading.map((line) => html`<li>${cited(line)}</li>`)}</ul>`
+        : html`<div class="card-copy">This run has too little on this page to read anything from.</div>`}</div>
+    <div class="cell"><div class="label">What this says about CWA</div><div class="card-copy says">${cited(page.says)}</div></div>
+  </div>`;
+}
 // A table's columns: what a row is about, then a column of figures for each number or model. A table too wide for the
 // page scrolls inside its panel.
 const WIDE = 108;
@@ -60,10 +77,11 @@ function byModel(numbers, page, sort) {
   </div></div>`;
 }
 
-// The formula behind each number, said once under the table that holds them.
+// What each number says about CWA, and the formula behind it, said once under the table that holds them.
 function how(page) {
-  return html`<div class="label" style="margin: 36px 0 10px;">How each is computed</div>
-    <div class="panel">${page.numbers.map((one) => html`<div class="row how"><span class="fg">${one.label}</span><span class="muted">${one.how}</span></div>`)}</div>`;
+  return html`<div class="label" style="margin: 36px 0 10px;">What each number says, and how it is computed</div>
+    <div class="panel">${page.numbers.map((one) => html`<div class="row how"><span class="fg">${one.label}</span>
+      <span><span class="means">${cited(one.means)}</span><span class="muted">${cited(one.how)}</span></span></div>`)}</div>`;
 }
 
 // A breakdown: its own columns, each with a unit. A column named for a model carries that model's values.
@@ -84,7 +102,7 @@ function totals(page) {
   if (!page.totals?.length) return "";
   return html`<div class="hair four" style="margin-bottom: 40px;">${page.totals.map((total) => html`<div class="cell">
     <div class="label">${total.label}</div><div class="big">${shown(total.value, total.unit)}${total.of !== undefined ? html`<span class="of"> / ${number(total.of)}</span>` : ""}</div>
-    <div class="card-copy">${total.how}</div></div>`)}</div>`;
+    <div class="card-copy"><span class="means">${cited(total.means)}</span>${cited(total.how)}</div></div>`)}</div>`;
 }
 
 export function page(run, numbers, id, sort, file) {
@@ -98,6 +116,7 @@ export function page(run, numbers, id, sort, file) {
       ${pages(run, numbers, id)}
     </section>
     <section class="band surface"><div class="wrap">
+      ${says(one)}
       ${totals(one)}
       <div class="toolbar"><span class="label">One row per model · a heading sorts by its column</span><span class="changed" aria-hidden="true"></span>
         <a class="mono" style="font-size: 12px;" href="${file}" target="_blank" rel="noopener">numbers.json →</a></div>
