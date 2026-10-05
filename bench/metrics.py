@@ -4,7 +4,7 @@ a model.
     facts    one row per answered call, joined to the assembly whose payload it carried, one per result, and one per
              assembly: what it was offered, what it sent, and what it left out and why
     write    numbers.json, which grade.py writes beside summary.json: the run's models and its pages, each with what
-             it says about CWA and a reading of the run (meaning.py)
+             it says about CWA and a reading of the run (meaning.py), and the charts to draw of it (charts.py)
     pages    each a list of numbers, one value per model with the formula behind it, and tables that break them down:
              decisions   what the assembler did with what it was offered: sent, left out and why, summarized, refused
              tokens   what the same context costs in each model's own tokens, and the margin a route would need
@@ -32,6 +32,7 @@ from pathlib import Path
 from statistics import mean, median
 from typing import Any
 
+import charts
 import checks
 import meaning
 from config import ROOT, SAME_CONTEXT
@@ -204,7 +205,7 @@ def write(run: Path, summary: dict[str, Any]) -> dict[str, Any]:
              stability(results, models, summary["models"]),
              grounding(results, models), before_after(calls, results, models), agents(results, models),
              verdicts(calls, results, models)]
-    written = {"run": summary["run"], "graded": summary["graded"], "models": models, "pages": meaning.explain(pages, models)}
+    written = {"run": summary["run"], "graded": summary["graded"], "models": models, "pages": charts.add(meaning.explain(pages, models), results, models)}
     (run / "numbers.json").write_text(json.dumps(written, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return written
 
@@ -808,6 +809,7 @@ def agents(results: list[Result], models: list[str]) -> dict[str, Any]:
     followed = {model: [one for one in _of(tasks, model) if one.recorded] for model in models}
     binds = {model: [(one.budget - one.estimates[0]) / growth for one in _of(tasks, model) if one.budget and len(one.estimates) > 1
                      and (growth := (one.estimates[-1] - one.estimates[0]) / (len(one.estimates) - 1)) > 0] for model in models}
+    longest = max((len(one.estimates) for one in tasks), default=0)
     walked = Counter((one.case, one.model, " → ".join(tool if approved else f"{tool} (refused)" for tool, approved in one.steps)
                       or "no tool call") for one in tasks)
     return {"id": "agents", "title": "Agents", "lede": (
@@ -868,6 +870,12 @@ def agents(results: list[Result], models: list[str]) -> dict[str, Any]:
                    [_column("case", "Case"), _column("model", "Model"), _column("path", "Tool calls"), _column("repeats", "Repeats", "count")],
                    [{"case": case, "model": model, "path": path, "repeats": repeats}
                     for (case, model, path), repeats in sorted(walked.items(), key=lambda row: (row[0][0], models.index(row[0][1]), -row[1]))]),
+            _table("growth", "The assembler's count at each inference",
+                   "For each model, the assembler's count at each inference of a 04 or 05 task: the median across the "
+                   "tasks that reached that inference.",
+                   [_column("model", "Model"), *(_column(str(n), f"Inference {n}", "tokens") for n in range(1, longest + 1))],
+                   [{"model": model, **{str(n): _median(one.estimates[n - 1] for one in _of(tasks, model) if len(one.estimates) >= n)
+                                        for n in range(1, longest + 1)}} for model in models if any(one.estimates for one in _of(tasks, model))]),
         ]}
 
 

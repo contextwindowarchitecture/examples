@@ -281,6 +281,7 @@ def test_a_runs_numbers_are_written_beside_its_summary(tmp_path: Path) -> None:
     read = graded(tmp_path, [name])
     written = metrics.write(tmp_path, read)
     assert written == json.loads((tmp_path / "numbers.json").read_text())
+    assert all("charts" in page for page in written["pages"])
     assert (written["run"], written["graded"], written["models"]) == (read["run"], read["graded"], [MODEL])
     assert [page["id"] for page in written["pages"]] == ["decisions", "tokens", "cost", "speed", "stability", "grounding", "before-after", "agents", "checks"]
     # One request gives no line; the largest count over its estimate still says what margin it needed.
