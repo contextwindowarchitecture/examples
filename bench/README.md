@@ -211,6 +211,23 @@ A call costs its prompt tokens at the input price, less what the host takes off 
 
 A second table gives the median cost of a job by example.
 
+### Speed
+
+The proxy times every call from start to finish. The examples do not stream, so there is no time to a first token; a line through each model's calls, milliseconds against completion tokens, splits a call into what waits and what each token takes.
+
+| Number | How it is computed |
+| --- | --- |
+| Median call, slow call, slowest calls | The call at rank 50, 90 and 99 of 100 by nearest rank, so each is a call that happened |
+| Output tokens a second | The median, across calls, of completion tokens over the call's seconds. The wait is in it, so short answers look slower |
+| Visible tokens a second | The same for the tokens the reader sees: completion less reasoning |
+| Output that is reasoning | Reasoning tokens over completion tokens, across every call |
+| Seconds whatever the output | Where the line through a model's calls starts: the median slope between pairs of calls, then the median of what is left |
+| Milliseconds per output token | That line's slope |
+| Calls tried more than once | Calls the proxy sent again after a 429, a 5xx or a dropped connection, and that were then answered |
+| Answers cut short | Calls that ended with `finish_reason` `length`: the output ran out |
+
+Two tables give the median seconds of a job by example, and each model's calls by the host that answered, with that host's median call.
+
 ## Results
 
 ```

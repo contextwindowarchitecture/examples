@@ -190,7 +190,7 @@ def test_a_runs_numbers_are_written_beside_its_summary(tmp_path: Path) -> None:
     written = metrics.write(tmp_path, read)
     assert written == json.loads((tmp_path / "numbers.json").read_text())
     assert (written["run"], written["graded"], written["models"]) == (read["run"], read["graded"], [MODEL])
-    assert [page["id"] for page in written["pages"]] == ["tokens", "cost"]
+    assert [page["id"] for page in written["pages"]] == ["tokens", "cost", "speed"]
     # One request gives no line; the largest count over its estimate still says what margin it needed.
     assert values(written["pages"][0], "tokens_per_estimated") == {MODEL: None}
     assert values(written["pages"][0], "margin_needed") == {MODEL: round(375 / 283 - 1, 6)}
@@ -230,3 +230,25 @@ def test_cost_sets_what_was_charged_against_the_list_price_and_what_it_bought() 
 def test_a_free_model_has_no_list_price_to_set_its_charge_against() -> None:
     page = metrics.cost([call(cost=0)], [result()], {"models": {MODEL: listed(input_price=0, output_price=0, free=True, cost=0)}, "jobs": []})
     assert values(page, "charged_over_list") == {MODEL: None} and values(page, "cost_per_passed_check") == {MODEL: 0}
+
+
+def test_a_percentile_is_a_value_that_was_observed() -> None:
+    assert (metrics.percentile([5, 1, 4, 2, 3], 50), metrics.percentile([5, 1, 4, 2, 3], 90)) == (3, 5)
+    assert (metrics.percentile([7], 99), metrics.percentile([], 50)) == (7, None)
+
+
+def test_speed_splits_a_calls_time_into_what_waits_and_what_each_token_takes() -> None:
+    # A second before anything comes back, then 10 ms a token, half of them reasoning the reader never sees.
+    calls = [call(repeat=n, completion=tokens, reasoning=tokens // 2, ms=1000 + 10 * tokens, host=host, attempts=attempts, finish=finish)
+             for n, (tokens, host, attempts, finish) in enumerate(((100, "One", 1, "stop"), (200, "One", 2, "stop"), (300, "Two", 1, "length")), start=1)]
+    jobs = [{"model": MODEL, "example": "01-docs-qa", "exit": 0, "seconds": seconds} for seconds in (5.0, 9.0, 6.0)]
+    page = metrics.speed(calls, {"models": {MODEL: listed()}, "jobs": jobs + [{"model": MODEL, "example": "01-docs-qa", "exit": 1, "seconds": 90.0}]})
+    assert [values(page, name)[MODEL] for name in ("seconds_p50", "seconds_p90", "seconds_p99")] == [3, 4, 4]
+    assert values(page, "seconds_fixed") == {MODEL: 1} and values(page, "ms_per_token") == {MODEL: 10}
+    assert values(page, "tokens_per_second") == {MODEL: round(200 / 3, 6)}  # 50, 66.7 and 75 a second
+    assert values(page, "visible_per_second") == {MODEL: round(100 / 3, 6)}
+    assert values(page, "reasoning_share") == {MODEL: 0.5}
+    assert values(page, "retried") == {MODEL: 1} and values(page, "cut_short") == {MODEL: 1}
+    assert rows(page, "seconds_by_example") == [{"example": "01-docs-qa", MODEL: 6}]  # of the jobs that ran to the end
+    assert rows(page, "by_host") == [{"model": MODEL, "host": "One", "calls": 2, "share": round(2 / 3, 6), "seconds": 2.5},
+                                     {"model": MODEL, "host": "Two", "calls": 1, "share": round(1 / 3, 6), "seconds": 4}]

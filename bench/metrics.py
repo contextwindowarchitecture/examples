@@ -6,6 +6,7 @@ a model.
     pages    each a list of numbers, one value per model with the formula behind it, and tables that break them down:
              tokens   what the same context costs in each model's own tokens, and the margin a route would need
              cost     what was charged against the list price, the factors it comes from, and what it bought
+             speed    how long a call takes, split into what waits and what each output token takes
 
 The checks say whether an answer passed. The numbers say what the same context cost each model in tokens, dollars and
 seconds, how much its answers moved between repeats, and how far the checks tell the models apart.
@@ -17,6 +18,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
 from itertools import combinations
+from math import ceil
 from pathlib import Path
 from statistics import mean, median
 from typing import Any
@@ -141,7 +143,7 @@ def write(run: Path, summary: dict[str, Any]) -> dict[str, Any]:
     models = list(summary["models"])
     pasted = frozenset(case["key"] for case in summary["cases"] if len(case["question"].strip().splitlines()) > 1)
     written = {"run": summary["run"], "graded": summary["graded"], "models": models,
-               "pages": [tokens(calls, models, pasted), cost(calls, results, summary)]}
+               "pages": [tokens(calls, models, pasted), cost(calls, results, summary), speed(calls, summary)]}
     (run / "numbers.json").write_text(json.dumps(written, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return written
 
@@ -157,6 +159,12 @@ def line(points: Iterable[tuple[float, float]]) -> tuple[float, float] | None:
         return None
     slope = median(slopes)
     return median(y - slope * x for x, y in points), slope
+
+
+def percentile(found: Iterable[float], rank: float) -> float | None:
+    """The value at a rank out of 100, by nearest rank, so it is always one that was observed."""
+    ordered = sorted(found)
+    return ordered[max(ceil(rank / 100 * len(ordered)), 1) - 1] if ordered else None
 
 
 # Pages
@@ -310,6 +318,63 @@ def cost(calls: list[Call], results: list[Result], summary: dict[str, Any]) -> d
         ]}
 
 
+def speed(calls: list[Call], summary: dict[str, Any]) -> dict[str, Any]:
+    models = list(summary["models"])
+    timed = lambda model: [call for call in _of(calls, model) if call.ms and call.completion]
+    fits = {model: line((call.completion, call.ms) for call in timed(model)) for model in models}
+    at = lambda rank: {model: _scaled(percentile((call.ms for call in _of(calls, model)), rank), 1 / 1000) for model in models}
+    done = [job for job in summary["jobs"] if job["exit"] == 0 and job.get("seconds") is not None]
+    hosts = sorted({(call.model, call.host) for call in calls if call.host}, key=lambda pair: (models.index(pair[0]), pair[1]))
+    return {"id": "speed", "title": "Speed", "lede": (
+        "How long a call took, start to finish, as the proxy timed it. The examples do not stream, so there is no time "
+        "to a first token: a line through each model's calls, time against output tokens, splits a call into what "
+        "waits and what each token takes. Reasoning tokens take time and are billed, and the reader never sees them."),
+        "numbers": [
+            _number("seconds_p50", "Median call", "seconds", "The middle call, by nearest rank.", at(50), _count(calls, models)),
+            _number("seconds_p90", "Slow call", "seconds", "The call 90% were faster than or equal to.", at(90)),
+            _number("seconds_p99", "Slowest calls", "seconds", "The call 99% were faster than or equal to.", at(99)),
+            _number("tokens_per_second", "Output tokens a second", "per_second",
+                    "The median, across calls, of completion tokens over the call's seconds. The wait is in it, so "
+                    "short answers look slower.",
+                    {model: _median(call.completion / call.ms * 1000 for call in timed(model)) for model in models}),
+            _number("visible_per_second", "Visible tokens a second", "per_second",
+                    "The same for the tokens the reader sees: completion tokens less reasoning tokens.",
+                    {model: _median((call.completion - call.reasoning) / call.ms * 1000 for call in timed(model)) for model in models}),
+            _number("reasoning_share", "Output that is reasoning", "percent",
+                    "Reasoning tokens over completion tokens, across every call.",
+                    {model: _ratio(sum(call.reasoning for call in _of(calls, model)), sum(call.completion for call in _of(calls, model)))
+                     for model in models}),
+            _number("seconds_fixed", "Seconds whatever the output", "seconds",
+                    "Where the line through a model's calls starts, milliseconds against completion tokens: the "
+                    "median slope between pairs of calls, then the median of what is left.",
+                    {model: _scaled(fits[model] and fits[model][0], 1 / 1000) for model in models}),
+            _number("ms_per_token", "Milliseconds per output token", "ms", "That line's slope.",
+                    {model: fits[model] and fits[model][1] for model in models}),
+            _number("retried", "Calls tried more than once", "count",
+                    "Calls the proxy sent again after a 429, a 5xx or a dropped connection, and that were then answered.",
+                    {model: sum(call.attempts > 1 for call in _of(calls, model)) for model in models}),
+            _number("cut_short", "Answers cut short", "count",
+                    "Calls that ended because the output ran out: finish_reason length.",
+                    {model: sum(call.finish == "length" for call in _of(calls, model)) for model in models}),
+        ],
+        "tables": [
+            _table("seconds_by_example", "A job's seconds, by example",
+                   "The median time of a job that ran to the end, from starting the example's command to its exit: one "
+                   "case for 01–04, the whole suite for 05.",
+                   [_column("example", "Example"), *(_column(model, _short(model), "seconds") for model in models)],
+                   [{"example": example, **{model: _r(_median(job["seconds"] for job in done if (job["model"], job["example"]) == (model, example)))
+                                            for model in models}} for example in sorted({job["example"] for job in done})]),
+            _table("by_host", "Calls by the host that answered",
+                   "OpenRouter may serve a model from several hosts. For each: its calls, its share of the model's, "
+                   "and its median call.",
+                   [_column("model", "Model"), _column("host", "Host"), _column("calls", "Calls", "count"),
+                    _column("share", "Share", "percent"), _column("seconds", "Median call", "seconds")],
+                   [{"model": model, "host": host, "calls": len(found := [call for call in _of(calls, model) if call.host == host]),
+                     "share": _r(len(found) / len(_of(calls, model))), "seconds": _r(median(call.ms for call in found) / 1000)}
+                    for model, host in hosts]),
+        ]}
+
+
 def _case(call: Call) -> str:
     """A request's name: its case, and in 03 the route that sent it."""
     return call.task if call.assembly in (None, "record") else f"{call.task} · {call.assembly}"
@@ -348,6 +413,10 @@ def _share(flags: Iterable[bool]) -> float | None:
 
 def _ratio(part: float, whole: float) -> float | None:
     return part / whole if whole else None
+
+
+def _scaled(value: float | None, by: float) -> float | None:
+    return None if value is None else value * by
 
 
 def _mean(found: Iterable[float]) -> float | None:
