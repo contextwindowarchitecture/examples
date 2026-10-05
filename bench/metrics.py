@@ -10,6 +10,7 @@ a model.
              stability   what repeats of the same case agree on: the checks, the answer's words, the tool calls
              before_after   01's two requests for the same question, by hand and through CWA, and what changed
              agents   what 04 and 05's agents tried, what the guard refused, and how their context grew
+             verdicts   the checks themselves: how sure a pass rate is, and how far the checks tell the models apart
 
 The checks say whether an answer passed. The numbers say what the same context cost each model in tokens, dollars and
 seconds, how much its answers moved between repeats, and how far the checks tell the models apart.
@@ -21,7 +22,7 @@ from collections import Counter, defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
 from itertools import combinations
-from math import ceil
+from math import ceil, sqrt
 from pathlib import Path
 from statistics import mean, median
 from typing import Any
@@ -146,7 +147,7 @@ def write(run: Path, summary: dict[str, Any]) -> dict[str, Any]:
     models = list(summary["models"])
     pasted = frozenset(case["key"] for case in summary["cases"] if len(case["question"].strip().splitlines()) > 1)
     pages = [tokens(calls, models, pasted), cost(calls, results, summary), speed(calls, summary), stability(results, models),
-             before_after(calls, results, models), agents(results, models)]
+             before_after(calls, results, models), agents(results, models), verdicts(calls, results, models)]
     written = {"run": summary["run"], "graded": summary["graded"], "models": models, "pages": pages}
     (run / "numbers.json").write_text(json.dumps(written, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return written
@@ -175,6 +176,17 @@ def jaccard(one: str, other: str) -> float:
     """How much two answers share: the words in both over the words in either, whatever their case and order."""
     first, second = set(one.lower().split()), set(other.lower().split())
     return len(first & second) / len(first | second) if first | second else 1
+
+
+def wilson(passed: int, graded: int) -> tuple[float, float] | None:
+    """The range a rate seen as passed of graded could have over many more, 19 times in 20 (Wilson's score interval).
+    It is wide when few were graded, and stays within 0 and 1."""
+    if not graded:
+        return None
+    z = 1.96
+    rate, room = passed / graded, z * z / graded
+    spread = z * sqrt(rate * (1 - rate) / graded + room / (4 * graded))
+    return (rate + room / 2 - spread) / (1 + room), (rate + room / 2 + spread) / (1 + room)
 
 
 # Pages
@@ -569,6 +581,80 @@ def agents(results: list[Result], models: list[str]) -> dict[str, Any]:
         ]}
 
 
+def verdicts(calls: list[Call], results: list[Result], models: list[str]) -> dict[str, Any]:
+    graded = [one for one in results if one.clean is not None]
+    counts = {model: (sum(passed for one in _of(graded, model) for _, passed in one.checks),
+                      sum(len(one.checks) for one in _of(graded, model))) for model in models}
+    answered = {model: Counter(call.host for call in _of(calls, model) if call.host) for model in models}
+    # A check is one thing asked of one case: every model's every repeat of it either passed, or some did not.
+    asked: dict[tuple[str, str | None, str], list[bool]] = defaultdict(list)
+    named: dict[str, list[tuple[str, bool]]] = defaultdict(list)
+    for one in graded:
+        for name, passed in one.checks:
+            asked[one.case, one.variant, name].append(passed)
+            named[name].append((one.model, passed))
+    cells = _cells(graded)
+    cases = sorted({key[1:] for key in cells}, key=str)
+    every = lambda model, case: all(one.clean for one in cells[model, *case]) if (model, *case) in cells else None
+    served: dict[str, set[str]] = defaultdict(set)
+    for call in calls:
+        served[call.job].add(call.host or "unnamed host")
+    by_host: dict[tuple[str, str], list[bool]] = defaultdict(list)
+    for one in graded:
+        if served[one.job]:
+            by_host[one.model, next(iter(served[one.job])) if len(served[one.job]) == 1 else "several hosts"].append(one.clean)
+    return {"id": "checks", "title": "Checks", "lede": (
+        "The checks themselves. Each is a pattern over a run's record, so it is cheap and repeatable, and a handful of "
+        "cases a few times over is a small sample: the range beside each pass rate says how small. When every model "
+        "passes a check every time, that check tells no two models apart, so the page also says how many do."),
+        "totals": [
+            {"id": "failed", "label": "Checks failed", "unit": "count", "value": sum(graded - passed for passed, graded in counts.values()),
+             "of": sum(graded for _, graded in counts.values()), "how": "Graded checks that failed, of all graded, across every model."},
+            {"id": "always_passed", "label": "Checks every model always passed", "unit": "percent",
+             "value": _r(_share(all(flags) for flags in asked.values())),
+             "how": "Of the checks asked of each case, those every model passed in every repeat. They tell no two models apart."},
+            {"id": "cases_with_failure", "label": "Cases with a failed check", "unit": "count",
+             "value": sum(any(not one.clean for model in models for one in cells.get((model, *case), [])) for case in cases),
+             "of": len(cases), "how": "Cases in which any model failed any check in any repeat, of the cases graded."},
+        ],
+        "numbers": [
+            _number("checks_passed", "Checks passed", "percent",
+                    "Graded checks passed over graded checks, 05's eval checks each counted. The range is where the "
+                    "rate could lie over many more runs, 19 times in 20 (Wilson's interval). Two models whose ranges "
+                    "overlap are not told apart by this run.",
+                    {model: _ratio(*counts[model]) for model in models}, {model: counts[model][1] for model in models},
+                    {model: wilson(*counts[model]) for model in models}),
+            _number("hosts", "Hosts that answered", "count",
+                    "OpenRouter may serve a model from several hosts, which need not run it the same way.",
+                    {model: len(answered[model]) for model in models}),
+            _number("busiest_host_share", "Calls answered by the busiest host", "percent",
+                    "The share of a model's calls its most used host answered.",
+                    {model: _ratio(max(answered[model].values(), default=0), sum(answered[model].values())) for model in models}),
+        ],
+        "tables": [
+            _table("failures", "The checks that failed",
+                   "Each check any model failed, across the cases that ask it: how often it failed, of how often it "
+                   "was graded, and by which models.",
+                   [_column("check", "Check"), _column("failed", "Failed", "count"), _column("graded", "Graded", "count"), _column("models", "Failed by")],
+                   sorted(({"check": name, "failed": sum(not passed for _, passed in found), "graded": len(found),
+                            "models": ", ".join(_short(model) for model in models if any(owner == model and not passed for owner, passed in found))}
+                           for name, found in named.items() if not all(passed for _, passed in found)),
+                          key=lambda row: (-row["failed"], row["check"]))),
+            _table("disagreements", "Where one model passed and another did not",
+                   "Each cell counts the cases the model in the row passed in every repeat and the model in the column "
+                   "did not. Two models with zeros both ways were not told apart.",
+                   [_column("model", "Passed every repeat"), *(_column(model, _short(model), "count") for model in models)],
+                   [{"model": row, **{column: None if column == row else sum(every(row, case) is True and every(column, case) is False for case in cases)
+                                      for column in models}} for row in models]),
+            _table("by_host", "Results by the host that answered",
+                   "A job's calls are usually answered by one host. For each: the results of the jobs it answered "
+                   "alone, and the share of them with every check passed.",
+                   [_column("model", "Model"), _column("host", "Host"), _column("results", "Results", "count"), _column("clean", "Every check passed", "percent")],
+                   [{"model": model, "host": host, "results": len(flags), "clean": _r(_share(flags))}
+                    for (model, host), flags in sorted(by_host.items(), key=lambda row: (models.index(row[0][0]), row[0][1]))]),
+        ]}
+
+
 def _cells(results: list[Result]) -> dict[tuple[str, str, str | None], list[Result]]:
     """A model's results for one case, and for 01 one of its two scripts, across repeats."""
     cells: dict[tuple[str, str, str | None], list[Result]] = defaultdict(list)
@@ -586,10 +672,13 @@ def _of(found: list[Any], model: str) -> list[Any]:
     return [one for one in found if one.model == model]
 
 
-def _number(id: str, label: str, unit: str, how: str, values: dict[str, Any], n: dict[str, int] | None = None) -> dict[str, Any]:
-    """One value per model, with the formula behind it and, when it rests on a count of observations, that count."""
+def _number(id: str, label: str, unit: str, how: str, values: dict[str, Any], n: dict[str, int] | None = None,
+            ranges: dict[str, tuple[float, float] | None] | None = None) -> dict[str, Any]:
+    """One value per model, with the formula behind it and, when it rests on a count of observations, that count and
+    the range the value could have over many more."""
     return {"id": id, "label": label, "unit": unit, "how": how, "values": {model: _r(value) for model, value in values.items()},
-            **({"n": n} if n is not None else {})}
+            **({"n": n} if n is not None else {}),
+            **({"ranges": {model: found and [_r(edge) for edge in found] for model, found in ranges.items()}} if ranges else {})}
 
 
 def _table(id: str, title: str, how: str, columns: list[dict[str, str]], rows: list[dict[str, Any]]) -> dict[str, Any]:

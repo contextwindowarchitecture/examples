@@ -190,7 +190,7 @@ def test_a_runs_numbers_are_written_beside_its_summary(tmp_path: Path) -> None:
     written = metrics.write(tmp_path, read)
     assert written == json.loads((tmp_path / "numbers.json").read_text())
     assert (written["run"], written["graded"], written["models"]) == (read["run"], read["graded"], [MODEL])
-    assert [page["id"] for page in written["pages"]] == ["tokens", "cost", "speed", "stability", "before_after", "agents"]
+    assert [page["id"] for page in written["pages"]] == ["tokens", "cost", "speed", "stability", "before_after", "agents", "checks"]
     # One request gives no line; the largest count over its estimate still says what margin it needed.
     assert values(written["pages"][0], "tokens_per_estimated") == {MODEL: None}
     assert values(written["pages"][0], "margin_needed") == {MODEL: round(375 / 283 - 1, 6)}
@@ -324,3 +324,35 @@ def test_agents_counts_what_each_model_tried_and_what_the_guard_refused() -> Non
     assert rows(page, "paths") == [
         {"case": owner, "model": MODEL, "path": "list_webhooks → enable_webhook → get_webhook", "repeats": 3},
         {"case": injected, "model": MODEL, "path": "list_webhooks → delete_webhook (refused)", "repeats": 1}]
+
+
+def test_an_interval_is_wide_when_few_were_graded() -> None:
+    low, high = metrics.wilson(15, 18)
+    assert (round(low, 2), round(high, 2)) == (0.61, 0.94)  # 83% of 18 could be 61% or 94% of many
+    assert round(metrics.wilson(18, 18)[1], 6) == 1 and metrics.wilson(0, 0) is None
+
+
+def test_checks_says_how_far_the_checks_tell_the_models_apart() -> None:
+    steady, flips, plan = "a/steady", "b/flips", "02-account-aware/01-team-plan"
+    results, calls = [], []
+    for model in (steady, flips):
+        for repeat in (1, 2):
+            failed = model == flips and repeat == 2
+            for case, variant, checked in (("01-docs-qa/01-answer", "after", (("answer answered", True), ("answer mentions_any", not failed))),
+                                           (plan, None, (("conflict never_the_loser", True),))):
+                name = f"{model}/{case}/{repeat}"
+                results.append(result(job=name, model=model, case=case, variant=variant, repeat=repeat, checks=checked))
+                calls.append(call(job=name, model=model, task=case, variant=variant, repeat=repeat, host="Two" if failed and variant else "One"))
+    page = metrics.verdicts(calls, results, [steady, flips])
+    number = next(one for one in page["numbers"] if one["id"] == "checks_passed")
+    assert number["values"] == {steady: 1, flips: round(5 / 6, 6)} and number["n"] == {steady: 6, flips: 6}
+    assert number["ranges"][flips] == [round(edge, 6) for edge in metrics.wilson(5, 6)]
+    assert (values(page, "hosts"), values(page, "busiest_host_share")) == ({steady: 1, flips: 2}, {steady: 1, flips: 0.75})
+    totals = {total["id"]: (total["value"], total.get("of")) for total in page["totals"]}
+    # Three checks across the two cases; one of them, one model failed once. So one failure in 12, and in one case of 2.
+    assert totals == {"failed": (1, 12), "always_passed": (round(2 / 3, 6), None), "cases_with_failure": (1, 2)}
+    assert rows(page, "failures") == [{"check": "answer mentions_any", "failed": 1, "graded": 4, "models": "flips"}]
+    assert rows(page, "disagreements") == [{"model": steady, steady: None, flips: 1}, {"model": flips, steady: 0, flips: None}]
+    assert rows(page, "by_host") == [{"model": steady, "host": "One", "results": 4, "clean": 1},
+                                     {"model": flips, "host": "One", "results": 3, "clean": 1},
+                                     {"model": flips, "host": "Two", "results": 1, "clean": 0}]

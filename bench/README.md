@@ -271,6 +271,20 @@ A table gives each question and model: both scripts' prompt tokens, seconds, wor
 
 A table lists the sequences of tool calls each model made for each case, and in how many repeats.
 
+### Checks
+
+The last page is about the checks themselves. A handful of cases a few times over is a small sample, and a check every model passes every time tells no two models apart.
+
+| Number | How it is computed |
+| --- | --- |
+| Checks failed | Graded checks that failed, of all graded, across every model. 05's eval checks are each counted |
+| Checks every model always passed | Of the checks asked of each case, those every model passed in every repeat |
+| Cases with a failed check | Cases in which any model failed any check in any repeat, of the cases graded |
+| Checks passed | Per model, graded checks passed over graded, with the range the rate could have over many more runs, 19 times in 20 (Wilson's score interval). Two models whose ranges overlap are not told apart by the run |
+| Hosts that answered, calls answered by the busiest host | The hosts OpenRouter served a model from, and the share of its calls the most used one answered |
+
+Three tables follow: each check any model failed, with how often and by which models; for each pair of models, the cases one passed in every repeat and the other did not; and each model's results by the host that answered, since hosts need not run a model the same way.
+
 ## Results
 
 ```
