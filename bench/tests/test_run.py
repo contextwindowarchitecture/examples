@@ -91,6 +91,10 @@ def test_the_manifest_keeps_what_the_run_was_made_from(tmp_path: Path) -> None:
     # What the plan estimated for each model, to set beside what the run then spent: 283 tokens in and a likely 1,000
     # out; at most the route's 1,500 in and the 16,000 it reserves.
     assert written["models"]["vendor/paid"]["planned"] == {"likely": 0.010566, "most": 0.163}
+    listed = {"vendor/paid": catalog.Listing(2e-06, 1e-05, True, tokenizer="Grok", context=500000, temperature=0.7)}
+    facts = manifest.write(tmp_path / "facts", config.HERE / "bench.toml", listed, planned, "abc1234", True)["models"]["vendor/paid"]
+    assert (facts["tokenizer"], facts["context"], facts["temperature"]) == ("Grok", 500000, 0.7)
+    assert manifest.listings({"models": {"vendor/paid": facts}}) == listed
     assert configured.models  # the copy is the configuration a resume loads
 
 

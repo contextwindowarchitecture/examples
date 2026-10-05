@@ -16,6 +16,16 @@ def test_prices_are_dollars_per_token_and_tools_come_from_the_supported_paramete
     assert found["vendor/small:free"].tools is False
 
 
+def test_a_listing_keeps_what_explains_a_models_numbers() -> None:
+    listed = {"data": [{**LISTING["data"][0], "context_length": 500000, "architecture": {"tokenizer": "Grok"},
+                        "default_parameters": {"temperature": 0.7, "top_p": 0.95}}]}
+    found = catalog.parse(listed)["vendor/paid"]
+    # Its own tokenizer, by family; its context limit; and the temperature it samples at when a request sets none.
+    assert (found.tokenizer, found.context, found.temperature) == ("Grok", 500000, 0.7)
+    bare = catalog.parse(LISTING)["vendor/paid"]  # a listing that says none of it
+    assert (bare.tokenizer, bare.context, bare.temperature) == (None, None, None)
+
+
 def test_a_model_that_costs_nothing_is_free() -> None:
     found = catalog.parse(LISTING)
     assert found["vendor/small:free"].free and not found["vendor/paid"].free

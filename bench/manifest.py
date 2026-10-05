@@ -61,7 +61,8 @@ def _planned(model: str, listing: Listing, planned: Plan) -> dict[str, float]:
 
 def listings(written: dict[str, Any]) -> dict[str, Listing]:
     """The prices and tool support a run planned with, so a resume plans the same jobs."""
-    return {model: Listing(input_price=m["input_price"], output_price=m["output_price"], tools=m["tools"])
+    return {model: Listing(input_price=m["input_price"], output_price=m["output_price"], tools=m["tools"],
+                           tokenizer=m.get("tokenizer"), context=m.get("context"), temperature=m.get("temperature"))
             for model, m in written["models"].items()}
 
 

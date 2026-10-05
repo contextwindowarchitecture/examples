@@ -205,6 +205,8 @@ A route sets `budget.input` in the model's tokens, and its application declares 
 
 | Number | How it is computed |
 | --- | --- |
+| Tokenizer, context limit | The family of the model's own tokenizer and its context limit, as OpenRouter listed them when the run was planned, which the manifest keeps |
+| Largest budget, of the context limit | The largest `budget.input` a route sent the model, over its context limit |
 | Tokens per estimated token | The slope of the line through a model's 01–03 requests, the host's count against the assembler's estimate. It is the median slope between pairs of requests (Theil–Sen), so one that counts differently does not move it. A request whose question pastes a block of text is left off the line |
 | Tokens added to every request | Where that line starts: what the host counts whatever the payload holds, such as a system prompt of its own. A percentage margin cannot cover it; an application subtracts it from `budget.input` |
 | Tokens per estimated token, pasted text | For a request whose question pastes a block of text, such as 03's delivery log: the host's count less the tokens added to every request, over the estimate. An estimate from bytes runs low on digits and punctuation |
@@ -263,6 +265,7 @@ In 01–03 every repeat sends the same request, so what moves between repeats is
 | Results with every check passed | Of a model's graded results, those in which every graded check passed |
 | Cases passed in every repeat | Of the cases a model was graded on more than once, those it passed in every repeat. It is at most the average, and falls with more repeats when answers vary |
 | Cases passed in some repeats, in no repeat | Cases whose result changed between repeats, and cases with a failed check in every repeat |
+| Default temperature | The temperature OpenRouter lists as the model's default, which the manifest keeps. The examples send no sampling settings |
 | Words shared between repeats | For each 01–03 case answered more than once: the words two answers share over the words in either (Jaccard), averaged over every pair of repeats, then over cases |
 | Cases cited the same way every repeat | Of those cases, the ones where every repeat cites the same articles |
 | Tasks done the same way every repeat | Of the 04–05 cases run more than once, those where every repeat made the same tool calls in the same order |
@@ -317,7 +320,8 @@ Three tables follow: each check any model failed, with how often and by which mo
 results/index.json   # every graded run, newest first: what the viewer's run picker lists
 results/<run-id>/    # for example 2026-10-02T153007Z-bebe9ab
   manifest.json      # the commit and whether the tree had changes, each example's assembler tag and commit,
-                     # the bench.toml digest, the models with their prices, tool support and planned cost, and the jobs
+                     # the bench.toml digest, the models as OpenRouter listed them (prices, tool support, tokenizer,
+                     # context limit, default temperature) with their planned cost, and the jobs
   bench.toml         # the configuration the run used, which --resume loads
   calls.jsonl        # one line per call: the case, the model asked, the model and host that answered,
                      # tokens, cost, latency, attempts

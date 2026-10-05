@@ -49,7 +49,8 @@ function byModel(numbers, page, sort) {
   const sorted = page.numbers.find((one) => one.id === sort.by);
   if (sorted) {
     const value = (model) => sorted.values[model];
-    models.sort((a, b) => (value(a) === null) - (value(b) === null) || (sort.down ? value(b) - value(a) : value(a) - value(b)));
+    const order = (a, b) => (typeof a === "number" ? a - b : String(a).localeCompare(String(b)));
+    models.sort((a, b) => (value(a) === null) - (value(b) === null) || (sort.down ? order(value(b), value(a)) : order(value(a), value(b))));
   }
   return html`<div class="panel scroll"><div>
     <div class="row headrow" style="${grid(page.numbers.length)}"><span>Model</span>${page.numbers.map((one) => html`

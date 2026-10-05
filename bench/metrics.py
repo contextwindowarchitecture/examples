@@ -154,7 +154,8 @@ def write(run: Path, summary: dict[str, Any]) -> dict[str, Any]:
     calls, results = facts(run, summary)
     models = list(summary["models"])
     pasted = frozenset(case["key"] for case in summary["cases"] if len(case["question"].strip().splitlines()) > 1)
-    pages = [tokens(calls, models, pasted), cost(calls, results, summary), speed(calls, summary), stability(results, models),
+    pages = [tokens(calls, models, pasted, summary["models"]), cost(calls, results, summary), speed(calls, summary),
+             stability(results, models, summary["models"]),
              before_after(calls, results, models), agents(results, models), verdicts(calls, results, models)]
     written = {"run": summary["run"], "graded": summary["graded"], "models": models, "pages": pages}
     (run / "numbers.json").write_text(json.dumps(written, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
@@ -199,9 +200,13 @@ def wilson(passed: int, graded: int) -> tuple[float, float] | None:
 
 # Pages
 
-def tokens(calls: list[Call], models: list[str], pasted: frozenset[str] = frozenset()) -> dict[str, Any]:
+def tokens(calls: list[Call], models: list[str], pasted: frozenset[str] = frozenset(),
+           listed: dict[str, Any] | None = None) -> dict[str, Any]:
     """pasted: the cases whose question pastes a block of text, such as 03's delivery log. A tokenizer counts a log
-    unlike prose, so the line is drawn through the other requests, and a pasted block gets a rate of its own."""
+    unlike prose, so the line is drawn through the other requests, and a pasted block gets a rate of its own.
+    listed: each model as OpenRouter listed it when the run was planned."""
+    fact = lambda model, name: ((listed or {}).get(model) or {}).get(name)
+    largest = lambda model: max((call.budget for call in calls if call.model == model and call.budget), default=None)
     counted = [call for call in calls if call.estimate]  # the calls that carried an assembled payload
     same = [call for call in counted if call.example in SAME_CONTEXT]
     task = {_case(call): call.task for call in same}
@@ -233,6 +238,9 @@ def tokens(calls: list[Call], models: list[str], pasted: frozenset[str] = frozen
                     "against a count that is the same for everyone."},
         ],
         "numbers": [
+            _number("tokenizer", "Tokenizer", "text",
+                    "The family of the model's own tokenizer, as OpenRouter listed it when the run was planned.",
+                    {model: fact(model, "tokenizer") for model in models}),
             _number("tokens_per_estimated", "Tokens per estimated token", "ratio",
                     "The slope of the line through a model's 01–03 requests: the tokens its host counted against the "
                     "assembler's estimate. It is the median slope between pairs of requests, so one that counts "
@@ -262,6 +270,12 @@ def tokens(calls: list[Call], models: list[str], pasted: frozenset[str] = frozen
                     "fitted each to that budget by its own count.",
                     {model: sum(call.prompt > call.budget for call in _of(counted, model)) if _of(counted, model) else None
                      for model in models}, _count(counted, models)),
+            _number("context", "Context limit", "tokens", "The model's context limit, as OpenRouter listed it.",
+                    {model: fact(model, "context") for model in models}),
+            _number("budget_share", "Largest budget, of the context limit", "percent",
+                    "The largest budget.input a route sent this model, over its context limit. R-16 sets budget.input "
+                    "to the limit less the reserved output; the examples set far less, so no count here overflowed.",
+                    {model: _ratio(largest(model), fact(model, "context") or 0) if largest(model) else None for model in models}),
             _number("cached_share", "Prompt tokens read from cache", "percent",
                     "Cached prompt tokens over prompt tokens, across every call. Hosts bill cached tokens for less.",
                     {model: _ratio(sum(call.cached for call in _of(calls, model)), sum(call.prompt for call in _of(calls, model)))
@@ -451,7 +465,8 @@ def speed(calls: list[Call], summary: dict[str, Any]) -> dict[str, Any]:
         ]}
 
 
-def stability(results: list[Result], models: list[str]) -> dict[str, Any]:
+def stability(results: list[Result], models: list[str], listed: dict[str, Any] | None = None) -> dict[str, Any]:
+    """listed: each model as OpenRouter listed it when the run was planned."""
     cells = _cells(results)
     repeated = {key: found for key, found in cells.items() if len(found) > 1}
     # A cell's verdicts, when it was graded more than once: a refused assembly sends nothing, so nothing is graded.
@@ -482,6 +497,10 @@ def stability(results: list[Result], models: list[str]) -> dict[str, Any]:
                     {model: sum(any(flags) and not all(flags) for flags in mine(verdicts, model)) for model in models}),
             _number("cases_none", "Cases passed in no repeat", "count", "Cases with a failed check in every repeat.",
                     {model: sum(not any(flags) for flags in mine(verdicts, model)) for model in models}),
+            _number("temperature", "Default temperature", "count",
+                    "The temperature OpenRouter lists as the model's default. The examples send no sampling settings, "
+                    "so repeats are sampled at whatever the host defaults to.",
+                    {model: ((listed or {}).get(model) or {}).get("temperature") for model in models}),
             _number("answer_similarity", "Words shared between repeats", "percent",
                     "For each 01–03 case answered more than once: the words two answers share over the words in "
                     "either, averaged over every pair of repeats, then over cases.",

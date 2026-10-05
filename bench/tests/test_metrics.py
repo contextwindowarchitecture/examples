@@ -189,6 +189,20 @@ def test_tokens_sets_the_estimate_beside_a_count_that_is_the_same_for_every_mode
     assert rows(page, "by_case")[0]["normalized"] == 288
 
 
+def test_tokens_names_each_models_tokenizer_and_how_little_of_its_window_a_budget_is() -> None:
+    facts = {MODEL: listed(tokenizer="Grok", context=500000), "b/bare": listed()}
+    page = metrics.tokens([call(budget=1500), call(repeat=2, budget=6000), call(model="b/bare")], [MODEL, "b/bare"], listed=facts)
+    assert values(page, "tokenizer") == {MODEL: "Grok", "b/bare": None}
+    assert values(page, "context") == {MODEL: 500000, "b/bare": None}
+    assert values(page, "budget_share") == {MODEL: 0.012, "b/bare": None}  # the largest budget sent, 6,000, of 500,000
+
+
+def test_stability_names_the_temperature_a_model_samples_at_when_none_is_sent() -> None:
+    page = metrics.stability([result()], [MODEL], {MODEL: listed(temperature=0.7)})
+    assert values(page, "temperature") == {MODEL: 0.7}
+    assert values(metrics.stability([result()], [MODEL]), "temperature") == {MODEL: None}
+
+
 def test_tokens_counts_the_calls_a_host_counted_over_the_routes_budget() -> None:
     page = metrics.tokens([call(prompt=1400), call(repeat=2, prompt=1501), call(variant="before", estimate=None, budget=None, prompt=9000)], [MODEL])
     assert values(page, "over_budget") == {MODEL: 1}  # before.py's call has no budget to be over
