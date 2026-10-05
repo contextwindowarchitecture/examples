@@ -227,6 +227,14 @@ def test_cost_sets_what_was_charged_against_the_list_price_and_what_it_bought() 
     assert rows(page, "by_example") == [{"example": "01-docs-qa", MODEL: 0.004}]
 
 
+def test_cost_sets_the_spend_beside_what_the_plan_estimated() -> None:
+    page = metrics.cost([call()], [result()], {"models": {MODEL: listed(cost=0.012, planned={"likely": 0.03, "most": 0.4})}, "jobs": []})
+    assert (values(page, "planned"), values(page, "spent_over_planned")) == ({MODEL: 0.03}, {MODEL: 0.4})
+    # A run made before the manifest kept the estimate has none to show.
+    earlier = metrics.cost([call()], [result()], {"models": {MODEL: listed()}, "jobs": []})
+    assert (values(earlier, "planned"), values(earlier, "spent_over_planned")) == ({MODEL: None}, {MODEL: None})
+
+
 def test_a_free_model_has_no_list_price_to_set_its_charge_against() -> None:
     page = metrics.cost([call(cost=0)], [result()], {"models": {MODEL: listed(input_price=0, output_price=0, free=True, cost=0)}, "jobs": []})
     assert values(page, "charged_over_list") == {MODEL: None} and values(page, "cost_per_passed_check") == {MODEL: 0}

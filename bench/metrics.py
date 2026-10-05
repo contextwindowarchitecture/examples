@@ -298,6 +298,12 @@ def cost(calls: list[Call], results: list[Result], summary: dict[str, Any]) -> d
         "numbers": [
             _number("spend", "Spent", "usd", "What OpenRouter charged for every call, an attempt that failed included.",
                     {model: listed[model]["cost"] for model in models}),
+            _number("planned", "Planned, likely", "usd",
+                    "What plan.py estimated before the run: the calls and input sizes of the committed files, and "
+                    "1,000 output tokens a call, at the listed prices. Runs made before the manifest kept it show none.",
+                    {model: (listed[model].get("planned") or {}).get("likely") for model in models}),
+            _number("spent_over_planned", "Spent over planned", "ratio", "What was spent over that estimate.",
+                    {model: _ratio(listed[model]["cost"], (listed[model].get("planned") or {}).get("likely") or 0) for model in models}),
             _number("charged_over_list", "Charged over list price", "ratio",
                     "What was charged for a model's answered calls over their tokens at the prices OpenRouter listed "
                     "when the run was planned. Below one, a host discounted, as for cached tokens; above it, the host "

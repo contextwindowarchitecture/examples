@@ -88,6 +88,9 @@ def test_the_manifest_keeps_what_the_run_was_made_from(tmp_path: Path) -> None:
     assert (tmp_path / "run" / "bench.toml").read_bytes() == (config.HERE / "bench.toml").read_bytes()
     assert written["jobs"] == [JOB.folder.as_posix()]
     assert manifest.listings(written) == LISTINGS
+    # What the plan estimated for each model, to set beside what the run then spent: 283 tokens in and a likely 1,000
+    # out; at most the route's 1,500 in and the 16,000 it reserves.
+    assert written["models"]["vendor/paid"]["planned"] == {"likely": 0.010566, "most": 0.163}
     assert configured.models  # the copy is the configuration a resume loads
 
 

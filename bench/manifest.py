@@ -1,6 +1,7 @@
 """What a run was made from, written before its first job: the repository's commit and whether the tree differed from
 it, the assembler each example pins, bench.toml (copied beside the manifest), the models with the prices and tool
-support OpenRouter listed, and the jobs. A resume runs the same jobs at the same commit, or refuses."""
+support OpenRouter listed and what the plan estimated each would cost, and the jobs. A resume runs the same jobs at
+the same commit, or refuses."""
 from __future__ import annotations
 
 import hashlib
@@ -14,6 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import plan
 from catalog import Listing
 from config import HERE, ROOT, label
 from plan import Plan
@@ -42,13 +44,19 @@ def write(run: Path, config_file: Path, listings: dict[str, Listing], planned: P
         "repository": {"commit": head, "dirty": dirty},
         "assembler": [{"example": pin.example, "tag": pin.tag, "commit": pin.commit} for pin in _pins()],
         "config": {"file": "bench.toml", "sha256": hashlib.sha256(config_file.read_bytes()).hexdigest()},
-        "models": {model: {"label": label(model), **asdict(listing), "free": listing.free}
+        "models": {model: {"label": label(model), **asdict(listing), "free": listing.free, "planned": _planned(model, listing, planned)}
                    for model, listing in listings.items()},
         "skipped": planned.skipped,
         "jobs": [job.folder.as_posix() for job in planned.jobs],
     }
     (run / "manifest.json").write_text(json.dumps(written, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return written
+
+
+def _planned(model: str, listing: Listing, planned: Plan) -> dict[str, float]:
+    """What the plan estimated the model's jobs would cost, likely and at most, to set beside what the run spent."""
+    costs = [plan.cost(job, listing) for job in planned.jobs if job.model == model]
+    return {"likely": round(sum(likely for likely, _ in costs), 6), "most": round(sum(most for _, most in costs), 6)}
 
 
 def listings(written: dict[str, Any]) -> dict[str, Listing]:

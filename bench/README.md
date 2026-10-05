@@ -204,6 +204,7 @@ A call costs its prompt tokens at the input price, less what the host takes off 
 | Number | How it is computed |
 | --- | --- |
 | Spent | What OpenRouter charged for every call, an attempt that failed included |
+| Planned, likely; spent over planned | What `plan.py` estimated before the run, which the manifest keeps for each model, and what was spent over it. A run made before the manifest kept the estimate shows none |
 | Charged over list price | What was charged for a model's answered calls over their tokens at the prices OpenRouter listed when the run was planned. Below one, a host discounted, as for cached tokens; above it, the host that answered charges more than the listing |
 | Share of the charge that is prompt | What hosts charged for prompts over what they charged in all, for the calls whose host says |
 | Cost per check passed | Spent over the graded checks the model's answers passed |
@@ -291,7 +292,7 @@ Three tables follow: each check any model failed, with how often and by which mo
 results/index.json   # every graded run, newest first: what the viewer's run picker lists
 results/<run-id>/    # for example 2026-10-02T153007Z-bebe9ab
   manifest.json      # the commit and whether the tree had changes, each example's assembler tag and commit,
-                     # the bench.toml digest, the models with their prices and tool support, and the jobs
+                     # the bench.toml digest, the models with their prices, tool support and planned cost, and the jobs
   bench.toml         # the configuration the run used, which --resume loads
   calls.jsonl        # one line per call: the case, the model asked, the model and host that answered,
                      # tokens, cost, latency, attempts
