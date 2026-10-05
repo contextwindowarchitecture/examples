@@ -197,6 +197,20 @@ Two tables break them down by request: each model's count beside the estimate an
 
 No request here overflowed a model: the examples' budgets are far below these models' context limits. What the page shows is how far a route's declared margin carries to a model it was not declared for.
 
+### Cost
+
+A call costs its prompt tokens at the input price, less what the host takes off for tokens read from cache, plus its completion tokens, reasoning included, at the output price. The page's first table holds every factor for each model: calls, prompt tokens, input price, the share cached, completion tokens, the share that is reasoning, output price, the cost at list price and what was charged. A gap between two models reads as the factors that differ: the same input price buys fewer requests from a host that counts three tokens where another counts one.
+
+| Number | How it is computed |
+| --- | --- |
+| Spent | What OpenRouter charged for every call, an attempt that failed included |
+| Charged over list price | What was charged for a model's answered calls over their tokens at the prices OpenRouter listed when the run was planned. Below one, a host discounted, as for cached tokens; above it, the host that answered charges more than the listing |
+| Share of the charge that is prompt | What hosts charged for prompts over what they charged in all, for the calls whose host says |
+| Cost per check passed | Spent over the graded checks the model's answers passed |
+| Cost per result with every check passed | Spent over the results in which every graded check passed |
+
+A second table gives the median cost of a job by example.
+
 ## Results
 
 ```

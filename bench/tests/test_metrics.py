@@ -164,7 +164,7 @@ def test_tokens_splits_what_a_host_adds_from_how_it_counts() -> None:
     assert values(page, "over_budget") == {"a/adds": 0, "b/counts": 0}
     [answer, _, _, pasted_log] = rows(page, "by_case")
     assert answer == {"case": "01-docs-qa/01-answer", "question": "one line", "estimate": 100, "budget": 1500,
-                      "used": round(100 / 1500, 4), "a/adds": 1100, "b/counts": 110}
+                      "used": round(100 / 1500, 6), "a/adds": 1100, "b/counts": 110}
     assert (pasted_log["question"], pasted_log["b/counts"]) == ("pastes a block", 1200)
     assert rows(page, "margin_by_case")[0] == {"case": "01-docs-qa/01-answer", "declared": 0.15, "a/adds": 10, "b/counts": 0.1}
 
@@ -179,7 +179,7 @@ def test_an_agent_sends_its_context_again_at_every_inference() -> None:
                   for n, (prompt, cached) in enumerate(((1000, 0), (1100, 500), (1200, 550)), start=1)]
     page = metrics.tokens(inferences, [MODEL])
     assert values(page, "resend_factor") == {MODEL: 2.75}  # 3,300 tokens sent, to end with a request of 1,200
-    assert values(page, "cached_share") == {MODEL: round(1050 / 3300, 4)}
+    assert values(page, "cached_share") == {MODEL: round(1050 / 3300, 6)}
     assert values(page, "tokens_per_estimated") == {MODEL: None}  # 04 sends each model its own context: nothing to line up
 
 
@@ -190,7 +190,43 @@ def test_a_runs_numbers_are_written_beside_its_summary(tmp_path: Path) -> None:
     written = metrics.write(tmp_path, read)
     assert written == json.loads((tmp_path / "numbers.json").read_text())
     assert (written["run"], written["graded"], written["models"]) == (read["run"], read["graded"], [MODEL])
-    assert [page["id"] for page in written["pages"]] == ["tokens"]
+    assert [page["id"] for page in written["pages"]] == ["tokens", "cost"]
     # One request gives no line; the largest count over its estimate still says what margin it needed.
     assert values(written["pages"][0], "tokens_per_estimated") == {MODEL: None}
-    assert values(written["pages"][0], "margin_needed") == {MODEL: round(375 / 283 - 1, 4)}
+    assert values(written["pages"][0], "margin_needed") == {MODEL: round(375 / 283 - 1, 6)}
+
+
+def result(**given: Any) -> metrics.Result:
+    return metrics.Result(**({
+        "job": "j", "model": MODEL, "case": "01-docs-qa/01-answer", "variant": "after", "repeat": 1,
+        "checks": (("answer answered", True),), "answer": "Check spam.", "cited": (), "left_out": (), "steps": (),
+        "estimates": (283,)} | given))
+
+
+def listed(**given: Any) -> dict[str, Any]:
+    """A model as the summary lists it: OpenRouter's prices, and what the run spent on it."""
+    return {"input_price": 2e-06, "output_price": 1e-05, "free": False, "cost": 0.012} | given
+
+
+def test_cost_sets_what_was_charged_against_the_list_price_and_what_it_bought() -> None:
+    # Two calls of 1,000 prompt and 200 completion tokens: at $2 and $10 a million, $0.004 each at list price.
+    calls = [call(prompt=1000, completion=200, reasoning=50, cached=500, cost=0.003, prompt_cost=0.001, completion_cost=0.002, repeat=n)
+             for n in (1, 2)]
+    results = [result(repeat=1, checks=(("answer answered", True), ("answer mentions_any", True))),
+               result(repeat=2, checks=(("answer answered", True), ("answer mentions_any", False)))]
+    jobs = [{"model": MODEL, "example": "01-docs-qa", "exit": 0, "cost": cost} for cost in (0.003, 0.005, 0.004)]
+    page = metrics.cost(calls, results, {"models": {MODEL: listed(cost=0.012)}, "jobs": jobs})
+    assert values(page, "spend") == {MODEL: 0.012}  # the summary's: it counts an attempt that failed, too
+    assert values(page, "charged_over_list") == {MODEL: 0.75}
+    assert values(page, "prompt_share_of_spend") == {MODEL: round(1 / 3, 6)}
+    assert values(page, "cost_per_passed_check") == {MODEL: 0.004}  # $0.012 for three checks passed
+    assert values(page, "cost_per_clean_result") == {MODEL: 0.012}  # and for one result with every check passed
+    [row] = rows(page, "identity")
+    assert row == {"model": MODEL, "calls": 2, "prompt": 2000, "input_price": 2, "cached": 0.5, "completion": 400,
+                   "reasoning": 0.25, "output_price": 10, "list": 0.008, "charged": 0.006}
+    assert rows(page, "by_example") == [{"example": "01-docs-qa", MODEL: 0.004}]
+
+
+def test_a_free_model_has_no_list_price_to_set_its_charge_against() -> None:
+    page = metrics.cost([call(cost=0)], [result()], {"models": {MODEL: listed(input_price=0, output_price=0, free=True, cost=0)}, "jobs": []})
+    assert values(page, "charged_over_list") == {MODEL: None} and values(page, "cost_per_passed_check") == {MODEL: 0}

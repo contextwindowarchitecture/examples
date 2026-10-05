@@ -5,6 +5,7 @@ a model.
     write    numbers.json, which grade.py writes beside summary.json: the run's models and its pages
     pages    each a list of numbers, one value per model with the formula behind it, and tables that break them down:
              tokens   what the same context costs in each model's own tokens, and the margin a route would need
+             cost     what was charged against the list price, the factors it comes from, and what it bought
 
 The checks say whether an answer passed. The numbers say what the same context cost each model in tokens, dollars and
 seconds, how much its answers moved between repeats, and how far the checks tell the models apart.
@@ -140,7 +141,7 @@ def write(run: Path, summary: dict[str, Any]) -> dict[str, Any]:
     models = list(summary["models"])
     pasted = frozenset(case["key"] for case in summary["cases"] if len(case["question"].strip().splitlines()) > 1)
     written = {"run": summary["run"], "graded": summary["graded"], "models": models,
-               "pages": [tokens(calls, models, pasted)]}
+               "pages": [tokens(calls, models, pasted), cost(calls, results, summary)]}
     (run / "numbers.json").write_text(json.dumps(written, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return written
 
@@ -247,6 +248,68 @@ def tokens(calls: list[Call], models: list[str], pasted: frozenset[str] = frozen
         ]}
 
 
+def cost(calls: list[Call], results: list[Result], summary: dict[str, Any]) -> dict[str, Any]:
+    """summary: for each model's list prices and what the run spent on it, and each job's cost."""
+    listed = summary["models"]
+    models = list(listed)
+    total = lambda model, field: sum(getattr(call, field) for call in _of(calls, model))
+    at_list = {model: total(model, "prompt") * listed[model]["input_price"] + total(model, "completion") * listed[model]["output_price"]
+               for model in models}
+    split = {model: [call for call in _of(calls, model) if call.prompt_cost is not None and call.completion_cost is not None]
+             for model in models}
+    passed = {model: sum(ok for one in _of(results, model) for _, ok in one.checks) for model in models}
+    clean = {model: sum(one.clean is True for one in _of(results, model)) for model in models}
+    examples = sorted({job["example"] for job in summary["jobs"] if job["exit"] == 0})
+    return {"id": "cost", "title": "Cost", "lede": (
+        "What each model was charged, and where the charge comes from. A call costs its prompt tokens at the input "
+        "price, less what the host takes off for tokens read from cache, plus its completion tokens, reasoning "
+        "included, at the output price. Every factor is in the table below, so a gap between two models can be read "
+        "as the factors that differ."),
+        "numbers": [
+            _number("spend", "Spent", "usd", "What OpenRouter charged for every call, an attempt that failed included.",
+                    {model: listed[model]["cost"] for model in models}),
+            _number("charged_over_list", "Charged over list price", "ratio",
+                    "What was charged for a model's answered calls over their tokens at the prices OpenRouter listed "
+                    "when the run was planned. Below one, a host discounted, as for cached tokens; above it, the host "
+                    "that answered charges more than the listing.",
+                    {model: _ratio(total(model, "cost"), at_list[model]) for model in models}),
+            _number("prompt_share_of_spend", "Share of the charge that is prompt", "percent",
+                    "What hosts charged for prompts over what they charged in all, for the calls whose host says.",
+                    {model: _ratio(sum(call.prompt_cost for call in split[model]),
+                                   sum(call.prompt_cost + call.completion_cost for call in split[model])) for model in models},
+                    {model: len(split[model]) for model in models}),
+            _number("cost_per_passed_check", "Cost per check passed", "usd",
+                    "Spent over the graded checks the model's answers passed.",
+                    {model: _ratio(listed[model]["cost"], passed[model]) for model in models}, passed),
+            _number("cost_per_clean_result", "Cost per result with every check passed", "usd",
+                    "Spent over the results in which every graded check passed.",
+                    {model: _ratio(listed[model]["cost"], clean[model]) for model in models}, clean),
+        ],
+        "tables": [
+            _table("identity", "Where the charge comes from",
+                   "For a model's answered calls: prompt tokens at the input price, less the discount on the share "
+                   "read from cache, plus completion tokens at the output price. Prices are per million tokens.",
+                   [_column("model", "Model"), _column("calls", "Calls", "count"), _column("prompt", "Prompt tokens", "tokens"),
+                    _column("input_price", "Input price", "usd"), _column("cached", "Cached", "percent"),
+                    _column("completion", "Completion tokens", "tokens"), _column("reasoning", "Reasoning", "percent"),
+                    _column("output_price", "Output price", "usd"), _column("list", "At list price", "usd"),
+                    _column("charged", "Charged", "usd")],
+                   [{"model": model, "calls": len(_of(calls, model)), "prompt": total(model, "prompt"),
+                     "input_price": _r(listed[model]["input_price"] * 1e6),
+                     "cached": _r(_ratio(total(model, "cached"), total(model, "prompt"))),
+                     "completion": total(model, "completion"),
+                     "reasoning": _r(_ratio(total(model, "reasoning"), total(model, "completion"))),
+                     "output_price": _r(listed[model]["output_price"] * 1e6), "list": _r(at_list[model]),
+                     "charged": _r(total(model, "cost"))} for model in models]),
+            _table("by_example", "A job's cost, by example",
+                   "The median cost of a job that ran to the end: one case for 01–04, the whole suite for 05.",
+                   [_column("example", "Example"), *(_column(model, _short(model), "usd") for model in models)],
+                   [{"example": example, **{model: _r(_median(job["cost"] for job in summary["jobs"] if job["exit"] == 0
+                                                             and (job["model"], job["example"]) == (model, example)))
+                                            for model in models}} for example in examples]),
+        ]}
+
+
 def _case(call: Call) -> str:
     """A request's name: its case, and in 03 the route that sent it."""
     return call.task if call.assembly in (None, "record") else f"{call.task} · {call.assembly}"
@@ -298,8 +361,8 @@ def _median(found: Iterable[float]) -> float | None:
 
 
 def _r(value: Any) -> Any:
-    """A figure as numbers.json holds it: four decimal places, and no negative zero."""
-    return round(value, 4) + 0 if isinstance(value, float) else value
+    """A figure as numbers.json holds it: six decimal places, which a cost per check needs, and no negative zero."""
+    return round(value, 6) + 0 if isinstance(value, float) else value
 
 
 def _read(path: Path) -> Any:
