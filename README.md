@@ -4,10 +4,12 @@ Runnable applications built on the [Context Window Architecture](https://context
 
 CWA treats a model request as compiled output, not a string you concatenate. Producers propose typed items (instructions, retrieved chunks, conversation turns, tool results) for named slots. The application freezes them, with a versioned route policy and a budget, into a snapshot. An assembler turns the snapshot into the request and a trace that says what was sent, what was left out and why. If the context needed to answer isn't there, it refuses before any model is called.
 
+The examples are Python applications, and the assembler they use is [assembler-python](https://github.com/contextwindowarchitecture/assembler-python), the reference implementation. The [TypeScript](https://github.com/contextwindowarchitecture/assembler-typescript), [Go](https://github.com/contextwindowarchitecture/assembler-go) and [Rust](https://github.com/contextwindowarchitecture/assembler-rust) assemblers implement the same specification and pass the same conformance cases, but these examples don't use them.
+
 ```mermaid
 flowchart LR
     P["Producers<br/>instructions, retrieval, chat history"] --> S["Snapshot<br/>items + route policy + budget + clock"]
-    S --> A["Assembler<br/>contextwindowarchitecture-assembler"]
+    S --> A["Assembler<br/>assembler-python"]
     A -->|payload| M["Model SDK<br/>anthropic, openai"]
     A -->|trace| T["What was sent, what was left out, and why"]
     A -->|refusal| R["No request is sent"]
@@ -27,7 +29,7 @@ Each example builds on the one before it. Together they add up to the real-world
 
 ## Running one
 
-Every example is its own [uv](https://docs.astral.sh/uv/) project and needs nothing else checked out. The assembler comes from its draft release on GitHub:
+Every example is its own [uv](https://docs.astral.sh/uv/) project and needs nothing else checked out. The assembler, [assembler-python](https://github.com/contextwindowarchitecture/assembler-python), comes from its draft release on GitHub:
 
 ```sh
 cd 01-docs-qa
@@ -81,8 +83,8 @@ python3 scripts/assembler_pin.py --release <tag> --remote
 ## Related
 
 - [Specification](https://contextwindowarchitecture.io/spec.html): the numbered requirements cited in these examples' comments as `R-n`
-- [assembler-python](https://github.com/contextwindowarchitecture/assembler-python): the reference assembler these examples depend on, with [TypeScript](https://github.com/contextwindowarchitecture/assembler-typescript) and [Go](https://github.com/contextwindowarchitecture/assembler-go) implementations
-- [assembler-demo](https://github.com/contextwindowarchitecture/assembler-demo): an inspector that runs the same snapshots through all three assemblers and shows every decision
+- [assembler-python](https://github.com/contextwindowarchitecture/assembler-python): the reference assembler these examples depend on, with [TypeScript](https://github.com/contextwindowarchitecture/assembler-typescript), [Go](https://github.com/contextwindowarchitecture/assembler-go) and [Rust](https://github.com/contextwindowarchitecture/assembler-rust) implementations
+- [assembler-demo](https://github.com/contextwindowarchitecture/assembler-demo): an inspector that runs the same snapshots through all four assemblers and shows every decision
 
 ## License
 
