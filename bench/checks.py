@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from config import ROOT
+from config import ROOT, SAME_CONTEXT
 
 # The patterns 05's grader uses (05-production/evals.py), so a claim reads the same in both.
 CITATION = re.compile(r"help:[a-z0-9-]+@\d+#\d+")
@@ -68,7 +68,7 @@ def check(folder: Path, calls: list[dict[str, Any]], replayed: dict[str, dict[st
     made = assembled(job["example"], record)
     if finished:
         found += _sent(folder, made, last_attempt(calls))
-    if job["example"] in ("01-docs-qa", "02-account-aware", "03-budget-and-routes") and made:
+    if job["example"] in SAME_CONTEXT and made:
         found.append(_same_context(job["example"], made))
     if made:
         unreplayed = [_name(folder, path) for path in made

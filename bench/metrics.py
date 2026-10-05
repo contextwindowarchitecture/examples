@@ -34,13 +34,11 @@ from typing import Any
 
 import checks
 import meaning
-from config import ROOT
+from config import ROOT, SAME_CONTEXT
 
 # A word, for holding an answer to the request it answered: four letters or more, whatever its case. Short words are
 # in every text; an id such as help:sign-in@6#0 gives help and sign-in, which the request holds when it sent the article.
 WORD = re.compile(r"[a-z][a-z'-]{3,}")
-# 01-03 send every model the same payloads (same_context), so what differs there is the model's or its host's.
-SAME_CONTEXT = ("01-docs-qa", "02-account-aware", "03-budget-and-routes")
 
 
 @dataclass(frozen=True)

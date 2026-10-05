@@ -23,6 +23,9 @@ from typing import Any
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent  # the repository, whose numbered folders are the examples
 EXAMPLES = ("01-docs-qa", "02-account-aware", "03-budget-and-routes", "04-tools", "05-production")
+# 01-03 send every model the same snapshots (the same_context invariant): what differs between models there is the
+# model's or its host's. In 04 and 05 each model's tool calls decide what its next snapshot holds.
+SAME_CONTEXT = ("01-docs-qa", "02-account-aware", "03-budget-and-routes")
 SETTINGS = {"": {"models", "openrouter", "run"}, "openrouter": {"key_env"},
             "run": {"examples", "repeats", "concurrency", "max_cost_usd", "confirm"}}
 
