@@ -15,6 +15,7 @@ import { count, dollars, html, number, plural, seconds } from "./html.js";
 import { citedLeftOut, compared, marked, ordered, pairsOf } from "./beforeafter.js";
 import { asked, cell } from "./question.js";
 import * as figures from "./numbers.js";
+import * as charts from "./charts.js";
 import * as tour from "./tour.js";
 
 const INVARIANTS = [
@@ -221,8 +222,11 @@ function runs(index) {
 // See the numbers: one page of the run's numbers.json, or with no page named, all of them.
 function numbers(run, id) {
   const file = data.href(run, "numbers.json");
-  return later(data.numbers(run).then((found) => (id ? figures.page(run, found, id, state.sort, file) : figures.all(run, found, file)),
-    () => figures.missing(run)));
+  const found = data.numbers(run);
+  const drawn = later(found.then((all) => (id ? figures.page(run, all, id, state.sort, file) : figures.all(run, all, file)), () => figures.missing(run)));
+  // The page fills in first: this is asked of the same promise after it. Then its charts have somewhere to be drawn.
+  found.then((all) => Promise.resolve().then(() => { const page = all.pages.find((one) => one.id === id); if (page) charts.mount(view, page); }), () => {});
+  return drawn;
 }
 
 // One construct: the evidence each case gives of it, then how every run of the case did on its measures.

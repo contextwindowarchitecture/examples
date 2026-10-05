@@ -201,6 +201,26 @@ A number is evidence of something, and [meaning.py](meaning.py) says of what. Ea
 
 The numbers rest on two tables of facts: one row per answered call, joined to the assembly whose payload it carried, and one row per result. The join is the one `payload_sent` checks: a job's answered calls, in order, against its rendered payloads, in order. `before.py` assembles nothing, so its calls have no estimate to set a count against.
 
+### Charts
+
+Each page draws its numbers as well as tabling them. [charts.py](charts.py) says what to draw, from values the page already holds, and the viewer draws it ([charts.js](viewer/charts.js)). A chart shows nothing a table does not hold, and says under it where its values are.
+
+| Page | Chart | What it is for |
+| --- | --- | --- |
+| What CWA decided | A bar per request, of its route's `budget.input`, by plane | Where a budget goes, and how much is left |
+| Tokens | A panel per model on shared axes: each request's host count against the estimate, the line through them, and the estimate with the declared margin | Seeing a fixed amount added (a line that starts high) apart from a different way of counting (a line that climbs faster) |
+| Cost | A labelled point per model: cost per result with every check passed, on a scale of ratios, against cases passed in every repeat | Which models are steady for less |
+| Speed | A bar per model for its median call, with its time to first token marked on it | How much of a call is waiting, and which hosts send a reply in one piece |
+| Stability | A cell per case and model, filled where a repeat failed | Which cases change between repeats, and for whom |
+| Grounding | A bar per model | How much of what it was sent each model cited |
+| Before and after | For each question, a ring and a dot per model | Which way, and how far, CWA moved the request |
+| Agents | A line per model under the route's budget | How fast an agent's request grows, and how far it is from the budget |
+| Checks | A dot per model inside the range its rate could have | Whether the run tells two models apart |
+
+Colour does one job in each chart: ink for the data, a quiet grey for what it is set against, the site's clay accent for what the chart is about, and a plane's own colour for that plane. A model is never a colour. A run may hold a dozen models, which is more colours than stay apart for any reader, so a model is a row, a panel or a label, and a chart of fourteen models reads like a chart of three. The four plane colours were checked as a set, with a validator and not by eye, for lightness, chroma, separation under colour-blindness and contrast on the page: they pass on the light theme as they are, and on the dark theme the charts fill with a darker step of the same hues, since the tokens' own lightness is for text and thin strokes.
+
+Every mark answers to the pointer and to the keyboard with its values, and what a screen reader is told is the same. A label that would overflow ends in an ellipsis and is whole in the tooltip.
+
 ### What CWA decided
 
 Before any model is asked, producers propose items and the assembler admits them, resolves conflicts, fits them to the route's budget, and renders what is left or refuses. Every decision is in a trace, and this page counts them. In 01–03 the counts are the same for every model, because the context is decided before the model is known, so each of their requests is counted once. In 04 and 05 each model's tool calls decide what its next snapshot holds, so those are counted by model.
@@ -337,7 +357,7 @@ A table gives each question and model: both scripts' prompt tokens, seconds, wor
 | Tokens added per inference | For each task of more than one inference: the assembler's count at the last less its count at the first, over the inferences between; then the median |
 | Inferences until the budget binds | For each such task: the room left in the route's `budget.input` after its first inference, over the tokens it added per inference; then the median. Past that, fitting starts to shed and summarize |
 
-A table lists the sequences of tool calls each model made for each case, and in how many repeats.
+Two tables follow: the sequences of tool calls each model made for each case, and in how many repeats; and the assembler's count at each inference, by model.
 
 ### Checks
 
@@ -390,7 +410,7 @@ results/<run-id>/    # for example 2026-10-02T153007Z-bebe9ab
 
 ## The viewer
 
-`uv run serve.py` serves the viewer ([viewer/](viewer/)) and `results/` at http://127.0.0.1:8765/, on this machine only. Nothing else in `bench/` is served, `.env` included, and no folder is listed. The viewer is static HTML and JavaScript with no build step, in the site's visual language, and reads `results/index.json`, the run's `summary.json` and `numbers.json`, and the job files the summary names:
+`uv run serve.py` serves the viewer ([viewer/](viewer/)) and `results/` at http://127.0.0.1:8765/, on this machine only. Nothing else in `bench/` is served, `.env` included, and no folder is listed. The viewer is static HTML and JavaScript with no build step, in the site's visual language. It holds everything it runs but one thing: the charts are drawn with [D3](https://d3js.org) 7.9.0 (ISC licence), which `index.html` loads from cdn.jsdelivr.net with an integrity hash, so the browser refuses any other file. Without the network the pages keep their tables and each chart says it could not be drawn. The viewer reads `results/index.json`, the run's `summary.json` and `numbers.json`, and the job files the summary names:
 
 | Page | What it shows |
 | --- | --- |
@@ -398,7 +418,7 @@ results/<run-id>/    # for example 2026-10-02T153007Z-bebe9ab
 | A construct | Its description and requirements, then for each case that exercised it the evidence from a run's own trace (the chunks against the relevance threshold, the budget by plane, the routes an escalation took, the conflict groups, what was left out and why), and every run's answer with the checks of that construct's measures; a 01 case shows each model's before and after answers side by side |
 | A case | What CWA decided for the run picked from a drop-down, and for an agent the inference: the budget by plane, the items sent as slot rows with their authority, trust and injection risk, what was left out and why, conflicts and provenance, with the raw trace, snapshot and payload a click away. Then every run's tool calls with the guard's decision, its answer as it came back, and its checks. A 01 case reads before, then after: every item of `after.py`'s snapshot with where `before.py` put it and what `after.py`'s assembly decided, then a row per model with its two answers side by side, each citation of a chunk CWA left out marked ([beforeafter.js](viewer/beforeafter.js)) |
 | Models, Cases, Runs | The models' calls, tokens, latency, cost, hosts and checks; every case; every graded run |
-| See the numbers, a menu | A page for each family of [numbers](#numbers): What CWA decided, Tokens, Cost, Speed, Stability, Grounding, Before and after, Agents and Checks. Each opens with a reading of the run beside what the page says about CWA, then has a row per model and a column per number, whose heading sorts the models by it, then what each number means and the formula behind it, then its tables. A requirement named in the text links to it in the specification. All numbers sets every number of the run in one table, a row each and a column per model. The values, labels and formulas are read from `numbers.json`, which each page links ([numbers.js](viewer/numbers.js)) |
+| See the numbers, a menu | A page for each family of [numbers](#numbers): What CWA decided, Tokens, Cost, Speed, Stability, Grounding, Before and after, Agents and Checks. Each opens with a reading of the run beside what the page says about CWA, then draws its [charts](#charts), then has a row per model and a column per number, whose heading sorts the models by it, then what each number means and the formula behind it, then its tables. A requirement named in the text links to it in the specification. All numbers sets every number of the run in one table, a row each and a column per model. The values, labels and formulas are read from `numbers.json`, which each page links ([numbers.js](viewer/numbers.js)) |
 
 Tour, in the header, walks a first-time reader through the viewer in twelve steps ([tour.js](viewer/tour.js)): what the site shows, the run and the assembler-python release it pinned, the invariants, a construct card, the models, a construct's evidence, a 01 case before and after, an agent's decision in 05, the run's numbers, and where the examples and the assembler live. Each step opens the page it is about, dims everything but the part it describes, and points at it; Esc ends the tour, the arrow keys step through it, and following a link ends it. A step this run has nothing to show for is left out.
 

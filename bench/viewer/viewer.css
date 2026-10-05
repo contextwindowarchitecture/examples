@@ -305,6 +305,44 @@ html[data-theme="dark"] { --dim: oklch(0.06 0.005 80 / 0.74); }
 }
 @media (prefers-reduced-motion: reduce) { .tour-hole { transition: none; } }
 
+/* Charts (charts.js). One ink for the data, a quiet grey for what it is set against, the clay accent for what a chart
+   is about, and a plane's own colour for that plane; a model is never a colour. In dark the planes' fills take a step
+   of their own, lightness 0.66: the tokens' 0.76 is for text and thin strokes, and glares as a fill. Both sets pass the
+   checks for colours that must stay apart on their surface: lightness, chroma, separation for colour-blind readers,
+   and contrast. */
+:root { --c-quiet: var(--muted); --c-around: oklch(0.74 0.008 85); --c-gov: var(--p-gov); --c-state: var(--p-state); --c-evid: var(--p-evid); --c-inter: var(--p-inter); }
+html[data-theme="dark"] { --c-around: oklch(0.46 0.008 85); --c-gov: oklch(0.66 0.15 45); --c-state: oklch(0.66 0.12 250); --c-evid: oklch(0.66 0.13 155); --c-inter: oklch(0.66 0.13 310); }
+.charts { padding-bottom: 56px; }
+.chart { margin: 0 0 56px; }
+.chart:last-of-type { margin-bottom: 20px; }
+.chart figcaption .case { margin-top: 0; }
+.chart-plot { font-family: var(--mono); font-size: 12.5px; color: var(--muted); max-width: 100%; overflow-x: auto; }
+.chart-plot svg { display: block; overflow: visible; }
+.chart-legend, .chart-rules { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 0 0 18px; }
+.chart-rules { margin: 14px 0 0; }
+.chart-key { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.chart-note { margin: 14px 0 0; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .tick { fill: var(--muted); font: 11px var(--mono); font-variant-numeric: tabular-nums; }
+.chart .axis-label { fill: var(--muted); font: 11px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
+.chart .row-label { fill: var(--fg); font: 12.5px var(--mono); }
+.chart .panel-title { fill: var(--fg); font: 600 12.5px var(--mono); }
+.chart .ringed { stroke: var(--bg); stroke-width: 2; }
+.chart .band { fill: transparent; }
+.chart .hit { cursor: default; outline-offset: 1px; }
+.chart .hit:hover .band, .chart .hit:focus .band { fill: var(--surface); }
+.chart .cell-failed { fill: var(--accent-soft); }
+.chart .hit:hover .cell-failed, .chart .hit:focus .cell-failed { fill: var(--accent); }
+.chart .cell-count { fill: var(--fg); font: 600 11.5px var(--mono); font-variant-numeric: tabular-nums; }
+.chart .hit:hover .cell-count, .chart .hit:focus .cell-count { fill: var(--bg); }
+.chart .crosshair { stroke: var(--muted); stroke-width: 1; opacity: 0; }
+.chart .crosshair:has(+ .hit:hover), .chart .crosshair:has(+ .hit:focus) { opacity: 1; }
+.chart-tip { position: fixed; z-index: 70; max-width: 340px; padding: 10px 12px; background: var(--bg); border: 1px solid var(--fg); font-family: var(--mono); font-size: 12px; line-height: 1.5; color: var(--muted); pointer-events: none; }
+.chart-tip .tip-title { color: var(--fg); margin-bottom: 6px; overflow-wrap: anywhere; }
+.chart-tip .tip-line { display: flex; align-items: baseline; gap: 8px; }
+.chart-tip .tip-line i { flex: none; width: 10px; height: 2px; align-self: center; }
+.chart-tip .tip-line b { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
 /* Footer */
 .foot { border-top: 1px solid var(--line); }
 .foot .wrap { padding-top: 40px; padding-bottom: 40px; display: flex; flex-wrap: wrap; gap: 24px; justify-content: space-between; align-items: center; font-family: var(--mono); font-size: 12px; color: var(--muted); }

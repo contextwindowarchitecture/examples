@@ -60,8 +60,8 @@ const STEPS = [
     body: () => "05 is an agent, so a run is several inferences, each assembled from its own snapshot. Here, the budget by plane. Below it, every item sent as a slot row with its authority and trust, the tool result that carries injected text, and what was left out and why.",
   },
   {
-    page: "numbers/tokens", parts: ["numbers-table"], kicker: "See the numbers", title: "The same run, in figures.",
-    body: () => "The checks say whether an answer passed. See the numbers, in the header, says the rest: here, the tokens each model's host counted for the same requests against the assembler's estimate, and the margin a route would need to cover the gap. Cost, speed, stability, 01's before and after, the agents' paths and the checks themselves each have a page, and All numbers sets every one in a single table. There is no single score.",
+    page: "numbers/tokens", parts: ["numbers-chart", "numbers-table"], kicker: "See the numbers", title: "The same run, in figures.",
+    body: () => "The checks say whether an answer passed. See the numbers, in the header, says the rest. Here, a panel per model: the tokens its host counted for the same requests against the assembler's estimate, and the margin a route would need to cover the gap. Each page of numbers opens with a reading of the run and what it says about CWA, then its charts, then a table with what every number means. What CWA decided, cost, speed, stability, grounding, 01's before and after, the agents' paths and the checks themselves each have a page, and All numbers sets every number in a single table. There is no single score.",
   },
   {
     parts: ["sources"], kicker: "Where it comes from", title: "Run it yourself.",

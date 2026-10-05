@@ -97,6 +97,17 @@ function breakdown(table) {
     </div></div>` : html`<p class="body mono">Nothing to list in this run.</p>`}`;
 }
 
+// A chart of the page's numbers. charts.js draws it once the page is in the document; every value it shows is in a
+// table below it, so the chart adds a way to see them and takes nothing away when it cannot be drawn.
+function figure(chart) {
+  return html`<figure class="chart" data-chart="${chart.id}">
+    <figcaption><h2 class="case">${chart.title}</h2><p class="body">${cited(chart.how)}</p></figcaption>
+    <div class="chart-legend"></div>
+    <div class="chart-plot"></div>
+    <p class="chart-note">${chart.values}</p>
+  </figure>`;
+}
+
 // A figure about the whole run, not one model.
 function totals(page) {
   if (!page.totals?.length) return "";
@@ -118,6 +129,9 @@ export function page(run, numbers, id, sort, file) {
     <section class="band surface"><div class="wrap">
       ${says(one)}
       ${totals(one)}
+    </div></section>
+    ${one.charts?.length ? html`<section class="band"><div class="wrap charts" data-tour="numbers-chart">${one.charts.map(figure)}</div></section>` : ""}
+    <section class="band surface"><div class="wrap">
       <div class="toolbar"><span class="label">One row per model · a heading sorts by its column</span><span class="changed" aria-hidden="true"></span>
         <a class="mono" style="font-size: 12px;" href="${file}" target="_blank" rel="noopener">numbers.json →</a></div>
       <div data-tour="numbers-table">${byModel(numbers, one, sort)}</div>
