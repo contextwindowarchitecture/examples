@@ -65,11 +65,7 @@ def check(folder: Path, calls: list[dict[str, Any]], replayed: dict[str, dict[st
     job = _read(folder / "job.json")
     record, finished = folder / "record", job["exit"] == 0
     found = [] if finished else [Check("run", "finished", False, _tail(folder / "output.txt"))]
-    if job["example"] == "05-production":
-        suite = [case["id"] for case in _read(ROOT / "05-production" / "evals" / "cases.json")["cases"]]
-        made = [turn for case in suite for turn in turns(record / case)]
-    else:
-        made = assemblies(record)
+    made = assembled(job["example"], record)
     if finished:
         found += _sent(folder, made, calls)
     if job["example"] in ("01-docs-qa", "02-account-aware", "03-budget-and-routes") and made:
@@ -256,6 +252,14 @@ def _mentions_any(measure: str, answer: str, phrases: list[str], name: str = "me
 def _mentions_none(measure: str, answer: str, phrases: list[str], name: str = "mentions_none") -> Check:
     found = [phrase for phrase in phrases if phrase.lower() in answer.lower()]
     return Check(measure, name, not found, f"mentions {', '.join(found)}" if found else "mentions none of them")
+
+
+def assembled(example: str, record: Path) -> list[Path]:
+    """Every assembly a job made, in the order its calls went out: 05's suite asks its eval cases in turn."""
+    if example != "05-production":
+        return assemblies(record)
+    suite = [case["id"] for case in _read(ROOT / "05-production" / "evals" / "cases.json")["cases"]]
+    return [turn for case in suite for turn in turns(record / case)]
 
 
 def assemblies(record: Path) -> list[Path]:
