@@ -26,18 +26,18 @@ preflight
   ...
   ok    models: every model is on OpenRouter's model list
 
-plan: 459 jobs, 9 models x 3 repeats
+plan: 2380 jobs, 14 models x 10 repeats
   01-docs-qa             6 cases, 5 calls, per model and repeat
   02-account-aware       3 cases, 3 calls, per model and repeat
   03-budget-and-routes   4 cases, 4 calls, per model and repeat
   04-tools               3 cases, 10 calls, at most 18, per model and repeat
   05-production          1 case, 11 calls, at most 36, per model and repeat
 
-  estimate for 3 repeats                      likely   at most
+  estimate for 10 repeats                     likely   at most
   inclusionai/ling-3.1-flash                   $0.00     $0.00  free
   ...
-  anthropic/claude-sonnet-5.5                  $1.23    $19.85
-  total                                        $3.62    $57.45
+  anthropic/claude-sonnet-5.5                  $4.09    $66.17
+  total                                       $16.05   $254.80
 ```
 
 ## What it measures
@@ -88,7 +88,7 @@ flowchart LR
 ```toml
 models = [
   "inclusionai/ling-3.1-flash",
-  "qwen/qwen3.8-27b:free",
+  "qwen/qwen3.8-27b",
   "anthropic/claude-sonnet-5.5",
   # ...
 ]
@@ -98,9 +98,9 @@ key_env = "OPENROUTER_API_KEY"   # the variable that holds the key, never the ke
 
 [run]
 examples = ["01-docs-qa", "02-account-aware", "03-budget-and-routes", "04-tools", "05-production"]
-repeats = 3
+repeats = 10
 concurrency = 4                  # paid models; free models run one call at a time
-max_cost_usd = 15.0              # no case starts once the run has spent this
+max_cost_usd = 30.0              # no case starts once the run has spent this
 confirm = true                   # show the plan and its estimate, and wait for a yes
 ```
 
@@ -112,7 +112,7 @@ Only `models` and `max_cost_usd` are required. The rest default to every example
 
 The key is read from the environment. `uv run --env-file .env ...` reads it from `bench/.env`, which git ignores, as the examples keep theirs.
 
-Each model's results go in a folder named after its ID, with `/` and `:` replaced by `-`, as in `google-gemma-4-31b-it-free`.
+Each model's results go in a folder named after its ID, with `/` and `:` replaced by `-`, as in `nvidia-nemotron-3.5-lightning-free`.
 
 ## What runs
 

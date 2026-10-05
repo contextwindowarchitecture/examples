@@ -29,9 +29,9 @@ def problems(tmp_path: Path, text: str) -> list[str]:
 
 def test_the_committed_configuration_loads() -> None:
     loaded = config.load(config.HERE / "bench.toml")
-    assert len(loaded.models) == 9
+    assert len(loaded.models) == 14
     assert loaded.examples == config.EXAMPLES
-    assert (loaded.repeats, loaded.max_cost_usd, loaded.key_env) == (3, 15.0, "OPENROUTER_API_KEY")
+    assert (loaded.repeats, loaded.max_cost_usd, loaded.key_env) == (10, 30.0, "OPENROUTER_API_KEY")
 
 
 def test_only_models_and_a_spending_cap_are_required(tmp_path: Path) -> None:
