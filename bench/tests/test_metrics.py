@@ -82,6 +82,17 @@ def test_before_py_assembles_nothing_so_its_call_has_no_estimate(tmp_path: Path)
     assert result.left_out == (left_out,) and result.clean is None
 
 
+def test_what_openrouter_recorded_about_a_call_is_read_when_the_run_holds_it(tmp_path: Path) -> None:
+    name = job(tmp_path, "01-docs-qa", "01-answer/after", {"answer": "Check spam.", "error": None}, ANSWER)
+    called(tmp_path, name, 375)
+    [before], _ = metrics.facts(tmp_path, graded(tmp_path, [name]))
+    assert (before.first_token, before.generating, before.normalized, before.tried) == (None, None, None, None)
+    write(tmp_path / name / "calls" / "1.generation.json", {"latency": 812, "generation_time": 1400, "tokens_prompt": 288,
+                                                             "attempts": [{"provider_name": "A", "status": 429}, {"provider_name": "B", "status": 200}]})
+    [after], _ = metrics.facts(tmp_path, graded(tmp_path, [name]))
+    assert (after.first_token, after.generating, after.normalized, after.tried) == (812, 1400, 288, 2)
+
+
 def test_a_refused_assembly_has_a_result_and_no_call(tmp_path: Path) -> None:
     name = job(tmp_path, "01-docs-qa", "03-off-topic/after", {"answer": None, "refused": "evidence_required"},
                ROOT / "01-docs-qa" / "scenarios" / "03-off-topic")
@@ -126,7 +137,8 @@ def call(**given: Any) -> metrics.Call:
     return metrics.Call(**({
         "job": "j", "model": MODEL, "example": "01-docs-qa", "task": "01-docs-qa/01-answer", "variant": "after", "repeat": 1,
         "prompt": 300, "completion": 200, "reasoning": 50, "cached": 0, "cost": 0.004, "ms": 1500, "host": "SomeHost",
-        "attempts": 1, "finish": "stop", "prompt_cost": None, "completion_cost": None, "assembly": "record",
+        "attempts": 1, "finish": "stop", "prompt_cost": None, "completion_cost": None, "first_token": None,
+        "generating": None, "normalized": None, "tried": None, "assembly": "record",
         "estimate": 283, "budget": 1500, "margin": 15} | given))
 
 
@@ -163,10 +175,18 @@ def test_tokens_splits_what_a_host_adds_from_how_it_counts() -> None:
     assert values(page, "margin_covered") == {"a/adds": 0, "b/counts": 0.75}
     assert values(page, "over_budget") == {"a/adds": 0, "b/counts": 0}
     [answer, _, _, pasted_log] = rows(page, "by_case")
-    assert answer == {"case": "01-docs-qa/01-answer", "question": "one line", "estimate": 100, "budget": 1500,
+    assert answer == {"case": "01-docs-qa/01-answer", "question": "one line", "estimate": 100, "normalized": None, "budget": 1500,
                       "used": round(100 / 1500, 6), "a/adds": 1100, "b/counts": 110}
     assert (pasted_log["question"], pasted_log["b/counts"]) == ("pastes a block", 1200)
     assert rows(page, "margin_by_case")[0] == {"case": "01-docs-qa/01-answer", "declared": 0.15, "a/adds": 10, "b/counts": 0.1}
+
+
+def test_tokens_sets_the_estimate_beside_a_count_that_is_the_same_for_every_model() -> None:
+    # OpenRouter counts every request with one tokenizer of its own, whatever the model: 288 for an estimate of 283.
+    page = metrics.tokens([call(normalized=288), call(repeat=2, normalized=None)], [MODEL])
+    [total] = page["totals"]
+    assert (total["id"], total["value"], total["unit"]) == ("normalized_over_estimate", round(288 / 283, 6), "ratio")
+    assert rows(page, "by_case")[0]["normalized"] == 288
 
 
 def test_tokens_counts_the_calls_a_host_counted_over_the_routes_budget() -> None:
@@ -246,20 +266,31 @@ def test_a_percentile_is_a_value_that_was_observed() -> None:
 
 
 def test_speed_splits_a_calls_time_into_what_waits_and_what_each_token_takes() -> None:
-    # A second before anything comes back, then 10 ms a token, half of them reasoning the reader never sees.
-    calls = [call(repeat=n, completion=tokens, reasoning=tokens // 2, ms=1000 + 10 * tokens, host=host, attempts=attempts, finish=finish)
-             for n, (tokens, host, attempts, finish) in enumerate(((100, "One", 1, "stop"), (200, "One", 2, "stop"), (300, "Two", 1, "length")), start=1)]
+    # Half a second to the first token, then 10 ms a token, half of them reasoning the reader never sees; and 200 ms
+    # between the proxy's clock and OpenRouter's, for routing and the network.
+    calls = [call(repeat=n, completion=tokens, reasoning=tokens // 2, ms=1000 + 10 * tokens, first_token=500, generating=800 + 10 * tokens,
+                  host=host, attempts=attempts, finish=finish, tried=tried)
+             for n, (tokens, host, attempts, finish, tried) in enumerate(((100, "One", 1, "stop", 1), (200, "One", 2, "stop", 2), (300, "Two", 1, "length", 1)), start=1)]
+    calls.append(call(repeat=4, completion=200, reasoning=100, ms=3000, host="Two"))  # a call the run holds no stats for
+    # A host that sends its whole reply at once: the first token is the last, and says nothing of how fast it generates.
+    calls.append(call(repeat=5, completion=200, reasoning=100, ms=3000, first_token=2800, generating=2800, host="One"))
     jobs = [{"model": MODEL, "example": "01-docs-qa", "exit": 0, "seconds": seconds} for seconds in (5.0, 9.0, 6.0)]
     page = metrics.speed(calls, {"models": {MODEL: listed()}, "jobs": jobs + [{"model": MODEL, "example": "01-docs-qa", "exit": 1, "seconds": 90.0}]})
     assert [values(page, name)[MODEL] for name in ("seconds_p50", "seconds_p90", "seconds_p99")] == [3, 4, 4]
-    assert values(page, "seconds_fixed") == {MODEL: 1} and values(page, "ms_per_token") == {MODEL: 10}
-    assert values(page, "tokens_per_second") == {MODEL: round(200 / 3, 6)}  # 50, 66.7 and 75 a second
+    first = next(one for one in page["numbers"] if one["id"] == "first_token_p50")
+    assert first["values"] == {MODEL: 0.5} and first["n"] == {MODEL: 4} and values(page, "first_token_p90") == {MODEL: 2.8}
+    assert values(page, "in_one_piece") == {MODEL: 0.25}
+    # The first token the reader sees comes after the reasoning: an estimate, at the rate the call generated.
+    assert values(page, "first_visible") == {MODEL: 1.9}
+    assert values(page, "outside") == {MODEL: 0.2}
+    assert values(page, "tokens_per_second") == {MODEL: round(200 / 3, 6)}  # over the whole call: 50, 66.7, 66.7 and 75
+    assert values(page, "generating_per_second") == {MODEL: round(200 / 2.3, 6)}  # once it has started: 76.9, 87.0, 90.9
     assert values(page, "visible_per_second") == {MODEL: round(100 / 3, 6)}
     assert values(page, "reasoning_share") == {MODEL: 0.5}
-    assert values(page, "retried") == {MODEL: 1} and values(page, "cut_short") == {MODEL: 1}
+    assert values(page, "retried") == {MODEL: 1} and values(page, "cut_short") == {MODEL: 1} and values(page, "tried_more_hosts") == {MODEL: 1}
     assert rows(page, "seconds_by_example") == [{"example": "01-docs-qa", MODEL: 6}]  # of the jobs that ran to the end
-    assert rows(page, "by_host") == [{"model": MODEL, "host": "One", "calls": 2, "share": round(2 / 3, 6), "seconds": 2.5},
-                                     {"model": MODEL, "host": "Two", "calls": 1, "share": round(1 / 3, 6), "seconds": 4}]
+    assert rows(page, "by_host") == [{"model": MODEL, "host": "One", "calls": 3, "share": 0.6, "seconds": 3, "first_token": 0.5},
+                                     {"model": MODEL, "host": "Two", "calls": 2, "share": 0.4, "seconds": 3.5, "first_token": 0.5}]
 
 
 def test_two_answers_share_the_words_in_both_over_the_words_in_either() -> None:

@@ -208,6 +208,7 @@ A route sets `budget.input` in the model's tokens, and its application declares 
 | Tokens per estimated token | The slope of the line through a model's 01–03 requests, the host's count against the assembler's estimate. It is the median slope between pairs of requests (Theil–Sen), so one that counts differently does not move it. A request whose question pastes a block of text is left off the line |
 | Tokens added to every request | Where that line starts: what the host counts whatever the payload holds, such as a system prompt of its own. A percentage margin cannot cover it; an application subtracts it from `budget.input` |
 | Tokens per estimated token, pasted text | For a request whose question pastes a block of text, such as 03's delivery log: the host's count less the tokens added to every request, over the estimate. An estimate from bytes runs low on digits and punctuation |
+| OpenRouter's count over the estimate, for the run | OpenRouter counts every request with one tokenizer of its own, whatever the model. The median, across the run's calls, of that count over the assembler's estimate: how the estimate does against a count that is the same for everyone |
 | Margin needed | The smallest `margin_percent` that would have covered every 01–03 request: the largest host count over its estimate, less one |
 | Requests the declared margin covered | Of a model's 01–03 calls, those whose host count is within the estimate plus the route's declared margin |
 | Calls over the route's budget | Calls whose host count is more than the route's `budget.input`, 04 and 05 included |
@@ -235,20 +236,23 @@ A second table gives the median cost of a job by example.
 
 ### Speed
 
-The proxy times every call from start to finish. The examples do not stream, so there is no time to a first token; a line through each model's calls, milliseconds against completion tokens, splits a call into what waits and what each token takes.
+The proxy times every call from start to finish. The examples do not stream, so the time to the first token is the one OpenRouter recorded ([What OpenRouter recorded](#what-openrouter-recorded)). A call is then three parts: the wait for the first token, the generation after it, and what is left outside both.
 
 | Number | How it is computed |
 | --- | --- |
 | Median call, slow call, slowest calls | The call at rank 50, 90 and 99 of 100 by nearest rank, so each is a call that happened |
-| Output tokens a second | The median, across calls, of completion tokens over the call's seconds. The wait is in it, so short answers look slower |
-| Visible tokens a second | The same for the tokens the reader sees: completion less reasoning |
+| Median and slow time to first token | The same at rank 50 and 90 for the time until the host sent its first token, a reasoning token included |
+| Replies sent in one piece | Calls whose first token came in the last tenth of the generation: the host sent the whole reply at once, so its time to first token is its time to the last |
+| First visible token, estimated | The time to the first token, plus the call's reasoning tokens at the rate it generated; the median across calls. An estimate: only a streamed call shows when the first visible token came |
+| Seconds outside the generation | The median of the proxy's time for a call less the generation's: OpenRouter's routing, and the network |
+| Output tokens a second, whole call and generating | The median, across calls, of completion tokens over the call's seconds; and over the generation's time after the first token, for the calls not sent in one piece |
+| Visible tokens a second, whole call | The same for the tokens the reader sees: completion less reasoning |
 | Output that is reasoning | Reasoning tokens over completion tokens, across every call |
-| Seconds whatever the output | Where the line through a model's calls starts: the median slope between pairs of calls, then the median of what is left |
-| Milliseconds per output token | That line's slope |
 | Calls tried more than once | Calls the proxy sent again after a 429, a 5xx or a dropped connection, and that were then answered |
+| Calls that tried more than one host | Calls for which OpenRouter went to a second host before one answered |
 | Answers cut short | Calls that ended with `finish_reason` `length`: the output ran out |
 
-Two tables give the median seconds of a job by example, and each model's calls by the host that answered, with that host's median call.
+Two tables give the median seconds of a job by example, and each model's calls by the host that answered, with that host's median call and time to first token. A run that holds no stats from OpenRouter shows no first-token numbers until `generations.py` has fetched them and the run is graded again.
 
 ### Stability
 

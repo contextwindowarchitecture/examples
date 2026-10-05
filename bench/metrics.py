@@ -6,7 +6,7 @@ a model.
     pages    each a list of numbers, one value per model with the formula behind it, and tables that break them down:
              tokens   what the same context costs in each model's own tokens, and the margin a route would need
              cost     what was charged against the list price, the factors it comes from, and what it bought
-             speed    how long a call takes, split into what waits and what each output token takes
+             speed    how long a call takes: the wait for its first token, the generation, and what is outside both
              stability   what repeats of the same case agree on: the checks, the answer's words, the tool calls
              before_after   01's two requests for the same question, by hand and through CWA, and what changed
              agents   what 04 and 05's agents tried, what the guard refused, and how their context grew
@@ -54,6 +54,10 @@ class Call:
     finish: str | None
     prompt_cost: float | None     # what the host charged for each side, when it says
     completion_cost: float | None
+    first_token: int | None       # what OpenRouter recorded, when the run holds it (generations.py): milliseconds to the
+    generating: int | None        # first token, milliseconds the generation took, the prompt's tokens by OpenRouter's
+    normalized: int | None        # own count, which is the same for every model, and how many hosts it tried
+    tried: int | None
     assembly: str | None          # record, a route's name, or turn-<n>
     estimate: int | None          # tokens as the assembler counted the payload (trace.result.input_tokens)
     budget: int | None            # the route's budget.input
@@ -104,6 +108,8 @@ def _calls(folder: Path, job: dict[str, Any], lines: list[dict[str, Any]]) -> li
         response = folder / "calls" / f"{line['call']}.response.json"
         said = _read(response) if response.exists() else {}
         charged = (said.get("usage") or {}).get("cost_details") or {}
+        recorded = folder / "calls" / f"{line['call']}.generation.json"
+        stats = _read(recorded) if recorded.exists() else {}
         tokens = line.get("tokens") or {}
         in_suite = assembly is not None and job["example"] == "05-production"
         found.append(Call(
@@ -115,6 +121,8 @@ def _calls(folder: Path, job: dict[str, Any], lines: list[dict[str, Any]]) -> li
             finish=((said.get("choices") or [{}])[0]).get("finish_reason"),
             prompt_cost=charged.get("upstream_inference_prompt_cost"),
             completion_cost=charged.get("upstream_inference_completions_cost"),
+            first_token=stats.get("latency"), generating=stats.get("generation_time"), normalized=stats.get("tokens_prompt"),
+            tried=len(stats["attempts"]) if stats.get("attempts") else None,
             assembly=assembly.name if assembly else None,
             estimate=trace["result"]["input_tokens"] if trace else None,
             budget=trace["budget"]["input"] if trace else None,
@@ -217,6 +225,13 @@ def tokens(calls: list[Call], models: list[str], pasted: frozenset[str] = frozen
         "route declares, an estimate in every example, and fits it to the route's budget.input with a margin for the "
         "estimate's error (R-16). The host then counts the request its own way. In 01–03 every model is sent the same "
         "payloads, so the two counts can be set side by side."),
+        "totals": [
+            {"id": "normalized_over_estimate", "label": "OpenRouter's count over the estimate", "unit": "ratio",
+             "value": _r(_median(call.normalized / call.estimate for call in counted if call.normalized)),
+             "how": "OpenRouter counts every request with one tokenizer of its own, whatever the model. The median, "
+                    "across the run's calls, of that count over the assembler's estimate: how the estimate does "
+                    "against a count that is the same for everyone."},
+        ],
         "numbers": [
             _number("tokens_per_estimated", "Tokens per estimated token", "ratio",
                     "The slope of the line through a model's 01–03 requests: the tokens its host counted against the "
@@ -259,13 +274,15 @@ def tokens(calls: list[Call], models: list[str], pasted: frozenset[str] = frozen
         ],
         "tables": [
             _table("by_case", "The same request, counted by each model",
-                   "Each 01–03 request: the assembler's estimate, the route's budget.input and how much of it the "
-                   "estimate uses, then the tokens each model's host counted, the median across repeats.",
+                   "Each 01–03 request: the assembler's estimate, OpenRouter's count of the same request with its own "
+                   "tokenizer, the route's budget.input and how much of it the estimate uses, then the tokens each "
+                   "model's host counted, the median across repeats.",
                    [_column("case", "Request"), _column("question", "Question"), _column("estimate", "Estimate", "tokens"),
-                    _column("budget", "Budget", "tokens"), _column("used", "Used", "percent"),
+                    _column("normalized", "OpenRouter's count", "tokens"), _column("budget", "Budget", "tokens"), _column("used", "Used", "percent"),
                     *(_column(model, _short(model), "tokens") for model in models)],
                    [{"case": case, "question": "pastes a block" if task[case] in pasted else "one line",
-                     "estimate": call.estimate, "budget": call.budget, "used": _r(call.estimate / call.budget),
+                     "estimate": call.estimate, "normalized": _median(one.normalized for one in same if _case(one) == case and one.normalized),
+                     "budget": call.budget, "used": _r(call.estimate / call.budget),
                      **{model: requests[model].get(case, (None, None))[1] for model in models}} for case, call in first.items()]),
             _table("margin_by_case", "The margin each request needed",
                    "Each 01–03 request: the margin its route declares, then for each model the host's count over the "
@@ -349,38 +366,67 @@ def cost(calls: list[Call], results: list[Result], summary: dict[str, Any]) -> d
 def speed(calls: list[Call], summary: dict[str, Any]) -> dict[str, Any]:
     models = list(summary["models"])
     timed = lambda model: [call for call in _of(calls, model) if call.ms and call.completion]
-    fits = {model: line((call.completion, call.ms) for call in timed(model)) for model in models}
-    at = lambda rank: {model: _scaled(percentile((call.ms for call in _of(calls, model)), rank), 1 / 1000) for model in models}
+    # The calls OpenRouter's stats split: to the first token, then generating, with the rest outside the generation.
+    split = lambda model: [call for call in timed(model) if call.first_token is not None and call.generating]
+    # Some hosts send a whole reply at once: its first token comes with its last, in the last tenth of the generation,
+    # and says nothing of how fast the host generates.
+    whole = lambda call: call.first_token >= 0.9 * call.generating
+    flowing = lambda model: [call for call in split(model) if not whole(call)]
+    at = lambda rank, field, found: {model: _scaled(percentile((getattr(call, field) for call in found(model)), rank), 1 / 1000) for model in models}
+    everything = lambda model: _of(calls, model)
     done = [job for job in summary["jobs"] if job["exit"] == 0 and job.get("seconds") is not None]
     hosts = sorted({(call.model, call.host) for call in calls if call.host}, key=lambda pair: (models.index(pair[0]), pair[1]))
     return {"id": "speed", "title": "Speed", "lede": (
-        "How long a call took, start to finish, as the proxy timed it. The examples do not stream, so there is no time "
-        "to a first token: a line through each model's calls, time against output tokens, splits a call into what "
-        "waits and what each token takes. Reasoning tokens take time and are billed, and the reader never sees them."),
+        "How long a call took. The proxy times each one from start to finish; the examples do not stream, so the time "
+        "to the first token is the one OpenRouter recorded, which streams from the host whatever the client asked "
+        "for. A call is then three parts: the wait for the first token, the generation after it, and what is left "
+        "outside both. Reasoning tokens take time and are billed, and the reader never sees them."),
         "numbers": [
-            _number("seconds_p50", "Median call", "seconds", "The middle call, by nearest rank.", at(50), _count(calls, models)),
-            _number("seconds_p90", "Slow call", "seconds", "The call 90% were faster than or equal to.", at(90)),
-            _number("seconds_p99", "Slowest calls", "seconds", "The call 99% were faster than or equal to.", at(99)),
-            _number("tokens_per_second", "Output tokens a second", "per_second",
+            _number("seconds_p50", "Median call", "seconds", "The middle call, start to finish, by nearest rank.",
+                    at(50, "ms", everything), _count(calls, models)),
+            _number("seconds_p90", "Slow call", "seconds", "The call 90% were faster than or equal to.", at(90, "ms", everything)),
+            _number("seconds_p99", "Slowest calls", "seconds", "The call 99% were faster than or equal to.", at(99, "ms", everything)),
+            _number("first_token_p50", "Median time to first token", "seconds",
+                    "The middle call's time until the host sent its first token, a reasoning token included, as "
+                    "OpenRouter recorded it.",
+                    at(50, "first_token", split), {model: len(split(model)) for model in models}),
+            _number("first_token_p90", "Slow time to first token", "seconds",
+                    "The time to first token 90% of calls were faster than or equal to.", at(90, "first_token", split)),
+            _number("in_one_piece", "Replies sent in one piece", "percent",
+                    "Calls whose first token came in the last tenth of the generation: the host sent the whole reply "
+                    "at once, so its time to first token is its time to the last.",
+                    {model: _share(whole(call) for call in split(model)) for model in models}),
+            _number("first_visible", "First visible token, estimated", "seconds",
+                    "An estimate of when the reader would see something: the time to the first token, plus the "
+                    "call's reasoning tokens at the rate it generated. The median across calls.",
+                    {model: _scaled(_median(call.first_token + call.reasoning * (call.generating - call.first_token) / call.completion
+                                            for call in split(model)), 1 / 1000) for model in models}),
+            _number("outside", "Seconds outside the generation", "seconds",
+                    "The median of the proxy's time for a call less the generation's: OpenRouter's routing, and the "
+                    "network between this machine and it.",
+                    {model: _scaled(_median(call.ms - call.generating for call in split(model)), 1 / 1000) for model in models}),
+            _number("tokens_per_second", "Output tokens a second, whole call", "per_second",
                     "The median, across calls, of completion tokens over the call's seconds. The wait is in it, so "
                     "short answers look slower.",
                     {model: _median(call.completion / call.ms * 1000 for call in timed(model)) for model in models}),
-            _number("visible_per_second", "Visible tokens a second", "per_second",
-                    "The same for the tokens the reader sees: completion tokens less reasoning tokens.",
+            _number("generating_per_second", "Output tokens a second, generating", "per_second",
+                    "The same once the first token has come: completion tokens over the generation's time after it, "
+                    "for the calls not sent in one piece.",
+                    {model: _median(call.completion / (call.generating - call.first_token) * 1000 for call in flowing(model)) for model in models},
+                    {model: len(flowing(model)) for model in models}),
+            _number("visible_per_second", "Visible tokens a second, whole call", "per_second",
+                    "Over the whole call, the tokens the reader sees: completion tokens less reasoning tokens.",
                     {model: _median((call.completion - call.reasoning) / call.ms * 1000 for call in timed(model)) for model in models}),
             _number("reasoning_share", "Output that is reasoning", "percent",
                     "Reasoning tokens over completion tokens, across every call.",
                     {model: _ratio(sum(call.reasoning for call in _of(calls, model)), sum(call.completion for call in _of(calls, model)))
                      for model in models}),
-            _number("seconds_fixed", "Seconds whatever the output", "seconds",
-                    "Where the line through a model's calls starts, milliseconds against completion tokens: the "
-                    "median slope between pairs of calls, then the median of what is left.",
-                    {model: _scaled(fits[model] and fits[model][0], 1 / 1000) for model in models}),
-            _number("ms_per_token", "Milliseconds per output token", "ms", "That line's slope.",
-                    {model: fits[model] and fits[model][1] for model in models}),
             _number("retried", "Calls tried more than once", "count",
                     "Calls the proxy sent again after a 429, a 5xx or a dropped connection, and that were then answered.",
                     {model: sum(call.attempts > 1 for call in _of(calls, model)) for model in models}),
+            _number("tried_more_hosts", "Calls that tried more than one host", "count",
+                    "Calls for which OpenRouter went to a second host before one answered.",
+                    {model: sum((call.tried or 0) > 1 for call in _of(calls, model)) for model in models}),
             _number("cut_short", "Answers cut short", "count",
                     "Calls that ended because the output ran out: finish_reason length.",
                     {model: sum(call.finish == "length" for call in _of(calls, model)) for model in models}),
@@ -394,11 +440,13 @@ def speed(calls: list[Call], summary: dict[str, Any]) -> dict[str, Any]:
                                             for model in models}} for example in sorted({job["example"] for job in done})]),
             _table("by_host", "Calls by the host that answered",
                    "OpenRouter may serve a model from several hosts. For each: its calls, its share of the model's, "
-                   "and its median call.",
+                   "its median call and its median time to first token.",
                    [_column("model", "Model"), _column("host", "Host"), _column("calls", "Calls", "count"),
-                    _column("share", "Share", "percent"), _column("seconds", "Median call", "seconds")],
+                    _column("share", "Share", "percent"), _column("seconds", "Median call", "seconds"),
+                    _column("first_token", "First token", "seconds")],
                    [{"model": model, "host": host, "calls": len(found := [call for call in _of(calls, model) if call.host == host]),
-                     "share": _r(len(found) / len(_of(calls, model))), "seconds": _r(median(call.ms for call in found) / 1000)}
+                     "share": _r(len(found) / len(_of(calls, model))), "seconds": _r(median(call.ms for call in found) / 1000),
+                     "first_token": _r(_scaled(_median(call.first_token for call in found if call.first_token is not None), 1 / 1000))}
                     for model, host in hosts]),
         ]}
 
