@@ -11,6 +11,7 @@ a model.
              speed    how long a call takes: the wait for its first token, the generation, and what is outside both
              stability   what repeats of the same case agree on: the checks, the answer's words, the tool calls
              before_after   01's two requests for the same question, by hand and through CWA, and what changed
+             grounding   how far an answer stays within the request it answered: its words, and what it cites
              agents   what 04 and 05's agents tried, what the guard refused, and how their context grew
              verdicts   the checks themselves: how sure a pass rate is, and how far the checks tell the models apart
 
@@ -20,6 +21,7 @@ seconds, how much its answers moved between repeats, and how far the checks tell
 from __future__ import annotations
 
 import json
+import re
 from collections import Counter, defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -32,6 +34,9 @@ from typing import Any
 import checks
 from config import ROOT
 
+# A word, for holding an answer to the request it answered: four letters or more, whatever its case. Short words are
+# in every text; an id such as help:sign-in@6#0 gives help and sign-in, which the request holds when it sent the article.
+WORD = re.compile(r"[a-z][a-z'-]{3,}")
 # 01-03 send every model the same payloads (same_context), so what differs there is the model's or its host's.
 SAME_CONTEXT = ("01-docs-qa", "02-account-aware", "03-budget-and-routes")
 
@@ -80,6 +85,10 @@ class Result:
     left_out: tuple[str, ...]             # before.py: what it cited that the committed assembly left out
     steps: tuple[tuple[str, bool], ...]   # each tool call tried, and whether the guard approved it
     estimates: tuple[int, ...]            # the assembler's count at each inference that sent
+    sent: tuple[str, ...]                 # the knowledge its last request carried, in the payload's order
+    supported: float | None               # of the answer's words, the share found in the request it answered (WORD)
+    budget: int | None                    # the route's budget.input
+    recorded: tuple[str, ...] | None      # the tool calls of the example's committed recording of this scenario
 
     @property
     def clean(self) -> bool | None:
@@ -166,13 +175,24 @@ def _result(run: Path, result: dict[str, Any]) -> Result:
         excluded = {row["item_id"] for row in _read(ROOT / example / "scenarios" / scenario / "trace.json")["excluded"]}
         left_out = tuple(citation for citation in cited if citation in excluded)
     traces = [_read(run / assembly / "trace.json") for assembly in result["assemblies"]]
+    carried = [assembly for assembly, trace in zip(result["assemblies"], traces) if trace["result"]]
+    if result["request"]:
+        context = json.dumps(_read(run / result["request"]), ensure_ascii=False)
+    else:  # the payload its last inference rendered: system parts, tool definitions and the message
+        context = json.dumps(_read(run / carried[-1] / "payload.json"), ensure_ascii=False) if carried else ""
+    said, held = set(WORD.findall((answer or "").lower())), set(WORD.findall(context.lower()))
+    recording = ROOT / result["case"].split("/")[0] / "scenarios" / result["case"].split("/", 1)[1] / "run.json"
     return Result(
         job=result["job"], model=result["model"], case=result["case"], variant=result["variant"], repeat=result["repeat"],
         checks=tuple((f"{check['measure']} {check['check']}", check["passed"]) for check in result["checks"]
                      if check["passed"] is not None and check["measure"] not in ("invariant", "run")),
         answer=answer, cited=cited, left_out=left_out,
         steps=tuple((step["tool"], step["approved"]) for step in answered.get("steps", [])),
-        estimates=tuple(trace["result"]["input_tokens"] for trace in traces if trace["result"]))
+        estimates=tuple(trace["result"]["input_tokens"] for trace in traces if trace["result"]),
+        sent=tuple(row["item_id"] for row in traces[-1]["included"] if row["slot"] == "evidence.knowledge") if traces else (),
+        supported=len(said & held) / len(said) if said and context else None,
+        budget=traces[0]["budget"]["input"] if traces else None,
+        recorded=tuple(step["tool"] for step in _read(recording).get("steps", [])) if recording.exists() else None)
 
 
 def write(run: Path, summary: dict[str, Any]) -> dict[str, Any]:
@@ -182,7 +202,8 @@ def write(run: Path, summary: dict[str, Any]) -> dict[str, Any]:
     pasted = frozenset(case["key"] for case in summary["cases"] if len(case["question"].strip().splitlines()) > 1)
     pages = [decisions(assemblies, models), tokens(calls, models, pasted, summary["models"]), cost(calls, results, summary), speed(calls, summary),
              stability(results, models, summary["models"]),
-             before_after(calls, results, models), agents(results, models), verdicts(calls, results, models)]
+             grounding(results, models), before_after(calls, results, models), agents(results, models),
+             verdicts(calls, results, models)]
     written = {"run": summary["run"], "graded": summary["graded"], "models": models, "pages": pages}
     (run / "numbers.json").write_text(json.dumps(written, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return written
@@ -717,6 +738,62 @@ def before_after(calls: list[Call], results: list[Result], models: list[str]) ->
                      "words_after": middle(case, model, "after", lambda key: words(said.get(key))),
                      "cited_before": middle(case, model, "before", cited), "cited_after": middle(case, model, "after", cited),
                      "left_out": _r(_mean(len(one.left_out) for one in by_hand[model] if one.case == case))}
+                    for case, model in cases]),
+        ]}
+
+
+def grounding(results: list[Result], models: list[str]) -> dict[str, Any]:
+    through = {model: [one for one in _of(results, model) if one.answer and one.variant != "before"] for model in models}
+    by_hand = {model: [one for one in _of(results, model) if one.answer and one.variant == "before"] for model in models}
+    carried = {model: [one for one in through[model] if one.sent] for model in models}  # answers whose request carried knowledge
+    named = lambda one: [citation for citation in one.cited if citation in one.sent]
+    ranks = lambda model: [one.sent.index(citation) + 1 for one in carried[model] for citation in named(one)]
+    cases = sorted({(one.case, model) for model in models for one in carried[model]}, key=lambda pair: (pair[0], models.index(pair[1])))
+    here = lambda case, model: [one for one in carried[model] if one.case == case]
+    return {"id": "grounding", "title": "Grounding", "lede": (
+        "How far an answer stays within the request it answered. CWA decides what a model is sent, and marks each "
+        "article with the id an answer can cite. These numbers hold each answer to its own request: the words it "
+        "uses that the request held, and the articles it cites of those the request carried. They are counts of "
+        "words and ids, not a judgement of whether the answer is right."),
+        "numbers": [
+            _number("words_in_context", "Answer's words found in its request", "percent",
+                    "For each answer to a request built through CWA: of its distinct words of four letters or more, "
+                    "the share the request also holds. The mean across answers.",
+                    {model: _mean(one.supported for one in through[model] if one.supported is not None) for model in models},
+                    {model: sum(one.supported is not None for one in through[model]) for model in models}),
+            _number("words_in_context_before", "The same, for before.py's requests", "percent",
+                    "The same for 01's answers to the request before.py built by hand, which carries every chunk "
+                    "retrieval returned.",
+                    {model: _mean(one.supported for one in by_hand[model] if one.supported is not None) for model in models}),
+            _number("cited_of_sent", "Articles cited, of those sent", "percent",
+                    "Across the answers whose request carried knowledge: the articles they cite that it carried, over "
+                    "the articles it carried.",
+                    {model: _ratio(sum(len(named(one)) for one in carried[model]), sum(len(one.sent) for one in carried[model])) for model in models},
+                    {model: len(carried[model]) for model in models}),
+            _number("citations_sent", "Citations that name what was sent", "percent",
+                    "Of those answers' citations, the ones naming an article the request carried. The rest name "
+                    "something the model was never sent.",
+                    {model: _ratio(sum(len(named(one)) for one in carried[model]), sum(len(one.cited) for one in carried[model])) for model in models}),
+            _number("uncited", "Answers that cite nothing", "percent",
+                    "Of those answers, the ones with no citation at all.",
+                    {model: _share(not one.cited for one in carried[model]) for model in models}),
+            _number("cited_rank", "Where the cited articles sat", "count",
+                    "The median place, in the request's order, of the articles an answer cites: 1 is the first, which "
+                    "the route's order makes the most relevant.",
+                    {model: _median(ranks(model)) for model in models}, {model: len(ranks(model)) for model in models}),
+            _number("cites_first", "Answers that cite the first article", "percent",
+                    "Of the answers that cite an article they were sent, those citing the first one in the request.",
+                    {model: _share(one.sent[0] in one.cited for one in carried[model] if named(one)) for model in models}),
+        ],
+        "tables": [
+            _table("by_case", "Each case, by model",
+                   "For each case whose request carried knowledge: the articles sent, the median citations in an "
+                   "answer, and the mean share of an answer's words found in its request.",
+                   [_column("case", "Case"), _column("model", "Model"), _column("sent", "Articles sent", "count"),
+                    _column("cited", "Citations", "count"), _column("supported", "Words in the request", "percent")],
+                   [{"case": case, "model": model, "sent": _median(len(one.sent) for one in here(case, model)),
+                     "cited": _median(len(one.cited) for one in here(case, model)),
+                     "supported": _r(_mean(one.supported for one in here(case, model) if one.supported is not None))}
                     for case, model in cases]),
         ]}
 

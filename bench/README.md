@@ -291,6 +291,22 @@ In 01–03 every repeat sends the same request, so what moves between repeats is
 
 A table lists each case a model did not pass in every repeat, with the repeats it passed and the checks that failed. A refused assembly sends nothing, so it is not graded and counts in none of these.
 
+### Grounding
+
+CWA decides what a model is sent, and marks each article with the id an answer can cite. This page holds each answer to its own request. Its numbers are counts of words and ids, not a judgement of whether an answer is right.
+
+| Number | How it is computed |
+| --- | --- |
+| Answer's words found in its request | For each answer to a request built through CWA: of its distinct words of four letters or more, the share the request also holds; the mean across answers. The request is the payload its last inference rendered |
+| The same, for `before.py`'s requests | The same for 01's answers to the request `before.py` built by hand, which carries every chunk retrieval returned |
+| Articles cited, of those sent | Across the answers whose request carried knowledge: the articles they cite that it carried, over the articles it carried |
+| Citations that name what was sent | Of those answers' citations, the ones naming an article the request carried |
+| Answers that cite nothing | Of those answers, the ones with no citation at all |
+| Where the cited articles sat | The median place, in the request's order, of the articles an answer cites: 1 is the first, which the route's order makes the most relevant |
+| Answers that cite the first article | Of the answers that cite an article they were sent, those citing the first one in the request |
+
+A table gives each case and model: the articles sent, the citations in an answer, and the share of its words found in its request.
+
 ### Before and after
 
 01 asks every question twice: `before.py` builds its request by hand, `after.py` builds it through CWA, and both go to the same model. Each pair is one model, one question and two requests, so what differs between its two answers is what the request changed.
@@ -378,7 +394,7 @@ results/<run-id>/    # for example 2026-10-02T153007Z-bebe9ab
 | A construct | Its description and requirements, then for each case that exercised it the evidence from a run's own trace (the chunks against the relevance threshold, the budget by plane, the routes an escalation took, the conflict groups, what was left out and why), and every run's answer with the checks of that construct's measures; a 01 case shows each model's before and after answers side by side |
 | A case | What CWA decided for the run picked from a drop-down, and for an agent the inference: the budget by plane, the items sent as slot rows with their authority, trust and injection risk, what was left out and why, conflicts and provenance, with the raw trace, snapshot and payload a click away. Then every run's tool calls with the guard's decision, its answer as it came back, and its checks. A 01 case reads before, then after: every item of `after.py`'s snapshot with where `before.py` put it and what `after.py`'s assembly decided, then a row per model with its two answers side by side, each citation of a chunk CWA left out marked ([beforeafter.js](viewer/beforeafter.js)) |
 | Models, Cases, Runs | The models' calls, tokens, latency, cost, hosts and checks; every case; every graded run |
-| See the numbers, a menu | A page for each family of [numbers](#numbers): What CWA decided, Tokens, Cost, Speed, Stability, Before and after, Agents and Checks. Each has a row per model and a column per number, whose heading sorts the models by it, then the formula behind every number, then its tables. All numbers sets every number of the run in one table, a row each and a column per model. The values, labels and formulas are read from `numbers.json`, which each page links ([numbers.js](viewer/numbers.js)) |
+| See the numbers, a menu | A page for each family of [numbers](#numbers): What CWA decided, Tokens, Cost, Speed, Stability, Grounding, Before and after, Agents and Checks. Each has a row per model and a column per number, whose heading sorts the models by it, then the formula behind every number, then its tables. All numbers sets every number of the run in one table, a row each and a column per model. The values, labels and formulas are read from `numbers.json`, which each page links ([numbers.js](viewer/numbers.js)) |
 
 Tour, in the header, walks a first-time reader through the viewer in twelve steps ([tour.js](viewer/tour.js)): what the site shows, the run and the assembler-python release it pinned, the invariants, a construct card, the models, a construct's evidence, a 01 case before and after, an agent's decision in 05, the run's numbers, and where the examples and the assembler live. Each step opens the page it is about, dims everything but the part it describes, and points at it; Esc ends the tour, the arrow keys step through it, and following a link ends it. A step this run has nothing to show for is left out.
 

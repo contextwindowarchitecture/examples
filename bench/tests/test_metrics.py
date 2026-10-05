@@ -71,6 +71,30 @@ def test_a_call_is_joined_to_the_assembly_whose_payload_it_carried(tmp_path: Pat
     assert (result.case, result.variant, result.cited, result.estimates) == ("01-docs-qa/01-answer", "after", ("help:sign-in@6#0",), (283,))
 
 
+def test_a_result_knows_what_its_answer_was_sent_and_how_much_of_the_answer_is_in_it(tmp_path: Path) -> None:
+    # Eight words of four letters or more, seven of them in the payload: "zebras" is the model's own.
+    name = job(tmp_path, "01-docs-qa", "01-answer/after", {"answer": "Check spam, zebras, then Forgot password [help:sign-in@6#0].", "error": None}, ANSWER)
+    called(tmp_path, name, 375)
+    trace = json.loads((ANSWER / "trace.json").read_text())
+    _, [after], _ = metrics.facts(tmp_path, graded(tmp_path, [name]))
+    assert after.sent == tuple(row["item_id"] for row in trace["included"] if row["slot"] == "evidence.knowledge")
+    assert after.sent[0] == "help:sign-in@6#0" and after.budget == 1500 and after.recorded is None
+    assert after.supported == 7 / 8  # check, spam, then, forgot, password, help and sign-in, and not zebras
+    # before.py records the request it built, and that is what its answer is held to.
+    name = job(tmp_path, "01-docs-qa", "01-answer/before", {"answer": "Check spam, zebras.", "error": None})
+    write(tmp_path / name / "record" / "request.json", {"messages": [{"role": "user", "content": "If no email arrives, check spam."}]})
+    _, results, _ = metrics.facts(tmp_path, graded(tmp_path, ["vendor-model/01-docs-qa/01-answer/after/1", name]))
+    before = next(one for one in results if one.variant == "before")
+    assert (before.supported, before.sent, before.budget) == (2 / 3, (), None)
+
+
+def test_an_agents_result_knows_the_path_the_committed_recording_took(tmp_path: Path) -> None:
+    ran = json.loads((OWNER / "run.json").read_text())
+    name = job(tmp_path, "04-tools", "01-owner-reenables", ran, OWNER)
+    _, [result], _ = metrics.facts(tmp_path, graded(tmp_path, [name]))
+    assert result.recorded == tuple(step["tool"] for step in ran["steps"]) and result.budget == 4000
+
+
 def test_before_py_assembles_nothing_so_its_call_has_no_estimate(tmp_path: Path) -> None:
     left_out = json.loads((ANSWER / "trace.json").read_text())["excluded"][0]["item_id"]
     name = job(tmp_path, "01-docs-qa", "01-answer/before", {"answer": f"Check spam [help:sign-in@6#0] [{left_out}].", "error": None})
@@ -258,7 +282,7 @@ def test_a_runs_numbers_are_written_beside_its_summary(tmp_path: Path) -> None:
     written = metrics.write(tmp_path, read)
     assert written == json.loads((tmp_path / "numbers.json").read_text())
     assert (written["run"], written["graded"], written["models"]) == (read["run"], read["graded"], [MODEL])
-    assert [page["id"] for page in written["pages"]] == ["decisions", "tokens", "cost", "speed", "stability", "before-after", "agents", "checks"]
+    assert [page["id"] for page in written["pages"]] == ["decisions", "tokens", "cost", "speed", "stability", "grounding", "before-after", "agents", "checks"]
     # One request gives no line; the largest count over its estimate still says what margin it needed.
     tokens = next(page for page in written["pages"] if page["id"] == "tokens")
     assert values(tokens, "tokens_per_estimated") == {MODEL: None}
@@ -269,7 +293,7 @@ def result(**given: Any) -> metrics.Result:
     return metrics.Result(**({
         "job": "j", "model": MODEL, "case": "01-docs-qa/01-answer", "variant": "after", "repeat": 1,
         "checks": (("answer answered", True),), "answer": "Check spam.", "cited": (), "left_out": (), "steps": (),
-        "estimates": (283,)} | given))
+        "estimates": (283,), "sent": (), "supported": None, "budget": 1500, "recorded": None} | given))
 
 
 def listed(**given: Any) -> dict[str, Any]:
@@ -490,3 +514,19 @@ def test_decisions_says_what_the_assembler_did_with_what_it_was_offered() -> Non
     assert (reasons["superseded"]["committed"], reasons["superseded"][MODEL]) == (0, 1)
     assert rows(page, "relevance") == [{"request": "01-docs-qa/01-answer", "threshold": 2, "weakest_sent": 2.4, "strongest_left": 1.8},
                                        {"request": "01-docs-qa/03-off-topic", "threshold": 2, "weakest_sent": None, "strongest_left": 1.2}]
+
+
+def test_grounding_holds_an_answer_to_the_context_it_was_sent() -> None:
+    sent = ("help:a@1#0", "help:b@1#0", "help:c@1#0")  # in the payload's order: the route sends the most relevant first
+    results = [result(repeat=1, sent=sent, cited=("help:a@1#0",), supported=0.9),
+               result(repeat=2, sent=sent, cited=("help:b@1#0", "help:z@9#9"), supported=0.7),  # one citation was never sent
+               result(repeat=3, sent=sent, cited=(), supported=0.8),
+               result(variant="before", sent=(), cited=("help:a@1#0",), supported=0.5)]
+    page = metrics.grounding(results, [MODEL])
+    assert values(page, "words_in_context") == {MODEL: 0.8} and values(page, "words_in_context_before") == {MODEL: 0.5}
+    assert values(page, "cited_of_sent") == {MODEL: round(2 / 9, 6)}   # two of the nine articles the three requests carried
+    assert values(page, "citations_sent") == {MODEL: round(2 / 3, 6)}  # of three citations, two name what was sent
+    assert values(page, "uncited") == {MODEL: round(1 / 3, 6)}
+    assert values(page, "cited_rank") == {MODEL: 1.5}                  # the first article, and the second
+    assert values(page, "cites_first") == {MODEL: 0.5}                 # of the two answers that cite, one cites the first
+    assert rows(page, "by_case") == [{"case": "01-docs-qa/01-answer", "model": MODEL, "sent": 3, "cited": 1, "supported": 0.8}]
