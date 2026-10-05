@@ -479,7 +479,7 @@ def before_after(calls: list[Call], results: list[Result], models: list[str]) ->
     prompt = lambda key: sent[key].prompt if key in sent else None
     seconds = lambda key: sent[key].ms / 1000 if key in sent else None
     cited = lambda key: len(said[key].cited) if key in said and said[key].answer else None
-    return {"id": "before_after", "title": "Before and after", "lede": (
+    return {"id": "before-after", "title": "Before and after", "lede": (
         "01 asks every question twice: before.py builds its request by hand, after.py builds it through CWA, and both "
         "go to the same model. So each pair is one model, one question and two requests, and what differs between its "
         "two answers is what the request changed. A chunk before.py sent and the assembler left out can only be cited "
