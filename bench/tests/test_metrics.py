@@ -530,3 +530,18 @@ def test_grounding_holds_an_answer_to_the_context_it_was_sent() -> None:
     assert values(page, "cited_rank") == {MODEL: 1.5}                  # the first article, and the second
     assert values(page, "cites_first") == {MODEL: 0.5}                 # of the two answers that cite, one cites the first
     assert rows(page, "by_case") == [{"case": "01-docs-qa/01-answer", "model": MODEL, "sent": 3, "cited": 1, "supported": 0.8}]
+
+
+def test_agents_sets_each_path_beside_the_committed_recording_and_the_budget() -> None:
+    recorded = ("list_webhooks", "get_webhook", "enable_webhook", "get_webhook")
+    took = lambda *tools: tuple((tool, True) for tool in tools)
+    results = [result(case="04-tools/01-owner-reenables", variant=None, repeat=1, steps=took(*recorded), recorded=recorded,
+                      estimates=(1000, 1100, 1200, 1300, 1400), budget=4000),
+               result(case="04-tools/01-owner-reenables", variant=None, repeat=2, steps=took("list_webhooks", "enable_webhook"), recorded=recorded,
+                      estimates=(1000, 1200, 1400), budget=4000),
+               result(case="05-production/owner-reenables", variant=None, steps=took("list_webhooks"), estimates=(1000, 1300), budget=4000)]
+    page = metrics.agents(results, [MODEL])
+    assert values(page, "recorded_path") == {MODEL: 0.5}       # of the two runs that have a recording to follow
+    assert values(page, "steps_over_recorded") == {MODEL: 0.75}  # 4 of 4 and 2 of 4 tool calls
+    # At 100, 200 and 300 tokens an inference, a budget of 4,000 that starts at 1,000 binds after 30, 15 and 10 more.
+    assert values(page, "inferences_until_budget") == {MODEL: 15}

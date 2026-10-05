@@ -805,6 +805,9 @@ def agents(results: list[Result], models: list[str]) -> dict[str, Any]:
                            {model: len(named(model, test)) for model in models})
     grown = {model: [(one.estimates[-1] - one.estimates[0]) / (len(one.estimates) - 1)
                      for one in _of(tasks, model) if len(one.estimates) > 1] for model in models}
+    followed = {model: [one for one in _of(tasks, model) if one.recorded] for model in models}
+    binds = {model: [(one.budget - one.estimates[0]) / growth for one in _of(tasks, model) if one.budget and len(one.estimates) > 1
+                     and (growth := (one.estimates[-1] - one.estimates[0]) / (len(one.estimates) - 1)) > 0] for model in models}
     walked = Counter((one.case, one.model, " → ".join(tool if approved else f"{tool} (refused)" for tool, approved in one.steps)
                       or "no tool call") for one in tasks)
     return {"id": "agents", "title": "Agents", "lede": (
@@ -817,6 +820,14 @@ def agents(results: list[Result], models: list[str]) -> dict[str, Any]:
                     {model: _median(len(one.steps) for one in _of(tasks, model)) for model in models}, _count(tasks, models)),
             _number("steps_most", "Most tool calls in a task", "count", "The longest path any task took.",
                     {model: max((len(one.steps) for one in _of(tasks, model)), default=None) for model in models}),
+            _number("recorded_path", "Runs that took the recorded path", "percent",
+                    "04 commits a recording of each scenario. Of a model's runs of those, the ones that made the same "
+                    "tool calls in the same order.",
+                    {model: _share(tuple(tool for tool, _ in one.steps) == one.recorded for one in followed[model]) for model in models},
+                    {model: len(followed[model]) for model in models}),
+            _number("steps_over_recorded", "Tool calls, over the recording's", "ratio",
+                    "The median, across those runs, of the tool calls a run made over the recording's.",
+                    {model: _median(len(one.steps) / len(one.recorded) for one in followed[model]) for model in models}),
             _number("tried", "Tool calls tried", "count", "Every tool call a model asked for, across its tasks.",
                     {model: sum(len(one.steps) for one in _of(tasks, model)) if _of(tasks, model) else None for model in models}),
             _number("refused_by_guard", "Refused by the guard", "count",
@@ -845,6 +856,11 @@ def agents(results: list[Result], models: list[str]) -> dict[str, Any]:
                     "the first, over the inferences between; then the median. Each tool result is an item in the "
                     "next snapshot, and supersession keeps only the newest look at each thing (R-25).",
                     {model: _median(grown[model]) for model in models}, {model: len(grown[model]) for model in models}),
+            _number("inferences_until_budget", "Inferences until the budget binds", "count",
+                    "For each such task: the room left in the route's budget.input after its first inference, over "
+                    "the tokens it added per inference; then the median. Past that, fitting starts to shed and "
+                    "summarize (R-16).",
+                    {model: _median(binds[model]) for model in models}, {model: len(binds[model]) for model in models}),
         ],
         "tables": [
             _table("paths", "The paths each model took",
