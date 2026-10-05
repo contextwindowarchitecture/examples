@@ -8,6 +8,7 @@ a model.
              cost     what was charged against the list price, the factors it comes from, and what it bought
              speed    how long a call takes, split into what waits and what each output token takes
              stability   what repeats of the same case agree on: the checks, the answer's words, the tool calls
+             before_after   01's two requests for the same question, by hand and through CWA, and what changed
 
 The checks say whether an answer passed. The numbers say what the same context cost each model in tokens, dollars and
 seconds, how much its answers moved between repeats, and how far the checks tell the models apart.
@@ -143,7 +144,8 @@ def write(run: Path, summary: dict[str, Any]) -> dict[str, Any]:
     calls, results = facts(run, summary)
     models = list(summary["models"])
     pasted = frozenset(case["key"] for case in summary["cases"] if len(case["question"].strip().splitlines()) > 1)
-    pages = [tokens(calls, models, pasted), cost(calls, results, summary), speed(calls, summary), stability(results, models)]
+    pages = [tokens(calls, models, pasted), cost(calls, results, summary), speed(calls, summary), stability(results, models),
+             before_after(calls, results, models)]
     written = {"run": summary["run"], "graded": summary["graded"], "models": models, "pages": pages}
     (run / "numbers.json").write_text(json.dumps(written, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return written
@@ -435,6 +437,77 @@ def stability(results: list[Result], models: list[str]) -> dict[str, Any]:
                      "checks": ", ".join(f"{name} ×{count}" for name, count in Counter(
                          name for one in repeated[model, case, variant] for name, passed in one.checks if not passed).items())}
                     for (model, case, variant), flags in verdicts.items() if not all(flags)]),
+        ]}
+
+
+def before_after(calls: list[Call], results: list[Result], models: list[str]) -> dict[str, Any]:
+    sent = {(call.model, call.task, call.repeat, call.variant): call for call in calls if call.variant}
+    said = {(one.model, one.case, one.repeat, one.variant): one for one in results if one.variant}
+    runs = sorted({key[:3] for key in (*sent, *said)})  # a model, a case and a repeat: asked once by each script
+    both = lambda found, run: (found.get((*run, "before")), found.get((*run, "after")))
+    words = lambda one: len(one.answer.split()) if one and one.answer else None
+    # What changed from before.py to after.py: for each run with both, after over before, less one; then the median.
+    change = lambda model, measure: _median(after / before - 1 for run in runs if run[0] == model
+                                            for before, after in [measure(run)] if before and after is not None)
+    of_calls = lambda field: lambda run: tuple(call and getattr(call, field) for call in both(sent, run))
+    by_hand = {model: [one for one in _of(results, model) if one.variant == "before" and one.answer] for model in models}
+    anyway = {model: [before for run in runs if run[0] == model for before, after in [both(sent, run)] if before and not after]
+              for model in models}
+    cases = sorted({(run[1], run[0]) for run in runs}, key=lambda pair: (pair[0], models.index(pair[1])))
+    middle = lambda case, model, variant, measure: _r(_median(
+        value for run in runs if (run[1], run[0]) == (case, model)
+        if (value := measure((*run, variant))) is not None))
+    prompt = lambda key: sent[key].prompt if key in sent else None
+    seconds = lambda key: sent[key].ms / 1000 if key in sent else None
+    cited = lambda key: len(said[key].cited) if key in said and said[key].answer else None
+    return {"id": "before_after", "title": "Before and after", "lede": (
+        "01 asks every question twice: before.py builds its request by hand, after.py builds it through CWA, and both "
+        "go to the same model. So each pair is one model, one question and two requests, and what differs between its "
+        "two answers is what the request changed. A chunk before.py sent and the assembler left out can only be cited "
+        "from before.py's request."),
+        "numbers": [
+            _number("left_out_cited", "Left-out chunks cited, per answer", "count",
+                    "The mean, across before.py's answers, of the chunks it cites that the committed assembly left "
+                    "out, most often for scoring below the route's relevance threshold.",
+                    {model: _mean(len(one.left_out) for one in by_hand[model]) for model in models},
+                    {model: len(by_hand[model]) for model in models}),
+            _number("answers_citing_left_out", "Answers citing a left-out chunk", "percent",
+                    "Of before.py's answers, those that cite at least one chunk the assembly left out.",
+                    {model: _share(bool(one.left_out) for one in by_hand[model]) for model in models}),
+            _number("prompt_change", "Change in prompt tokens", "percent",
+                    "For each run both scripts sent: after.py's prompt tokens over before.py's, less one; then the "
+                    "median. after.py can send more: it keeps what the route protects and says where each part came from.",
+                    {model: change(model, of_calls("prompt")) for model in models}),
+            _number("cost_change", "Change in cost", "percent", "The same for what each call cost.",
+                    {model: change(model, of_calls("cost")) for model in models}),
+            _number("seconds_change", "Change in seconds", "percent", "The same for how long each call took.",
+                    {model: change(model, of_calls("ms")) for model in models}),
+            _number("words_change", "Change in the answer's words", "percent", "The same for the words in each answer.",
+                    {model: change(model, lambda run: tuple(words(one) for one in both(said, run))) for model in models}),
+            _number("asked_anyway", "Spent asking what after.py refused", "usd",
+                    "What before.py's calls cost for the questions after.py's assembly refused, so sent to no model.",
+                    {model: sum(call.cost for call in anyway[model]) if anyway[model] else None for model in models},
+                    {model: len(anyway[model]) for model in models}),
+        ],
+        "tables": [
+            _table("by_case", "Each question, before and after",
+                   "For each question and model, the median across repeats of each script's prompt tokens, seconds, "
+                   "words and citations, and the mean left-out chunks before.py's answer cites. Where after.py's "
+                   "assembly refused, it has nothing to show.",
+                   [_column("case", "Question"), _column("model", "Model"),
+                    _column("prompt_before", "Prompt, before", "tokens"), _column("prompt_after", "after", "tokens"),
+                    _column("seconds_before", "Seconds, before", "seconds"), _column("seconds_after", "after", "seconds"),
+                    _column("words_before", "Words, before", "count"), _column("words_after", "after", "count"),
+                    _column("cited_before", "Cited, before", "count"), _column("cited_after", "after", "count"),
+                    _column("left_out", "Left out, cited", "count")],
+                   [{"case": case, "model": model,
+                     "prompt_before": middle(case, model, "before", prompt), "prompt_after": middle(case, model, "after", prompt),
+                     "seconds_before": middle(case, model, "before", seconds), "seconds_after": middle(case, model, "after", seconds),
+                     "words_before": middle(case, model, "before", lambda key: words(said.get(key))),
+                     "words_after": middle(case, model, "after", lambda key: words(said.get(key))),
+                     "cited_before": middle(case, model, "before", cited), "cited_after": middle(case, model, "after", cited),
+                     "left_out": _r(_mean(len(one.left_out) for one in by_hand[model] if one.case == case))}
+                    for case, model in cases]),
         ]}
 
 

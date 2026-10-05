@@ -243,6 +243,19 @@ In 01–03 every repeat sends the same request, so what moves between repeats is
 
 A table lists each case a model did not pass in every repeat, with the repeats it passed and the checks that failed. A refused assembly sends nothing, so it is not graded and counts in none of these.
 
+### Before and after
+
+01 asks every question twice: `before.py` builds its request by hand, `after.py` builds it through CWA, and both go to the same model. Each pair is one model, one question and two requests, so what differs between its two answers is what the request changed.
+
+| Number | How it is computed |
+| --- | --- |
+| Left-out chunks cited, per answer | The mean, across `before.py`'s answers, of the chunks it cites that the committed assembly left out. Only `before.py`'s request could have carried them |
+| Answers citing a left-out chunk | Of `before.py`'s answers, those that cite at least one |
+| Change in prompt tokens, cost, seconds, the answer's words | For each run both scripts sent: `after.py`'s figure over `before.py`'s, less one; then the median. `after.py` can send more |
+| Spent asking what `after.py` refused | What `before.py`'s calls cost for the questions `after.py`'s assembly refused, so sent to no model |
+
+A table gives each question and model: both scripts' prompt tokens, seconds, words and citations, and the left-out chunks cited.
+
 ## Results
 
 ```

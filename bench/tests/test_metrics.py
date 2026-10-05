@@ -190,7 +190,7 @@ def test_a_runs_numbers_are_written_beside_its_summary(tmp_path: Path) -> None:
     written = metrics.write(tmp_path, read)
     assert written == json.loads((tmp_path / "numbers.json").read_text())
     assert (written["run"], written["graded"], written["models"]) == (read["run"], read["graded"], [MODEL])
-    assert [page["id"] for page in written["pages"]] == ["tokens", "cost", "speed", "stability"]
+    assert [page["id"] for page in written["pages"]] == ["tokens", "cost", "speed", "stability", "before_after"]
     # One request gives no line; the largest count over its estimate still says what margin it needed.
     assert values(written["pages"][0], "tokens_per_estimated") == {MODEL: None}
     assert values(written["pages"][0], "margin_needed") == {MODEL: round(375 / 283 - 1, 6)}
@@ -281,3 +281,26 @@ def test_stability_tells_a_case_that_passes_every_repeat_from_one_that_passes_so
     assert values(page, "same_tool_path") == {MODEL: 0}  # the agent stopped a call short in one repeat
     assert rows(page, "not_every_repeat") == [{"model": MODEL, "case": "02-account-aware/01-team-plan", "passed": "1 of 3",
                                                "checks": "conflict never_the_loser ×2"}]
+
+
+def test_before_and_after_pairs_the_two_requests_one_model_answered() -> None:
+    by_hand = {"variant": "before", "estimate": None, "budget": None, "margin": None, "assembly": None}
+    off_topic = "01-docs-qa/03-off-topic"
+    calls = [call(**by_hand, repeat=n, prompt=500, cost=0.004, ms=4000) for n in (1, 2)]
+    calls += [call(repeat=n, prompt=400, cost=0.003, ms=3000) for n in (1, 2)]
+    calls += [call(**by_hand, task=off_topic, prompt=450, cost=0.002, ms=2000)]  # after.py's assembly refused: it sent nothing
+    results = [result(variant="before", repeat=1, answer="one two three four", cited=("help:a@1#0", "help:b@1#0"), left_out=("help:b@1#0",)),
+               result(variant="before", repeat=2, answer="one two three four", cited=("help:a@1#0",)),
+               result(repeat=1, answer="one two three", cited=("help:a@1#0",)), result(repeat=2, answer="one two three", cited=("help:a@1#0",)),
+               result(case=off_topic, variant="before", answer="a recipe"), result(case=off_topic, answer=None, checks=(), estimates=())]
+    page = metrics.before_after(calls, results, [MODEL])
+    assert values(page, "left_out_cited") == {MODEL: round(1 / 3, 6)}  # one chunk, in one of before.py's three answers
+    assert values(page, "answers_citing_left_out") == {MODEL: round(1 / 3, 6)}
+    assert values(page, "prompt_change") == {MODEL: -0.2} and values(page, "words_change") == {MODEL: -0.25}
+    assert values(page, "cost_change") == {MODEL: -0.25} and values(page, "seconds_change") == {MODEL: -0.25}
+    assert values(page, "asked_anyway") == {MODEL: 0.002}
+    answer, refused = rows(page, "by_case")
+    assert answer == {"case": "01-docs-qa/01-answer", "model": MODEL, "prompt_before": 500, "prompt_after": 400,
+                      "seconds_before": 4, "seconds_after": 3, "words_before": 4, "words_after": 3,
+                      "cited_before": 1.5, "cited_after": 1, "left_out": 0.5}
+    assert (refused["prompt_before"], refused["prompt_after"], refused["words_after"]) == (450, None, None)
