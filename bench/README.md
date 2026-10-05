@@ -228,6 +228,21 @@ The proxy times every call from start to finish. The examples do not stream, so 
 
 Two tables give the median seconds of a job by example, and each model's calls by the host that answered, with that host's median call.
 
+### Stability
+
+In 01–03 every repeat sends the same request, so what moves between repeats is the model. In 04 and 05 the model also chooses its tool calls. A check passed once says less than a check passed every time, so the page sets the two side by side.
+
+| Number | How it is computed |
+| --- | --- |
+| Results with every check passed | Of a model's graded results, those in which every graded check passed |
+| Cases passed in every repeat | Of the cases a model was graded on more than once, those it passed in every repeat. It is at most the average, and falls with more repeats when answers vary |
+| Cases passed in some repeats, in no repeat | Cases whose result changed between repeats, and cases with a failed check in every repeat |
+| Words shared between repeats | For each 01–03 case answered more than once: the words two answers share over the words in either (Jaccard), averaged over every pair of repeats, then over cases |
+| Cases cited the same way every repeat | Of those cases, the ones where every repeat cites the same articles |
+| Tasks done the same way every repeat | Of the 04–05 cases run more than once, those where every repeat made the same tool calls in the same order |
+
+A table lists each case a model did not pass in every repeat, with the repeats it passed and the checks that failed. A refused assembly sends nothing, so it is not graded and counts in none of these.
+
 ## Results
 
 ```

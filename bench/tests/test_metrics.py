@@ -190,7 +190,7 @@ def test_a_runs_numbers_are_written_beside_its_summary(tmp_path: Path) -> None:
     written = metrics.write(tmp_path, read)
     assert written == json.loads((tmp_path / "numbers.json").read_text())
     assert (written["run"], written["graded"], written["models"]) == (read["run"], read["graded"], [MODEL])
-    assert [page["id"] for page in written["pages"]] == ["tokens", "cost", "speed"]
+    assert [page["id"] for page in written["pages"]] == ["tokens", "cost", "speed", "stability"]
     # One request gives no line; the largest count over its estimate still says what margin it needed.
     assert values(written["pages"][0], "tokens_per_estimated") == {MODEL: None}
     assert values(written["pages"][0], "margin_needed") == {MODEL: round(375 / 283 - 1, 6)}
@@ -252,3 +252,32 @@ def test_speed_splits_a_calls_time_into_what_waits_and_what_each_token_takes() -
     assert rows(page, "seconds_by_example") == [{"example": "01-docs-qa", MODEL: 6}]  # of the jobs that ran to the end
     assert rows(page, "by_host") == [{"model": MODEL, "host": "One", "calls": 2, "share": round(2 / 3, 6), "seconds": 2.5},
                                      {"model": MODEL, "host": "Two", "calls": 1, "share": round(1 / 3, 6), "seconds": 4}]
+
+
+def test_two_answers_share_the_words_in_both_over_the_words_in_either() -> None:
+    assert metrics.jaccard("Check your spam folder", "check the spam folder") == 3 / 5
+    assert metrics.jaccard("", "") == 1
+
+
+def test_stability_tells_a_case_that_passes_every_repeat_from_one_that_passes_some() -> None:
+    steady = [result(repeat=n, answer="Check your spam folder", cited=("help:a@1#0",)) for n in (1, 2, 3)]
+    flips = [result(case="02-account-aware/01-team-plan", variant=None, repeat=n, answer=answer, cited=cited,
+                    checks=(("answer answered", True), ("conflict never_the_loser", passed)))
+             for n, (passed, answer, cited) in enumerate(((True, "check the spam folder", ("help:a@1#0",)),
+                                                         (False, "Check your spam folder", ()),
+                                                         (False, "Check your spam folder", ())), start=1)]
+    refused = [result(case="01-docs-qa/03-off-topic", repeat=n, checks=(), answer=None) for n in (1, 2, 3)]
+    agent = [result(case="04-tools/01-owner-reenables", variant=None, repeat=n, steps=steps)
+             for n, steps in enumerate(((("list", True), ("get", True)), (("list", True), ("get", True)), (("list", True),)), start=1)]
+    page = metrics.stability(steady + flips + refused + agent, [MODEL])
+    # A refused assembly sent nothing, so there is nothing to pass: nine results were graded, in three cases.
+    assert values(page, "pass_average") == {MODEL: round(7 / 9, 6)}
+    assert values(page, "pass_every") == {MODEL: round(2 / 3, 6)}
+    assert (values(page, "cases_some"), values(page, "cases_none")) == ({MODEL: 1}, {MODEL: 0})
+    # 01-03 send the same request every repeat. One case's answers are word for word the same; the other's share 3 of 5
+    # words in two pairs and all of them in the third.
+    assert values(page, "answer_similarity") == {MODEL: round((1 + (0.6 + 0.6 + 1) / 3) / 2, 6)}
+    assert values(page, "same_citations") == {MODEL: 0.5}
+    assert values(page, "same_tool_path") == {MODEL: 0}  # the agent stopped a call short in one repeat
+    assert rows(page, "not_every_repeat") == [{"model": MODEL, "case": "02-account-aware/01-team-plan", "passed": "1 of 3",
+                                               "checks": "conflict never_the_loser ×2"}]

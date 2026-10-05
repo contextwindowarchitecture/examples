@@ -7,6 +7,7 @@ a model.
              tokens   what the same context costs in each model's own tokens, and the margin a route would need
              cost     what was charged against the list price, the factors it comes from, and what it bought
              speed    how long a call takes, split into what waits and what each output token takes
+             stability   what repeats of the same case agree on: the checks, the answer's words, the tool calls
 
 The checks say whether an answer passed. The numbers say what the same context cost each model in tokens, dollars and
 seconds, how much its answers moved between repeats, and how far the checks tell the models apart.
@@ -14,7 +15,7 @@ seconds, how much its answers moved between repeats, and how far the checks tell
 from __future__ import annotations
 
 import json
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
 from itertools import combinations
@@ -142,8 +143,8 @@ def write(run: Path, summary: dict[str, Any]) -> dict[str, Any]:
     calls, results = facts(run, summary)
     models = list(summary["models"])
     pasted = frozenset(case["key"] for case in summary["cases"] if len(case["question"].strip().splitlines()) > 1)
-    written = {"run": summary["run"], "graded": summary["graded"], "models": models,
-               "pages": [tokens(calls, models, pasted), cost(calls, results, summary), speed(calls, summary)]}
+    pages = [tokens(calls, models, pasted), cost(calls, results, summary), speed(calls, summary), stability(results, models)]
+    written = {"run": summary["run"], "graded": summary["graded"], "models": models, "pages": pages}
     (run / "numbers.json").write_text(json.dumps(written, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return written
 
@@ -165,6 +166,12 @@ def percentile(found: Iterable[float], rank: float) -> float | None:
     """The value at a rank out of 100, by nearest rank, so it is always one that was observed."""
     ordered = sorted(found)
     return ordered[max(ceil(rank / 100 * len(ordered)), 1) - 1] if ordered else None
+
+
+def jaccard(one: str, other: str) -> float:
+    """How much two answers share: the words in both over the words in either, whatever their case and order."""
+    first, second = set(one.lower().split()), set(other.lower().split())
+    return len(first & second) / len(first | second) if first | second else 1
 
 
 # Pages
@@ -373,6 +380,70 @@ def speed(calls: list[Call], summary: dict[str, Any]) -> dict[str, Any]:
                      "share": _r(len(found) / len(_of(calls, model))), "seconds": _r(median(call.ms for call in found) / 1000)}
                     for model, host in hosts]),
         ]}
+
+
+def stability(results: list[Result], models: list[str]) -> dict[str, Any]:
+    cells = _cells(results)
+    repeated = {key: found for key, found in cells.items() if len(found) > 1}
+    # A cell's verdicts, when it was graded more than once: a refused assembly sends nothing, so nothing is graded.
+    verdicts = {key: flags for key, found in repeated.items() if len(flags := [one.clean for one in found if one.clean is not None]) > 1}
+    same_context = lambda key: key[1].split("/")[0] in SAME_CONTEXT
+    answers = {key: texts for key, found in repeated.items()
+               if same_context(key) and len(texts := [one.answer for one in found if one.answer]) > 1}
+    alike = {key: mean(jaccard(one, other) for one, other in combinations(texts, 2)) for key, texts in answers.items()}
+    cites = {key: len({one.cited for one in found if one.answer}) == 1 for key, found in repeated.items() if key in answers}
+    paths = {key: len({one.steps for one in found}) == 1 for key, found in repeated.items() if not same_context(key)}
+    mine = lambda found, model: [value for key, value in found.items() if key[0] == model]
+    graded = [one for one in results if one.clean is not None]
+    return {"id": "stability", "title": "Stability", "lede": (
+        "What repeats of the same case agree on. In 01–03 every repeat sends the same request, so what moves is the "
+        "model: whether its answer passes, the words it uses and what it cites. In 04 and 05 the model also chooses "
+        "its tool calls. A check passed once says less than a check passed every time."),
+        "numbers": [
+            _number("pass_average", "Results with every check passed", "percent",
+                    "Of a model's graded results, those in which every graded check passed.",
+                    {model: _share(one.clean for one in _of(graded, model)) for model in models}, _count(graded, models)),
+            _number("pass_every", "Cases passed in every repeat", "percent",
+                    "Of the cases a model was graded on more than once, those it passed in every repeat. It is at "
+                    "most the average, and falls with more repeats when answers vary.",
+                    {model: _share(all(flags) for flags in mine(verdicts, model)) for model in models},
+                    {model: len(mine(verdicts, model)) for model in models}),
+            _number("cases_some", "Cases passed in some repeats", "count",
+                    "Cases whose result changed between repeats: passed in at least one, and not in all.",
+                    {model: sum(any(flags) and not all(flags) for flags in mine(verdicts, model)) for model in models}),
+            _number("cases_none", "Cases passed in no repeat", "count", "Cases with a failed check in every repeat.",
+                    {model: sum(not any(flags) for flags in mine(verdicts, model)) for model in models}),
+            _number("answer_similarity", "Words shared between repeats", "percent",
+                    "For each 01–03 case answered more than once: the words two answers share over the words in "
+                    "either, averaged over every pair of repeats, then over cases.",
+                    {model: _mean(mine(alike, model)) for model in models}, {model: len(mine(alike, model)) for model in models}),
+            _number("same_citations", "Cases cited the same way every repeat", "percent",
+                    "Of those cases, the ones where every repeat cites the same articles.",
+                    {model: _share(mine(cites, model)) for model in models}),
+            _number("same_tool_path", "Tasks done the same way every repeat", "percent",
+                    "Of the 04–05 cases run more than once, those where every repeat made the same tool calls in the "
+                    "same order.",
+                    {model: _share(mine(paths, model)) for model in models}, {model: len(mine(paths, model)) for model in models}),
+        ],
+        "tables": [
+            _table("not_every_repeat", "Cases not passed in every repeat",
+                   "Each case a model failed in at least one repeat: how many repeats it passed, and the checks that "
+                   "failed, with how often.",
+                   [_column("model", "Model"), _column("case", "Case"), _column("passed", "Repeats passed"), _column("checks", "Failed checks")],
+                   [{"model": model, "case": case if variant is None else f"{case} · {variant}",
+                     "passed": f"{sum(flags)} of {len(flags)}",
+                     "checks": ", ".join(f"{name} ×{count}" for name, count in Counter(
+                         name for one in repeated[model, case, variant] for name, passed in one.checks if not passed).items())}
+                    for (model, case, variant), flags in verdicts.items() if not all(flags)]),
+        ]}
+
+
+def _cells(results: list[Result]) -> dict[tuple[str, str, str | None], list[Result]]:
+    """A model's results for one case, and for 01 one of its two scripts, across repeats."""
+    cells: dict[tuple[str, str, str | None], list[Result]] = defaultdict(list)
+    for one in sorted(results, key=lambda one: one.repeat):
+        cells[one.model, one.case, one.variant].append(one)
+    return cells
 
 
 def _case(call: Call) -> str:
