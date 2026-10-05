@@ -67,7 +67,7 @@ def check(folder: Path, calls: list[dict[str, Any]], replayed: dict[str, dict[st
     found = [] if finished else [Check("run", "finished", False, _tail(folder / "output.txt"))]
     made = assembled(job["example"], record)
     if finished:
-        found += _sent(folder, made, calls)
+        found += _sent(folder, made, last_attempt(calls))
     if job["example"] in ("01-docs-qa", "02-account-aware", "03-budget-and-routes") and made:
         found.append(_same_context(job["example"], made))
     if made:
@@ -80,6 +80,13 @@ def check(folder: Path, calls: list[dict[str, Any]], replayed: dict[str, dict[st
     if job["example"] == "05-production":
         return found + _evals(record)
     return found + _measures(job, record, made, _rules(expectations, job["example"], job["case"]))
+
+
+def last_attempt(calls: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The calls of a job's last attempt. A job that failed runs again on --resume from an empty folder, with its
+    calls numbered from 1 again, and what the failed attempt sent stays in calls.jsonl."""
+    starts = [n for n, call in enumerate(calls) if call["call"] == 1]
+    return calls[starts[-1]:] if starts else calls
 
 
 def request(payload: dict[str, Any]) -> dict[str, Any]:

@@ -202,7 +202,7 @@ results/<run-id>/    # for example 2026-10-02T153007Z-bebe9ab
 | `jobs` | Per job: how it ended, its calls, cost, tokens and hosts, and its checks by measure |
 | `results` | Per case, model and repeat: checks by measure, the checks it failed, the constructs it exercised, and the folder that holds its record. 05's suite is one job and six results, one per eval case |
 
-`results/` is gitignored. A run never overwrites another. `run.py --resume <run-id>` runs the jobs that failed or never started, from an empty folder each; what an earlier attempt sent and spent stays in `calls.jsonl`, and counts toward the cap. It resumes only at the commit the run started from, with the run's own `bench.toml` and the prices it planned with, so one run never mixes two versions of the code.
+`results/` is gitignored. A run never overwrites another. `run.py --resume <run-id>` runs the jobs that failed or never started, from an empty folder each; what an earlier attempt sent and spent stays in `calls.jsonl`, and counts toward the cap, while the checks hold a job to what its last attempt sent. It resumes only at the commit the run started from, with the run's own `bench.toml` and the prices it planned with, so one run never mixes two versions of the code.
 
 ## The viewer
 

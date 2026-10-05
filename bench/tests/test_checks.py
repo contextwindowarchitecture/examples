@@ -103,6 +103,14 @@ def test_a_request_that_is_not_the_payload_fails_payload_sent(tmp_path: Path) ->
     assert "invariant payload_sent" in failing(checks.check(folder, calls, replayed(folder), EXPECTATIONS))
 
 
+def test_a_resumed_job_is_held_to_what_its_last_attempt_sent(tmp_path: Path) -> None:
+    folder, calls = assembled(tmp_path, "01-docs-qa", "01-answer", "Check spam [help:sign-in@6#0].", "01-answer/after")
+    # The attempt that failed was answered too. run.py emptied its folder before the job ran again, the proxy numbered
+    # the new attempt's calls from 1, and the old line stays in calls.jsonl.
+    earlier = [{"job": "x", "call": 1, "status": 200, "error": None}]
+    assert failing(checks.check(folder, earlier + calls, replayed(folder), EXPECTATIONS)) == {}
+
+
 def test_a_refused_question_that_reached_a_model_fails(tmp_path: Path) -> None:
     folder, _ = assembled(tmp_path, "01-docs-qa", "03-off-topic", None, "03-off-topic/after")
     assert failing(checks.check(folder, [], replayed(folder), EXPECTATIONS)) == {}

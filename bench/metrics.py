@@ -72,14 +72,8 @@ def facts(run: Path, summary: dict[str, Any]) -> tuple[list[Call], list[Result]]
         for line in (run / "calls.jsonl").read_text(encoding="utf-8").splitlines():
             lines[json.loads(line)["job"]].append(json.loads(line))
     calls = [call for job in summary["jobs"] if job["exit"] is not None
-             for call in _calls(run / job["job"], job, _last_attempt(lines[job["job"]]))]
+             for call in _calls(run / job["job"], job, checks.last_attempt(lines[job["job"]]))]
     return calls, [_result(run, result) for result in summary["results"] if result["exit"] == 0]
-
-
-def _last_attempt(lines: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """A resumed job numbers its calls from 1 again, and what its failed attempt sent stays in calls.jsonl."""
-    starts = [n for n, line in enumerate(lines) if line["call"] == 1]
-    return lines[starts[-1]:] if starts else lines
 
 
 def _calls(folder: Path, job: dict[str, Any], lines: list[dict[str, Any]]) -> list[Call]:
