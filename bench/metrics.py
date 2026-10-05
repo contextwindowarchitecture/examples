@@ -1,9 +1,11 @@
 """A run's numbers, for the viewer's "See the numbers" pages. Everything is read from the run's folder; nothing calls
 a model.
 
-    facts    one row per answered call, joined to the assembly whose payload it carried, and one per result
+    facts    one row per answered call, joined to the assembly whose payload it carried, one per result, and one per
+             assembly: what it was offered, what it sent, and what it left out and why
     write    numbers.json, which grade.py writes beside summary.json: the run's models and its pages
     pages    each a list of numbers, one value per model with the formula behind it, and tables that break them down:
+             decisions   what the assembler did with what it was offered: sent, left out and why, summarized, refused
              tokens   what the same context costs in each model's own tokens, and the margin a route would need
              cost     what was charged against the list price, the factors it comes from, and what it bought
              speed    how long a call takes: the wait for its first token, the generation, and what is outside both
@@ -85,7 +87,29 @@ class Result:
         return all(passed for _, passed in self.checks) if self.checks else None
 
 
-def facts(run: Path, summary: dict[str, Any]) -> tuple[list[Call], list[Result]]:
+@dataclass(frozen=True)
+class Assembly:
+    """One assembly, from its trace and its snapshot: what was sent, and what was left out and why."""
+    job: str
+    model: str
+    case: str
+    variant: str | None
+    repeat: int
+    name: str                                          # record, a route's name, or turn-<n>
+    refused: str | None                                # the reason, when nothing was rendered
+    estimate: int | None                               # trace.result.input_tokens
+    budget: int
+    margin: int | None
+    sent: tuple[tuple[str, int], ...]                  # each item sent: its slot, and its tokens as the trace counts them
+    left_out: tuple[tuple[str, str, int | None], ...]  # each item left out: the reason, the stage, and its size (below)
+    summarized: tuple[tuple[int, int], ...]            # each item sent as a summary: its tokens whole, and as sent
+    decided: tuple[str, ...]                           # what decided each conflict group, moot ones included
+    threshold: float | None                            # the route's min_relevance for evidence.knowledge
+    weakest_sent: float | None                         # the lowest relevance among the knowledge sent,
+    strongest_left: float | None                       # and the highest among the knowledge that fell below the threshold
+
+
+def facts(run: Path, summary: dict[str, Any]) -> tuple[list[Call], list[Result], list[Assembly]]:
     """summary: the run's summary.json (summary.py), which names every job and result."""
     lines: dict[str, list[dict[str, Any]]] = defaultdict(list)
     if (run / "calls.jsonl").exists():
@@ -93,7 +117,9 @@ def facts(run: Path, summary: dict[str, Any]) -> tuple[list[Call], list[Result]]
             lines[json.loads(line)["job"]].append(json.loads(line))
     calls = [call for job in summary["jobs"] if job["exit"] is not None
              for call in _calls(run / job["job"], job, checks.last_attempt(lines[job["job"]]))]
-    return calls, [_result(run, result) for result in summary["results"] if result["exit"] == 0]
+    ended = [result for result in summary["results"] if result["exit"] == 0]
+    return calls, [_result(run, result) for result in ended], [_assembly(run, result, folder) for result in ended
+                                                                for folder in result["assemblies"]]
 
 
 def _calls(folder: Path, job: dict[str, Any], lines: list[dict[str, Any]]) -> list[Call]:
@@ -151,10 +177,10 @@ def _result(run: Path, result: dict[str, Any]) -> Result:
 
 def write(run: Path, summary: dict[str, Any]) -> dict[str, Any]:
     """The run's numbers.json, which the viewer's "See the numbers" pages read. summary: its summary.json."""
-    calls, results = facts(run, summary)
+    calls, results, assemblies = facts(run, summary)
     models = list(summary["models"])
     pasted = frozenset(case["key"] for case in summary["cases"] if len(case["question"].strip().splitlines()) > 1)
-    pages = [tokens(calls, models, pasted, summary["models"]), cost(calls, results, summary), speed(calls, summary),
+    pages = [decisions(assemblies, models), tokens(calls, models, pasted, summary["models"]), cost(calls, results, summary), speed(calls, summary),
              stability(results, models, summary["models"]),
              before_after(calls, results, models), agents(results, models), verdicts(calls, results, models)]
     written = {"run": summary["run"], "graded": summary["graded"], "models": models, "pages": pages}
@@ -199,6 +225,104 @@ def wilson(passed: int, graded: int) -> tuple[float, float] | None:
 
 
 # Pages
+
+PLANES = ("governance", "state", "evidence", "interaction")
+
+
+def decisions(assemblies: list[Assembly], models: list[str]) -> dict[str, Any]:
+    name = lambda made: made.case if made.name == "record" else f"{made.case} · {made.name}"
+    # 01-03 send every model the same snapshots, so each of their requests is counted once, from whichever model's
+    # record comes first. 04 and 05's snapshots follow each model's own tool calls, so those are counted by model.
+    committed: dict[str, Assembly] = {}
+    for made in assemblies:
+        if made.case.split("/")[0] in SAME_CONTEXT:
+            committed.setdefault(name(made), made)
+    requests = [committed[request] for request in sorted(committed)]
+    own = {model: [made for made in _of(assemblies, model) if made.case.split("/")[0] not in SAME_CONTEXT] for model in models}
+    kept_out = lambda made: sum(size for _, _, size in made.left_out if size)
+    saved = lambda made: sum(whole - shorter for whole, shorter in made.summarized)
+    count = lambda model, reason: sum(left == reason for made in own[model] for left, _, _ in made.left_out) if own[model] else None
+    reasons = {(reason, stage) for made in assemblies for reason, stage, _ in made.left_out}
+    plane = lambda made, which: sum(size for slot, size in made.sent if slot.split(".")[0] == which)
+    return {"id": "decisions", "title": "What CWA decided", "lede": (
+        "What the assembler did with what it was offered, before any model was asked. Producers propose items; the "
+        "assembler admits them, resolves conflicts, fits them to the route's budget, and renders what is left or "
+        "refuses. Every decision is in a trace, and these numbers are counted from the traces. In 01–03 they are the "
+        "same for every model: the context is decided before the model is known. In 04 and 05 each model's tool "
+        "calls decide what its next snapshot holds."),
+        "totals": [
+            {"id": "refused", "label": "Requests refused", "unit": "count", "value": sum(bool(made.refused) for made in requests),
+             "of": len(requests), "how": "Of 01–03's requests, each counted once: assemblies that rendered nothing, so no model was asked (R-17)."},
+            {"id": "sent", "label": "Items sent", "unit": "count", "value": sum(len(made.sent) for made in requests),
+             "of": sum(len(made.sent) + len(made.left_out) for made in requests),
+             "how": "Items those requests carried, of the items their producers offered or reported."},
+            {"id": "kept_out", "label": "Tokens kept out", "unit": "tokens", "value": sum(kept_out(made) for made in requests),
+             "how": "The size of what those requests left out, by the route's own tokenizer, where the snapshot holds the text."},
+            {"id": "summarized", "label": "Items sent as a summary", "unit": "count", "value": sum(len(made.summarized) for made in requests),
+             "how": "Items a request carried as a summary written ahead of time, to fit the route's budget (R-18)."},
+            {"id": "saved", "label": "Tokens those summaries saved", "unit": "tokens", "value": sum(saved(made) for made in requests),
+             "how": "Those items' tokens whole, less their tokens as sent."},
+        ],
+        "numbers": [
+            _number("assemblies", "Assemblies in 04 and 05", "count",
+                    "The assemblies a model's agent runs made: one per inference, each from a snapshot of its own.",
+                    {model: len(own[model]) or None for model in models}),
+            _number("left_out_each", "Items left out per assembly", "count",
+                    "The mean items an assembly left out, across a model's 04–05 assemblies.",
+                    {model: _mean(len(made.left_out) for made in own[model]) for model in models}),
+            _number("not_offered", "Tools not offered", "count",
+                    "Capabilities the capability policy kept out of a snapshot because the user's role does not have "
+                    "them: reason capability_not_allowed (R-5).",
+                    {model: count(model, "capability_not_allowed") for model in models}),
+            _number("superseded", "Looks replaced by a newer one", "count",
+                    "Tool results left out because a newer result from the same source replaced them: reason "
+                    "superseded (R-25). A model that never looks twice has none.",
+                    {model: count(model, "superseded") for model in models}),
+            _number("conflicts_decided", "Conflicts decided", "count",
+                    "Conflict groups an assembly resolved by policy, authority or freshness, moot groups aside (R-11).",
+                    {model: sum(by != "moot" for made in own[model] for by in made.decided) if own[model] else None for model in models}),
+            _number("budget_peak", "Most of a budget used", "percent",
+                    "The largest share of a route's budget.input an assembly's count reached, by the assembler's count.",
+                    {model: max((made.estimate / made.budget for made in own[model] if made.estimate), default=None) for model in models}),
+        ],
+        "tables": [
+            _table("requests", "Each request, and what became of what it was offered",
+                   "01–03's requests, each once: whether it was sent or refused, the items offered and sent, the "
+                   "assembler's count against the route's budget, the tokens kept out, and the tokens summaries saved.",
+                   [_column("request", "Request"), _column("outcome", "Outcome"), _column("offered", "Offered", "count"),
+                    _column("sent", "Sent", "count"), _column("estimate", "Count", "tokens"), _column("budget", "Budget", "tokens"),
+                    _column("used", "Used", "percent"), _column("kept_out", "Kept out", "tokens"), _column("saved", "Saved", "tokens")],
+                   [{"request": name(made), "outcome": f"refused: {made.refused}" if made.refused else "sent",
+                     "offered": len(made.sent) + len(made.left_out), "sent": len(made.sent), "estimate": made.estimate,
+                     "budget": made.budget, "used": _r(_ratio(made.estimate or 0, made.budget)) if made.estimate else None,
+                     "kept_out": kept_out(made), "saved": saved(made)} for made in requests]),
+            _table("planes", "What each request spent its budget on",
+                   "The tokens of the items sent, by plane, as the trace counts them; and what is around them: the "
+                   "wrappers and separators the renderer adds, which count against the budget too (R-16).",
+                   [_column("request", "Request"), *(_column(which, which.capitalize(), "tokens") for which in PLANES),
+                    _column("around", "Around the items", "tokens")],
+                   [{"request": name(made), **{which: plane(made, which) for which in PLANES},
+                     "around": made.estimate - sum(size for _, size in made.sent)} for made in requests if made.estimate]),
+            _table("reasons", "Why items were left out",
+                   "Each reason, with the stage that gave it: a producer reporting what it suppressed, or the "
+                   "assembler. For 01–03, the items and their tokens, each request once; for 04 and 05, the items "
+                   "across each model's own assemblies.",
+                   [_column("reason", "Reason"), _column("stage", "Stage"), _column("committed", "01–03, items", "count"),
+                    _column("tokens", "01–03, tokens", "tokens"), *(_column(model, _short(model), "count") for model in models)],
+                   [{"reason": reason, "stage": stage,
+                     "committed": sum((left, by) == (reason, stage) for made in requests for left, by, _ in made.left_out),
+                     "tokens": sum(size or 0 for made in requests for left, by, size in made.left_out if (left, by) == (reason, stage)),
+                     **{model: sum((left, by) == (reason, stage) for made in own[model] for left, by, _ in made.left_out) for model in models}}
+                    for reason, stage in sorted(reasons)]),
+            _table("relevance", "How close each relevance call was",
+                   "For each request whose route sets a threshold for knowledge: the threshold, the lowest score sent "
+                   "and the highest score left out (R-13).",
+                   [_column("request", "Request"), _column("threshold", "Threshold", "count"), _column("weakest_sent", "Lowest sent", "count"),
+                    _column("strongest_left", "Highest left out", "count")],
+                   [{"request": name(made), "threshold": made.threshold, "weakest_sent": made.weakest_sent, "strongest_left": made.strongest_left}
+                    for made in requests if made.threshold is not None and (made.weakest_sent is not None or made.strongest_left is not None)]),
+        ]}
+
 
 def tokens(calls: list[Call], models: list[str], pasted: frozenset[str] = frozenset(),
            listed: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -796,6 +920,30 @@ def _median(found: Iterable[float]) -> float | None:
 def _r(value: Any) -> Any:
     """A figure as numbers.json holds it: six decimal places, which a cost per check needs, and no negative zero."""
     return round(value, 6) + 0 if isinstance(value, float) else value
+
+
+def _assembly(run: Path, result: dict[str, Any], folder: str) -> Assembly:
+    trace, snapshot = _read(run / folder / "trace.json"), _read(run / folder / "snapshot.json")
+    items = {item["id"]: item for batch in snapshot["batches"] for item in batch["items"]}
+    # A trace counts what was sent, not what was left out. The snapshot holds a left-out item's text unless its
+    # producer reported it by id alone, and estimate-utf8/v1 is the bytes of a text over 4, rounded up: its body's
+    # size by the route's own tokenizer, without the wrapper it would have been rendered in.
+    sized = snapshot.get("tokenizer") == "estimate-utf8/v1"
+    size = lambda id: (len(items[id]["body"].encode("utf-8")) + 3) // 4 if sized and id in items else None
+    knowledge = [row["item_id"] for row in trace["included"] if row["slot"] == "evidence.knowledge"]
+    below = [row["item_id"] for row in trace["excluded"] if row["reason"] == "below_threshold" and row["item_id"] in items]
+    relevance = lambda ids: [items[id]["relevance"] for id in ids if id in items and items[id].get("relevance") is not None]
+    return Assembly(
+        job=result["job"], model=result["model"], case=result["case"], variant=result["variant"], repeat=result["repeat"],
+        name=Path(folder).name, refused=trace["refused"]["reason"] if trace["refused"]["bool"] else None,
+        estimate=trace["result"]["input_tokens"] if trace["result"] else None, budget=trace["budget"]["input"],
+        margin=trace["budget"].get("margin_percent"),
+        sent=tuple((row["slot"], row["tokens"]) for row in trace["included"]),
+        left_out=tuple((row["reason"], row["stage"], size(row["item_id"])) for row in trace["excluded"]),
+        summarized=tuple((row["from"], row["to"]) for row in trace["compressed"]),
+        decided=tuple(group["decided_by"] for group in trace["conflicts"]),
+        threshold=(snapshot["route_policy"]["slots"].get("evidence.knowledge") or {}).get("min_relevance"),
+        weakest_sent=min(relevance(knowledge), default=None), strongest_left=max(relevance(below), default=None))
 
 
 def _read(path: Path) -> Any:

@@ -199,6 +199,25 @@ The checks say whether an answer passed. [metrics.py](metrics.py) says the rest 
 
 The numbers rest on two tables of facts: one row per answered call, joined to the assembly whose payload it carried, and one row per result. The join is the one `payload_sent` checks: a job's answered calls, in order, against its rendered payloads, in order. `before.py` assembles nothing, so its calls have no estimate to set a count against.
 
+### What CWA decided
+
+Before any model is asked, producers propose items and the assembler admits them, resolves conflicts, fits them to the route's budget, and renders what is left or refuses. Every decision is in a trace, and this page counts them. In 01–03 the counts are the same for every model, because the context is decided before the model is known, so each of their requests is counted once. In 04 and 05 each model's tool calls decide what its next snapshot holds, so those are counted by model.
+
+| Number | How it is computed |
+| --- | --- |
+| Requests refused | Of 01–03's requests, the assemblies that rendered nothing, so no model was asked |
+| Items sent | The items those requests carried, of the items their producers offered or reported |
+| Tokens kept out | The size of what those requests left out. A trace counts what was sent, not what was left out; the snapshot holds a left-out item's text unless its producer reported it by id alone, and the route's tokenizer, `estimate-utf8/v1`, is the bytes of a text over 4. So this is the body's size by the route's own tokenizer, without the wrapper it would have been rendered in |
+| Items sent as a summary, tokens those summaries saved | Items a request carried as a summary written ahead of time, and their tokens whole less their tokens as sent |
+| Assemblies in 04 and 05 | Per model: one per inference, each from a snapshot of its own |
+| Items left out per assembly | The mean, across a model's 04–05 assemblies |
+| Tools not offered | Capabilities kept out of a snapshot because the user's role does not have them: reason `capability_not_allowed` |
+| Looks replaced by a newer one | Tool results left out because a newer result from the same source replaced them: reason `superseded` |
+| Conflicts decided | Conflict groups an assembly resolved by policy, authority or freshness, moot groups aside |
+| Most of a budget used | The largest share of a route's `budget.input` an assembly's count reached |
+
+Four tables follow: each request with its outcome, the items offered and sent, its count against the budget and the tokens kept out; what each request spent its budget on, by plane, with what the renderer adds around the items; why items were left out, by reason and stage; and how close each relevance call was to the route's threshold.
+
 ### Tokens
 
 A route sets `budget.input` in the model's tokens, and its application declares a tokenizer that counts them, or one that estimates them with a `budget.margin_percent` that covers the error (R-16). No conformance case can test that the counts match a model: it rests on the application's word. Every example declares `estimate-utf8/v1`, bytes divided by 4, with a 15% margin, for the models it was written against. The harness sends the same routes to other models, so it can measure what the margin would have to be for each. In 01–03 every model is sent the same payloads, and the assembler's count and the host's can be set side by side:
@@ -359,7 +378,7 @@ results/<run-id>/    # for example 2026-10-02T153007Z-bebe9ab
 | A construct | Its description and requirements, then for each case that exercised it the evidence from a run's own trace (the chunks against the relevance threshold, the budget by plane, the routes an escalation took, the conflict groups, what was left out and why), and every run's answer with the checks of that construct's measures; a 01 case shows each model's before and after answers side by side |
 | A case | What CWA decided for the run picked from a drop-down, and for an agent the inference: the budget by plane, the items sent as slot rows with their authority, trust and injection risk, what was left out and why, conflicts and provenance, with the raw trace, snapshot and payload a click away. Then every run's tool calls with the guard's decision, its answer as it came back, and its checks. A 01 case reads before, then after: every item of `after.py`'s snapshot with where `before.py` put it and what `after.py`'s assembly decided, then a row per model with its two answers side by side, each citation of a chunk CWA left out marked ([beforeafter.js](viewer/beforeafter.js)) |
 | Models, Cases, Runs | The models' calls, tokens, latency, cost, hosts and checks; every case; every graded run |
-| See the numbers, a menu | A page for each family of [numbers](#numbers): Tokens, Cost, Speed, Stability, Before and after, Agents and Checks. Each has a row per model and a column per number, whose heading sorts the models by it, then the formula behind every number, then its tables. All numbers sets every number of the run in one table, a row each and a column per model. The values, labels and formulas are read from `numbers.json`, which each page links ([numbers.js](viewer/numbers.js)) |
+| See the numbers, a menu | A page for each family of [numbers](#numbers): What CWA decided, Tokens, Cost, Speed, Stability, Before and after, Agents and Checks. Each has a row per model and a column per number, whose heading sorts the models by it, then the formula behind every number, then its tables. All numbers sets every number of the run in one table, a row each and a column per model. The values, labels and formulas are read from `numbers.json`, which each page links ([numbers.js](viewer/numbers.js)) |
 
 Tour, in the header, walks a first-time reader through the viewer in twelve steps ([tour.js](viewer/tour.js)): what the site shows, the run and the assembler-python release it pinned, the invariants, a construct card, the models, a construct's evidence, a 01 case before and after, an agent's decision in 05, the run's numbers, and where the examples and the assembler live. Each step opens the page it is about, dims everything but the part it describes, and points at it; Esc ends the tour, the arrow keys step through it, and following a link ends it. A step this run has nothing to show for is left out.
 

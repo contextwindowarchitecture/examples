@@ -61,7 +61,7 @@ def test_a_call_is_joined_to_the_assembly_whose_payload_it_carried(tmp_path: Pat
     called(tmp_path, name, 375)
     found = {name: [checks.Check("invariant", "payload_sent", True, ""), checks.Check("answer", "answered", True, ""),
                     checks.Check("answer", "mentions_any", False, ""), checks.Check("grounding", "cites_of_the_articles_sent", None, "1 of 2")]}
-    [call], [result] = metrics.facts(tmp_path, graded(tmp_path, [name], found))
+    [call], [result], _ = metrics.facts(tmp_path, graded(tmp_path, [name], found))
     trace = json.loads((ANSWER / "trace.json").read_text())
     assert (call.estimate, call.budget, call.margin) == (trace["result"]["input_tokens"], 1500, 15)
     assert (call.task, call.variant, call.repeat, call.assembly) == ("01-docs-qa/01-answer", "after", 1, "record")
@@ -76,7 +76,7 @@ def test_before_py_assembles_nothing_so_its_call_has_no_estimate(tmp_path: Path)
     name = job(tmp_path, "01-docs-qa", "01-answer/before", {"answer": f"Check spam [help:sign-in@6#0] [{left_out}].", "error": None})
     write(tmp_path / name / "record" / "request.json", {"messages": [{"role": "user", "content": "..."}]})
     called(tmp_path, name, 560)
-    [call], [result] = metrics.facts(tmp_path, graded(tmp_path, [name]))
+    [call], [result], _ = metrics.facts(tmp_path, graded(tmp_path, [name]))
     assert (call.prompt, call.estimate, call.budget, call.assembly) == (560, None, None, None)
     # What it cited that the committed assembly left out: only its own request could have carried it.
     assert result.left_out == (left_out,) and result.clean is None
@@ -85,20 +85,54 @@ def test_before_py_assembles_nothing_so_its_call_has_no_estimate(tmp_path: Path)
 def test_what_openrouter_recorded_about_a_call_is_read_when_the_run_holds_it(tmp_path: Path) -> None:
     name = job(tmp_path, "01-docs-qa", "01-answer/after", {"answer": "Check spam.", "error": None}, ANSWER)
     called(tmp_path, name, 375)
-    [before], _ = metrics.facts(tmp_path, graded(tmp_path, [name]))
+    [before], _, _ = metrics.facts(tmp_path, graded(tmp_path, [name]))
     assert (before.first_token, before.generating, before.normalized, before.tried) == (None, None, None, None)
     write(tmp_path / name / "calls" / "1.generation.json", {"latency": 812, "generation_time": 1400, "tokens_prompt": 288,
                                                              "attempts": [{"provider_name": "A", "status": 429}, {"provider_name": "B", "status": 200}]})
-    [after], _ = metrics.facts(tmp_path, graded(tmp_path, [name]))
+    [after], _, _ = metrics.facts(tmp_path, graded(tmp_path, [name]))
     assert (after.first_token, after.generating, after.normalized, after.tried) == (812, 1400, 288, 2)
 
 
 def test_a_refused_assembly_has_a_result_and_no_call(tmp_path: Path) -> None:
     name = job(tmp_path, "01-docs-qa", "03-off-topic/after", {"answer": None, "refused": "evidence_required"},
                ROOT / "01-docs-qa" / "scenarios" / "03-off-topic")
-    calls, [result] = metrics.facts(tmp_path, graded(tmp_path, [name, "vendor-model/02-account-aware/01-team-plan/1"]))
+    calls, [result], _ = metrics.facts(tmp_path, graded(tmp_path, [name, "vendor-model/02-account-aware/01-team-plan/1"]))
     # The second job never ran: it has no folder, and no rows.
     assert calls == [] and (result.answer, result.estimates, result.cited) == (None, (), ())
+
+
+def test_an_assembly_is_read_from_its_trace_and_its_snapshot(tmp_path: Path) -> None:
+    small = ROOT / "03-budget-and-routes" / "scenarios" / "02-small-route"
+    name = job(tmp_path, "03-budget-and-routes", "02-small-route", {"answer": "Yes.", "error": None})
+    shutil.copytree(small, tmp_path / name / "record" / "account-help-small")
+    trace = json.loads((small / "trace.json").read_text())
+    _, _, [made] = metrics.facts(tmp_path, graded(tmp_path, [name]))
+    assert (made.case, made.name, made.refused, made.estimate, made.budget, made.margin) == (
+        "03-budget-and-routes/02-small-route", "account-help-small", None, trace["result"]["input_tokens"], 1000, 15)
+    assert made.sent == tuple((row["slot"], row["tokens"]) for row in trace["included"])
+    assert [(reason, stage) for reason, stage, _ in made.left_out] == [(row["reason"], row["stage"]) for row in trace["excluded"]]
+    # What was left out has no tokens in the trace. The snapshot holds its text, and the route's tokenizer is bytes over 4.
+    assert all(size and size > 0 for _, _, size in made.left_out)
+    assert made.summarized == tuple((row["from"], row["to"]) for row in trace["compressed"]) and made.summarized
+    assert made.decided == ("policy",)
+
+
+def test_a_producers_exclusion_has_no_text_to_size_and_a_threshold_has_two_sides(tmp_path: Path) -> None:
+    name = job(tmp_path, "02-account-aware", "01-team-plan", {"answer": "Yes.", "error": None}, ROOT / "02-account-aware" / "scenarios" / "01-team-plan")
+    _, _, [made] = metrics.facts(tmp_path, graded(tmp_path, [name]))
+    assert made.left_out == (("expired", "producer", None), ("revoked", "producer", None))  # reported by id, without its text
+    name = job(tmp_path, "01-docs-qa", "01-answer/after", {"answer": "Check spam.", "error": None}, ANSWER)
+    _, _, made = metrics.facts(tmp_path, graded(tmp_path, [name]))
+    answer = made[-1]
+    # Retrieval offered five chunks; the route sends what scores 2.0 or more.
+    assert answer.threshold == 2.0 and answer.weakest_sent >= 2.0 > answer.strongest_left
+
+
+def test_a_refused_assembly_keeps_its_reason_and_sends_nothing(tmp_path: Path) -> None:
+    name = job(tmp_path, "01-docs-qa", "03-off-topic/after", {"answer": None, "refused": "evidence_required"},
+               ROOT / "01-docs-qa" / "scenarios" / "03-off-topic")
+    _, _, [made] = metrics.facts(tmp_path, graded(tmp_path, [name]))
+    assert (made.refused, made.estimate, made.sent) == ("evidence_required", None, ())
 
 
 def test_a_resumed_job_counts_only_its_last_attempt(tmp_path: Path) -> None:
@@ -106,7 +140,7 @@ def test_a_resumed_job_counts_only_its_last_attempt(tmp_path: Path) -> None:
     logged(tmp_path, name, 1, 111)  # the attempt that failed: run.py emptied its folder, and the line stays
     job(tmp_path, "01-docs-qa", "01-answer/after", {"answer": "Check spam.", "error": None}, ANSWER)
     called(tmp_path, name, 375)
-    [call], _ = metrics.facts(tmp_path, graded(tmp_path, [name]))
+    [call], _, _ = metrics.facts(tmp_path, graded(tmp_path, [name]))
     assert (call.prompt, call.estimate) == (375, 283)
 
 
@@ -114,7 +148,7 @@ def test_an_agents_calls_follow_its_inferences_and_its_result_holds_its_tool_cal
     ran = json.loads((OWNER / "run.json").read_text())
     name = job(tmp_path, "04-tools", "01-owner-reenables", ran, OWNER)
     called(tmp_path, name, 1200, 1300, 1400, 1500, 1600)
-    calls, [result] = metrics.facts(tmp_path, graded(tmp_path, [name]))
+    calls, [result], _ = metrics.facts(tmp_path, graded(tmp_path, [name]))
     assert [call.assembly for call in calls] == ["turn-1", "turn-2", "turn-3", "turn-4", "turn-5"]
     assert [call.estimate for call in calls] == list(result.estimates) and len(set(result.estimates)) > 1
     assert result.steps == tuple((step["tool"], step["approved"]) for step in ran["steps"])
@@ -126,7 +160,7 @@ def test_05s_calls_belong_to_the_eval_case_that_made_them(tmp_path: Path) -> Non
     for case, turn in ((second, "turn-2"), (first, "turn-1")):  # written out of order: the suite's order decides
         shutil.copytree(OWNER / turn, tmp_path / name / "record" / case / "turn-1")
     called(tmp_path, name, 1200, 1300)
-    calls, _ = metrics.facts(tmp_path, graded(tmp_path, [name]))
+    calls, _, _ = metrics.facts(tmp_path, graded(tmp_path, [name]))
     assert [call.task for call in calls] == [f"05-production/{first}", f"05-production/{second}"]
     assert calls[0].estimate == json.loads((OWNER / "turn-1" / "trace.json").read_text())["result"]["input_tokens"]
 
@@ -224,10 +258,11 @@ def test_a_runs_numbers_are_written_beside_its_summary(tmp_path: Path) -> None:
     written = metrics.write(tmp_path, read)
     assert written == json.loads((tmp_path / "numbers.json").read_text())
     assert (written["run"], written["graded"], written["models"]) == (read["run"], read["graded"], [MODEL])
-    assert [page["id"] for page in written["pages"]] == ["tokens", "cost", "speed", "stability", "before-after", "agents", "checks"]
+    assert [page["id"] for page in written["pages"]] == ["decisions", "tokens", "cost", "speed", "stability", "before-after", "agents", "checks"]
     # One request gives no line; the largest count over its estimate still says what margin it needed.
-    assert values(written["pages"][0], "tokens_per_estimated") == {MODEL: None}
-    assert values(written["pages"][0], "margin_needed") == {MODEL: round(375 / 283 - 1, 6)}
+    tokens = next(page for page in written["pages"] if page["id"] == "tokens")
+    assert values(tokens, "tokens_per_estimated") == {MODEL: None}
+    assert values(tokens, "margin_needed") == {MODEL: round(375 / 283 - 1, 6)}
 
 
 def result(**given: Any) -> metrics.Result:
@@ -409,3 +444,49 @@ def test_checks_says_how_far_the_checks_tell_the_models_apart() -> None:
     assert rows(page, "by_host") == [{"model": steady, "host": "One", "results": 4, "clean": 1},
                                      {"model": flips, "host": "One", "results": 3, "clean": 1},
                                      {"model": flips, "host": "Two", "results": 1, "clean": 0}]
+
+
+def assembly(**given: Any) -> metrics.Assembly:
+    return metrics.Assembly(**({
+        "job": "j", "model": MODEL, "case": "01-docs-qa/01-answer", "variant": "after", "repeat": 1, "name": "record",
+        "refused": None, "estimate": 300, "budget": 1500, "margin": 15,
+        "sent": (("governance.instructions", 140), ("evidence.knowledge", 60), ("evidence.knowledge", 50), ("interaction.query", 10)),
+        "left_out": (("below_threshold", "assembler", 40), ("below_threshold", "assembler", 30)), "summarized": (), "decided": (),
+        "threshold": 2.0, "weakest_sent": 2.4, "strongest_left": 1.8} | given))
+
+
+def test_decisions_says_what_the_assembler_did_with_what_it_was_offered() -> None:
+    small = "03-budget-and-routes/02-small-route"
+    committed = [assembly(model=model, repeat=repeat) for model in (MODEL, "b/other") for repeat in (1, 2)]  # one request, four times
+    committed += [assembly(model=model, case=small, variant=None, name="account-help-small", estimate=820, budget=1000,
+                           sent=(("governance.instructions", 300), ("interaction.history", 400), ("interaction.query", 100)),
+                           left_out=(("over_budget", "assembler", 120), ("conflict_lost", "assembler", 9), ("expired", "producer", None)),
+                           summarized=((55, 42), (77, 47)), decided=("policy", "moot"), threshold=None, weakest_sent=None, strongest_left=None)
+                  for model in (MODEL, "b/other")]
+    committed += [assembly(model=model, case="01-docs-qa/03-off-topic", refused="evidence_required", estimate=None, sent=(),
+                           left_out=(("below_threshold", "assembler", 50),), weakest_sent=None, strongest_left=1.2) for model in (MODEL, "b/other")]
+    # An agent's snapshots follow its own tool calls: one model looks at a webhook twice, and the second look replaces the first.
+    agent = [assembly(case="04-tools/01-owner-reenables", variant=None, name=f"turn-{n}", estimate=estimate, budget=4000, left_out=left)
+             for n, (estimate, left) in enumerate(((900, (("capability_not_allowed", "producer", None),)),
+                                                   (1100, (("capability_not_allowed", "producer", None), ("superseded", "assembler", 70)))), start=1)]
+    page = metrics.decisions(committed + agent, [MODEL, "b/other"])
+    totals = {total["id"]: (total["value"], total.get("of")) for total in page["totals"]}
+    # 01-03's requests are the same for every model, so each counts once: three requests, one refused.
+    assert totals["refused"] == (1, 3)
+    assert totals["sent"] == (7, 13)           # items sent, of those offered: 4 of 6, 3 of 6 and none of 1
+    assert totals["kept_out"] == (249, None)   # by the route's tokenizer, where the snapshot holds the text: 70 + 129 + 50
+    assert totals["summarized"] == (2, None) and totals["saved"] == (43, None)  # two items sent as summaries, 132 tokens as 89
+    assert values(page, "assemblies") == {MODEL: 2, "b/other": None}  # 04 and 05's, where each model decides its own path
+    assert values(page, "superseded") == {MODEL: 1, "b/other": None} and values(page, "not_offered") == {MODEL: 2, "b/other": None}
+    assert values(page, "budget_peak") == {MODEL: 0.275, "b/other": None}
+    answer, off_topic, route = rows(page, "requests")
+    assert answer == {"request": "01-docs-qa/01-answer", "outcome": "sent", "offered": 6, "sent": 4, "estimate": 300, "budget": 1500,
+                      "used": 0.2, "kept_out": 70, "saved": 0}
+    assert (off_topic["outcome"], off_topic["sent"], off_topic["estimate"]) == ("refused: evidence_required", 0, None)
+    assert (route["request"], route["saved"], route["used"]) == (f"{small} · account-help-small", 43, 0.82)
+    assert rows(page, "planes")[0] == {"request": "01-docs-qa/01-answer", "governance": 140, "state": 0, "evidence": 110, "interaction": 10, "around": 40}
+    reasons = {row["reason"]: row for row in rows(page, "reasons")}
+    assert reasons["below_threshold"] == {"reason": "below_threshold", "stage": "assembler", "committed": 3, "tokens": 120, MODEL: 0, "b/other": 0}
+    assert (reasons["superseded"]["committed"], reasons["superseded"][MODEL]) == (0, 1)
+    assert rows(page, "relevance") == [{"request": "01-docs-qa/01-answer", "threshold": 2, "weakest_sent": 2.4, "strongest_left": 1.8},
+                                       {"request": "01-docs-qa/03-off-topic", "threshold": 2, "weakest_sent": None, "strongest_left": 1.2}]

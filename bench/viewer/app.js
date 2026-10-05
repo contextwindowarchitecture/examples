@@ -5,7 +5,8 @@
 //   #/<run>/construct/<id>           one construct: the cases that exercised it, and how each model did
 //   #/<run>/case/<example>/<case>    one case: what CWA decided for each run of it, and each model's answer
 //   #/<run>/numbers                  every number of the run, a row each and a column per model
-//   #/<run>/numbers/<page>           one family of numbers: tokens, cost, speed, stability, before-after, agents, checks
+//   #/<run>/numbers/<page>           one family of numbers: decisions, tokens, cost, speed, stability, before-after,
+//                                    agents, checks
 //   #/<run>/cases  #/<run>/models  #/runs
 
 import * as data from "./data.js";
