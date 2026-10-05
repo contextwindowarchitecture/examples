@@ -1,5 +1,6 @@
-// Everything the viewer shows is read from results/: index.json, each run's summary.json, and the job files the
-// summary names. Nothing is computed that grade.py did not write, except counts over the summary's checks.
+// Everything the viewer shows is read from results/: index.json, each run's summary.json and numbers.json, and the
+// job files the summary names. Nothing is computed that grade.py did not write, except counts over the summary's
+// checks.
 
 const cache = new Map();
 
@@ -15,6 +16,7 @@ export function json(path) {
 
 export const index = () => json("../results/index.json");
 export const summary = (run) => json(`../results/${run}/summary.json`);
+export const numbers = (run) => json(`../results/${run}/numbers.json`);
 export const file = (run, path) => json(`../results/${run}/${path}`);
 export const href = (run, path) => `../results/${run}/${path}`;
 

@@ -4,6 +4,8 @@
 //   #/<run>                          the constructs, the invariants and the models
 //   #/<run>/construct/<id>           one construct: the cases that exercised it, and how each model did
 //   #/<run>/case/<example>/<case>    one case: what CWA decided for each run of it, and each model's answer
+//   #/<run>/numbers                  every number of the run, a row each and a column per model
+//   #/<run>/numbers/<page>           one family of numbers: tokens, cost, speed, stability, before-after, agents, checks
 //   #/<run>/cases  #/<run>/models  #/runs
 
 import * as data from "./data.js";
@@ -11,6 +13,7 @@ import * as show from "./decision.js";
 import { count, dollars, html, number, plural, seconds } from "./html.js";
 import { citedLeftOut, compared, marked, ordered, pairsOf } from "./beforeafter.js";
 import { asked, cell } from "./question.js";
+import * as figures from "./numbers.js";
 import * as tour from "./tour.js";
 
 const INVARIANTS = [
@@ -24,7 +27,8 @@ const MEASURES = ["run", "invariant", "answer", "grounding", "conflict", "exclud
 // they agree); the run records the tag and the commit it locked.
 const ASSEMBLER = "https://github.com/contextwindowarchitecture/assembler-python";
 const view = document.getElementById("view");
-const state = { repeat: "1", pick: 0, inference: null };
+const menu = document.getElementById("numbers");
+const state = { repeat: "1", pick: 0, inference: null, sort: { by: null, down: true } };
 let fills = 0;
 const pending = new Set();
 
@@ -211,6 +215,13 @@ function runs(index) {
         <span>${r.commit.slice(0, 7)}${r.dirty ? html`<span class="fail"> · changes</span>` : ""}</span><span>${r.assembler.join(", ")}</span>
         <span>${r.done} done · ${r.failed} failed · ${r.not_run} not run</span><span>${dollars(r.spent)}</span></a>`)}
     </div></div></section>`;
+}
+
+// See the numbers: one page of the run's numbers.json, or with no page named, all of them.
+function numbers(run, id) {
+  const file = data.href(run, "numbers.json");
+  return later(data.numbers(run).then((found) => (id ? figures.page(run, found, id, state.sort, file) : figures.all(run, found, file)),
+    () => figures.missing(run)));
 }
 
 // One construct: the evidence each case gives of it, then how every run of the case did on its measures.
@@ -513,7 +524,8 @@ async function draw() {
       : page === "case" ? caseView(run, s, parts.slice(2).join("/"))
         : page === "cases" ? cases(run, s)
           : page === "models" ? models(run, s)
-            : home(run, s));
+            : page === "numbers" ? numbers(run, parts[2])
+              : home(run, s));
 }
 
 function header(index, run, page) {
@@ -526,6 +538,13 @@ function header(index, run, page) {
     link.href = href;
     const here = name === page || (name === "constructs" && page === "construct") || (name === "cases" && page === "case");
     if (here) link.setAttribute("aria-current", "page"); else link.removeAttribute("aria-current");
+  }
+  // The menu's links lead to the same run's numbers; the one being read is marked, and so is the menu.
+  const [, , shown] = route();
+  menu.toggleAttribute("data-current", page === "numbers");
+  for (const link of menu.querySelectorAll("[data-numbers]")) {
+    link.href = `#/${current}/numbers${link.dataset.numbers ? `/${link.dataset.numbers}` : ""}`;
+    if (page === "numbers" && link.dataset.numbers === (shown ?? "")) link.setAttribute("aria-current", "page"); else link.removeAttribute("aria-current");
   }
 }
 
@@ -563,6 +582,7 @@ view.addEventListener("click", (event) => {
   if (!button) return;
   const { action, value } = button.dataset;
   if (action === "tour") { startTour(); return; }
+  if (action === "sort") state.sort = { by: value, down: state.sort.by === value ? !state.sort.down : true };
   if (action === "repeat") state.repeat = value;
   if (action === "inference") state.inference = Number(value);
   redraw(`button[data-action="${action}"][data-value="${CSS.escape(value)}"]`);
@@ -578,6 +598,14 @@ view.addEventListener("change", (event) => {
 
 document.getElementById("run").addEventListener("change", (event) => { location.hash = `#/${event.target.value}`; });
 
+// The menu closes when one of its pages is chosen, on a click anywhere else, and on Escape, which hands the focus back.
+document.addEventListener("click", (event) => { if (!menu.contains(event.target) || event.target.closest("a")) menu.open = false; });
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || !menu.open) return;
+  menu.open = false;
+  menu.querySelector("summary").focus();
+});
+
 const theme = document.getElementById("theme");
 function setTheme(name) {
   document.documentElement.dataset.theme = name;
@@ -588,7 +616,7 @@ theme.addEventListener("click", () => setTheme(document.documentElement.dataset.
 try { setTheme(localStorage.getItem("cwa-theme") ?? "light"); } catch { setTheme("light"); }
 
 let drawing = Promise.resolve();
-window.addEventListener("hashchange", () => { state.pick = 0; state.inference = null; drawing = draw().then(() => window.scrollTo(0, 0)); });
+window.addEventListener("hashchange", () => { state.pick = 0; state.inference = null; state.sort = { by: null, down: true }; drawing = draw().then(() => window.scrollTo(0, 0)); });
 
 // The tour opens pages itself: visit resolves once the page it opened has drawn. This listener is added after the one
 // above, so it runs after that one has started the draw.
