@@ -181,3 +181,16 @@ def test_an_agent_sends_its_context_again_at_every_inference() -> None:
     assert values(page, "resend_factor") == {MODEL: 2.75}  # 3,300 tokens sent, to end with a request of 1,200
     assert values(page, "cached_share") == {MODEL: round(1050 / 3300, 4)}
     assert values(page, "tokens_per_estimated") == {MODEL: None}  # 04 sends each model its own context: nothing to line up
+
+
+def test_a_runs_numbers_are_written_beside_its_summary(tmp_path: Path) -> None:
+    name = job(tmp_path, "01-docs-qa", "01-answer/after", {"answer": "Check spam [help:sign-in@6#0].", "error": None}, ANSWER)
+    called(tmp_path, name, 375)
+    read = graded(tmp_path, [name])
+    written = metrics.write(tmp_path, read)
+    assert written == json.loads((tmp_path / "numbers.json").read_text())
+    assert (written["run"], written["graded"], written["models"]) == (read["run"], read["graded"], [MODEL])
+    assert [page["id"] for page in written["pages"]] == ["tokens"]
+    # One request gives no line; the largest count over its estimate still says what margin it needed.
+    assert values(written["pages"][0], "tokens_per_estimated") == {MODEL: None}
+    assert values(written["pages"][0], "margin_needed") == {MODEL: round(375 / 283 - 1, 4)}

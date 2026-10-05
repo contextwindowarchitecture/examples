@@ -67,14 +67,14 @@ flowchart LR
     X --> D["Records<br/>snapshot, trace, payload, answer"]
     D --> G["Checks and replay<br/>checks.json"]
     L --> G
-    G --> I["summary.json, index.json"]
+    G --> I["summary.json, numbers.json, index.json"]
     I --> V["Viewer<br/>uv run serve.py"]
 ```
 
 1. **Preflight** ([preflight.py](preflight.py)). Every selected example's `scenarios.py --check` and `scripts/assembler_pin.py` pass, so the run records the context the repository commits; 05 commits eval recordings instead, which its own suite checks. The key's variable is set, and every model is on OpenRouter's public model list ([catalog.py](catalog.py)), which also gives its prices and whether it takes tools.
-2. **Plan** ([plan.py](plan.py), [cases.py](cases.py)). A job is one case of one example, for one model and repeat, and jobs run repeat by repeat, so a run the spending cap stops still holds whole repeats across every model. The estimate gives a likely cost and a ceiling from OpenRouter's prices. Likely takes the calls and input sizes from the committed files, and 1,000 output tokens a call. The ceiling is a real bound, because CWA never sends more input than a route's budget or asks for more output than it reserves. With `confirm = true` the runner waits for a yes.
+2. **Plan** ([plan.py](plan.py), [cases.py](cases.py)). A job is one case of one example, for one model and repeat, and jobs run repeat by repeat, so a run the spending cap stops still holds whole repeats across every model. The estimate gives a likely cost and a ceiling from OpenRouter's prices. Likely takes the calls and input sizes from the committed files, and 1,000 output tokens a call. The ceiling bounds the assembler's count: CWA never sends more input than a route's budget, counted with the route's tokenizer, or asks for more output than it reserves. A host that counts more tokens than that estimate bills more input than the ceiling allows for ([Numbers](#numbers)). With `confirm = true` the runner waits for a yes.
 3. **Run** ([run.py](run.py), [runner.py](runner.py)). Before the first job, [manifest.py](manifest.py) writes what the run was made from. Each job runs the example's own command in the example's folder and uv environment, with `OPENAI_BASE_URL` pointing at the proxy and a dummy key; the real key and bench's own `VIRTUAL_ENV` are never passed on, and 05 gets a store of its own. Jobs start in the plan's order, up to `concurrency` at a time, and a free model runs one job at a time. No job starts once the run has spent `max_cost_usd`.
-4. **Grade** ([grade.py](grade.py)). Every recorded snapshot is assembled again, then each job's checks are read from its files, with no model ([Checks](#checks)).
+4. **Grade** ([grade.py](grade.py)). Every recorded snapshot is assembled again, then each job's checks are read from its files, with no model ([Checks](#checks)), and the run's numbers from the same files ([Numbers](#numbers)).
 5. **Summarize.** A table of models by example in the terminal, and the files the viewer reads.
 
 ## Configuration
@@ -172,6 +172,31 @@ Measures say how a model used the context CWA decided on. A job whose command fa
 
 [expectations.toml](expectations.toml) says what each 01–04 scenario requires, with a comment naming the CWA decision it tests; 05 keeps its own in `evals/cases.json`. The claim and direction patterns are 05's, so a claim reads the same in both. The checks are patterns over the run record, so they are cheap and reproducible, and they miss some phrasings ([05's README](../05-production/README.md#what-the-suite-found) shows where): the viewer shows each answer beside its checks.
 
+## Numbers
+
+The checks say whether an answer passed. [metrics.py](metrics.py) says the rest in figures, read from the same files when a run is graded and written to `numbers.json`: what the same context cost each model, and how far the models can be told apart. There is no single score. Every number is one value per model, with the formula behind it and, where it rests on a count of observations, that count.
+
+The numbers rest on two tables of facts: one row per answered call, joined to the assembly whose payload it carried, and one row per result. The join is the one `payload_sent` checks: a job's answered calls, in order, against its rendered payloads, in order. `before.py` assembles nothing, so its calls have no estimate to set a count against.
+
+### Tokens
+
+A route sets `budget.input` in the model's tokens, and its application declares a tokenizer that counts them, or one that estimates them with a `budget.margin_percent` that covers the error (R-16). No conformance case can test that the counts match a model: it rests on the application's word. Every example declares `estimate-utf8/v1`, bytes divided by 4, with a 15% margin, for the models it was written against. The harness sends the same routes to other models, so it can measure what the margin would have to be for each. In 01–03 every model is sent the same payloads, and the assembler's count and the host's can be set side by side:
+
+| Number | How it is computed |
+| --- | --- |
+| Tokens per estimated token | The slope of the line through a model's 01–03 requests, the host's count against the assembler's estimate. It is the median slope between pairs of requests (Theil–Sen), so one that counts differently does not move it. A request whose question pastes a block of text is left off the line |
+| Tokens added to every request | Where that line starts: what the host counts whatever the payload holds, such as a system prompt of its own. A percentage margin cannot cover it; an application subtracts it from `budget.input` |
+| Tokens per estimated token, pasted text | For a request whose question pastes a block of text, such as 03's delivery log: the host's count less the tokens added to every request, over the estimate. An estimate from bytes runs low on digits and punctuation |
+| Margin needed | The smallest `margin_percent` that would have covered every 01–03 request: the largest host count over its estimate, less one |
+| Requests the declared margin covered | Of a model's 01–03 calls, those whose host count is within the estimate plus the route's declared margin |
+| Calls over the route's budget | Calls whose host count is more than the route's `budget.input`, 04 and 05 included |
+| Prompt tokens read from cache | Cached prompt tokens over prompt tokens, across every call |
+| Tokens sent per token of final request | An agent sends its context again at every inference. For each 04–05 task with more than one: the prompt tokens of all its inferences over those of its last, then the mean across tasks |
+
+Two tables break them down by request: each model's count beside the estimate and the budget, and the margin each request needed beside the one its route declares.
+
+No request here overflowed a model: the examples' budgets are far below these models' context limits. What the page shows is how far a route's declared margin carries to a model it was not declared for.
+
 ## Results
 
 ```
@@ -190,6 +215,7 @@ results/<run-id>/    # for example 2026-10-02T153007Z-bebe9ab
     store.sqlite     # 05 only: the store its run wrote
     checks.json      # its checks (grade.py)
   summary.json       # what the viewer reads (summary.py)
+  numbers.json       # its numbers, by page (metrics.py)
 ```
 
 [summary.py](summary.py) writes `summary.json` when a run is graded:

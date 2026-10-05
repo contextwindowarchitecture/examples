@@ -2,6 +2,7 @@
 a model.
 
     facts    one row per answered call, joined to the assembly whose payload it carried, and one per result
+    write    numbers.json, which grade.py writes beside summary.json: the run's models and its pages
     pages    each a list of numbers, one value per model with the formula behind it, and tables that break them down:
              tokens   what the same context costs in each model's own tokens, and the margin a route would need
 
@@ -131,6 +132,17 @@ def _result(run: Path, result: dict[str, Any]) -> Result:
         answer=answer, cited=cited, left_out=left_out,
         steps=tuple((step["tool"], step["approved"]) for step in answered.get("steps", [])),
         estimates=tuple(trace["result"]["input_tokens"] for trace in traces if trace["result"]))
+
+
+def write(run: Path, summary: dict[str, Any]) -> dict[str, Any]:
+    """The run's numbers.json, which the viewer's "See the numbers" pages read. summary: its summary.json."""
+    calls, results = facts(run, summary)
+    models = list(summary["models"])
+    pasted = frozenset(case["key"] for case in summary["cases"] if len(case["question"].strip().splitlines()) > 1)
+    written = {"run": summary["run"], "graded": summary["graded"], "models": models,
+               "pages": [tokens(calls, models, pasted)]}
+    (run / "numbers.json").write_text(json.dumps(written, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return written
 
 
 # The arithmetic

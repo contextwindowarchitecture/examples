@@ -9,6 +9,7 @@ from pathlib import Path
 import grade
 from config import ROOT
 from test_checks import as_the_openai_provider_sends
+from test_summary import run_with
 
 
 def recorded(tmp_path: Path, *scenarios: str) -> list[Path]:
@@ -50,6 +51,18 @@ def test_every_job_gets_its_checks_and_the_run_a_table_by_model(tmp_path: Path) 
     assert [check.check for check in graded[name] if check.measure == "invariant"] == ["payload_sent", "same_context", "replays"]
     table = out.getvalue()
     assert "vendor-model" in table and "invariant" in table and "3/3" in table
+
+
+def test_grading_a_run_writes_its_summary_and_its_numbers(tmp_path: Path) -> None:
+    run = run_with(tmp_path)
+    job = run / "vendor-model" / "01-docs-qa" / "01-answer" / "after" / "1"
+    payload = json.loads((job / "record" / "payload.json").read_text())
+    (job / "calls").mkdir()
+    (job / "calls" / "1.request.json").write_text(json.dumps(as_the_openai_provider_sends(payload)))
+    grade.grade(run, replayed={str(job / "record" / "snapshot.json"): {"payload": True, "outcome": True}}, out=io.StringIO())
+    numbers = json.loads((run / "numbers.json").read_text())
+    assert numbers["run"] == json.loads((run / "summary.json").read_text())["run"] == run.name
+    assert numbers["models"] == ["vendor/model"] and numbers["pages"]
 
 
 def test_a_run_given_by_a_relative_path_replays_from_the_examples_folder(tmp_path: Path, monkeypatch) -> None:
