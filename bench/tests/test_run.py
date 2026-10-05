@@ -124,3 +124,13 @@ def test_resuming_a_run_that_does_not_exist_says_so(monkeypatch: pytest.MonkeyPa
     monkeypatch.setattr(manifest, "RESULTS", tmp_path)
     assert run.main(["--resume", "2026-01-01T000000Z-nothing"]) == 2
     assert "no run 2026-01-01T000000Z-nothing in" in capsys.readouterr().err
+
+
+def test_when_the_jobs_end_each_calls_stats_are_fetched_and_then_the_run_is_graded(monkeypatch: pytest.MonkeyPatch,
+                                                                                   tmp_path: Path) -> None:
+    did: list[tuple[str, Any]] = []
+    monkeypatch.setattr(run.generations, "gather", lambda folder, key: did.append(("stats", (folder, key))))
+    monkeypatch.setattr(run.grade, "grade", lambda folder: did.append(("grade", folder)))
+    run.finish(tmp_path, "sk-or-real")
+    # The stats first: the grade reads them, and OpenRouter does not say how long it keeps them.
+    assert did == [("stats", (tmp_path, "sk-or-real")), ("grade", tmp_path)]

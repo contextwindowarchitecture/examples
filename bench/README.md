@@ -14,6 +14,7 @@ uv run pytest                          # the harness's own tests: no model, no n
 uv run --env-file .env plan.py         # the preflight, then what a run would do and cost; nothing is sent
 uv run --env-file .env run.py          # the same, a confirmation, then the run, in results/<run-id>/
 uv run --env-file .env run.py --resume <run-id>    # the jobs a run has not finished, at the commit it ran
+uv run --env-file .env generations.py results/<run-id>   # fetch what OpenRouter recorded about a run's calls; asks no model
 uv run grade.py results/<run-id>       # grade a run again from its files, without a model
 uv run serve.py                        # the viewer, at http://127.0.0.1:8765/
 ```
@@ -64,6 +65,8 @@ flowchart LR
     X -->|OPENAI_BASE_URL| P["Recording proxy<br/>127.0.0.1"]
     P --> O["OpenRouter"]
     P --> L["calls.jsonl"]
+    O -->|"when the jobs end"| N["Generation stats<br/>first token, tokens, hosts"]
+    N --> G
     X --> D["Records<br/>snapshot, trace, payload, answer"]
     D --> G["Checks and replay<br/>checks.json"]
     L --> G
@@ -74,8 +77,9 @@ flowchart LR
 1. **Preflight** ([preflight.py](preflight.py)). Every selected example's `scenarios.py --check` and `scripts/assembler_pin.py` pass, so the run records the context the repository commits; 05 commits eval recordings instead, which its own suite checks. The key's variable is set, and every model is on OpenRouter's public model list ([catalog.py](catalog.py)), which also gives its prices and whether it takes tools.
 2. **Plan** ([plan.py](plan.py), [cases.py](cases.py)). A job is one case of one example, for one model and repeat, and jobs run repeat by repeat, so a run the spending cap stops still holds whole repeats across every model. The estimate gives a likely cost and a ceiling from OpenRouter's prices. Likely takes the calls and input sizes from the committed files, and 1,000 output tokens a call. The ceiling bounds the assembler's count: CWA never sends more input than a route's budget, counted with the route's tokenizer, or asks for more output than it reserves. A host that counts more tokens than that estimate bills more input than the ceiling allows for ([Numbers](#numbers)). With `confirm = true` the runner waits for a yes.
 3. **Run** ([run.py](run.py), [runner.py](runner.py)). Before the first job, [manifest.py](manifest.py) writes what the run was made from. Each job runs the example's own command in the example's folder and uv environment, with `OPENAI_BASE_URL` pointing at the proxy and a dummy key; the real key and bench's own `VIRTUAL_ENV` are never passed on, and 05 gets a store of its own. Jobs start in the plan's order, up to `concurrency` at a time, and a free model runs one job at a time. No job starts once the run has spent `max_cost_usd`.
-4. **Grade** ([grade.py](grade.py)). Every recorded snapshot is assembled again, then each job's checks are read from its files, with no model ([Checks](#checks)), and the run's numbers from the same files ([Numbers](#numbers)).
-5. **Summarize.** A table of models by example in the terminal, and the files the viewer reads.
+4. **Stats** ([generations.py](generations.py)). When the jobs end, what OpenRouter recorded about each call is fetched and kept beside it ([What OpenRouter recorded](#what-openrouter-recorded)).
+5. **Grade** ([grade.py](grade.py)). Every recorded snapshot is assembled again, then each job's checks are read from its files, with no model ([Checks](#checks)), and the run's numbers from the same files ([Numbers](#numbers)).
+6. **Summarize.** A table of models by example in the terminal, and the files the viewer reads.
 
 ## Configuration
 
@@ -141,6 +145,23 @@ In 01–03 the context does not depend on the model: every model gets the same s
 The key is never written. A path that is not a plain folder under the run is refused.
 
 It retries a 429 or a 5xx, and a connection that drops, after the host's `Retry-After` or with a wait that doubles from 5 seconds to at most 60, six attempts in all. Free models share upstream rate limits, and their 429s carry no `Retry-After`: OpenRouter's error names the host in `error.metadata.provider_name`. OpenRouter also limits free models to 20 requests a minute, and to 1,000 a day once $10 of credit has been bought.
+
+## What OpenRouter recorded
+
+The examples do not stream, and the harness changes nothing they send, so the proxy can time a call only from start to finish. OpenRouter streams from the host whatever the client asked for, and keeps stats for every generation under the id each response carries. [generations.py](generations.py) reads them with `GET /generation?id=<id>`: no model is asked and nothing is charged. `run.py` does it when the jobs end, since OpenRouter does not say how long it keeps them, and `uv run --env-file .env generations.py results/<run-id>` fetches whatever a run does not hold yet, for a run made before this as well.
+
+Each call's stats go to `calls/<n>.generation.json`, beside its request and response:
+
+| Kept | What it is |
+| --- | --- |
+| `latency` | Milliseconds to the first token from the host, a reasoning token included |
+| `generation_time` | Milliseconds the generation took in all |
+| `tokens_prompt`, `tokens_completion` | The request and the reply counted by OpenRouter's own tokenizer, the same for every model |
+| `native_tokens_prompt`, `native_tokens_completion`, `native_tokens_reasoning`, `native_tokens_cached` | The same by the model's tokenizer, as the response's usage has them |
+| `attempts` | Each host tried, in order, with its status and its time to first token |
+| `provider_name`, `model`, `finish_reason`, `native_finish_reason`, `streamed`, `cancelled`, `total_cost`, `cache_discount`, `upstream_inference_cost`, `service_tier`, `data_region`, `moderation_latency`, `created_at` | As OpenRouter reports them |
+
+The reply also names the account's workspace, the request and the upstream call. A run has no use for those and does not keep them, and the key is never written.
 
 ## Checks
 
@@ -298,7 +319,8 @@ results/<run-id>/    # for example 2026-10-02T153007Z-bebe9ab
                      # tokens, cost, latency, attempts
   <model>/<example>/<case>/<repeat>/
     record/          # what the example wrote with --record, or --out for 05's suite
-    calls/           # what the proxy saw: <n>.request.json and <n>.response.json
+    calls/           # what the proxy saw: <n>.request.json and <n>.response.json; and <n>.generation.json,
+                     # what OpenRouter recorded about the call (generations.py)
     output.txt       # what the example printed
     job.json         # its command, exit code and seconds
     store.sqlite     # 05 only: the store its run wrote

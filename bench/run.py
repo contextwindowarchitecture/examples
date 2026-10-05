@@ -7,8 +7,8 @@ proxy.
 
 A job runs the example's own command in the example's folder and environment, with the proxy as its OpenAI endpoint.
 Its record goes to <job>/record/, what it printed to <job>/output.txt, and how it ended to <job>/job.json. A job that
-failed, or did not start because the run reached its cap, runs again on --resume. When the jobs end, the run is
-graded (grade.py).
+failed, or did not start because the run reached its cap, runs again on --resume. When the jobs end, what OpenRouter
+recorded about each call is fetched (generations.py), and the run is graded (grade.py).
 """
 from __future__ import annotations
 
@@ -24,6 +24,7 @@ from pathlib import Path
 
 import catalog
 import config
+import generations
 import grade
 import manifest
 import plan
@@ -148,11 +149,17 @@ def main(argv: list[str]) -> int:
         spent = through.spent
     print(f"\n{len(outcome.done)} done, {len(outcome.failed)} failed, {len(outcome.not_started)} not started; "
           f"the run has spent ${spent:.2f} of ${configured.max_cost_usd:.2f}")
-    grade.grade(run)  # every job's checks.json; uv run grade.py results/<run-id> grades it again
+    finish(run, os.environ[configured.key_env])
     if outcome.failed or outcome.not_started:
         print(f"uv run --env-file .env run.py --resume {run.name}   # runs them again")
         return 1
     return 0
+
+
+def finish(run: Path, key: str) -> None:
+    """When the jobs end: each call's stats, while OpenRouter still has them, then the grade, which reads them."""
+    generations.gather(run, key)  # uv run --env-file .env generations.py results/<run-id> fetches what is missing
+    grade.grade(run)              # every job's checks.json; uv run grade.py results/<run-id> grades it again
 
 
 def _confirmed(jobs: int) -> bool:
