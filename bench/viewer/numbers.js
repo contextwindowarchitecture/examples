@@ -119,6 +119,7 @@ function totals(page) {
 export function page(run, numbers, id, sort, file, lead = "") {
   const one = numbers.pages.find((candidate) => candidate.id === id);
   if (!one) return html`<section class="wrap head"><h1>No such page of numbers</h1>${pages(run, numbers, null)}</section>`;
+  const rest = one.tables.filter((table) => !one.cards?.tables.includes(table.id));  // what the cards hold is not set out twice
   return html`
     <section class="wrap head">
       <div class="crumb"><a href="${opens(run)}">Run ${run}</a> / <a href="#/${run}/numbers">See the Numbers</a> / ${one.title}</div>
@@ -132,12 +133,50 @@ export function page(run, numbers, id, sort, file, lead = "") {
     </div></section>
     ${one.charts?.length ? html`<section class="band"><div class="wrap charts" data-tour="numbers-chart">${one.charts.map(figure)}</div></section>` : ""}
     <section class="band surface"><div class="wrap">
-      <div class="toolbar"><span class="label">One row per model · a heading sorts by its column</span><span class="changed" aria-hidden="true"></span>
+      <div class="toolbar"><span class="label">${one.cards ? "A card per model, in the chart's order · open one for every number it has" : "One row per model · a heading sorts by its column"}</span><span class="changed" aria-hidden="true"></span>
         <a class="mono" style="font-size: 12px;" href="${file}" target="_blank" rel="noopener">numbers.json →</a></div>
-      <div data-tour="numbers-table">${byModel(numbers, one, sort)}</div>
+      <div data-tour="numbers-table">${one.cards ? cards(numbers, one) : byModel(numbers, one, sort)}</div>
       ${how(one)}
     </div></section>
-    <section class="band"><div class="wrap" style="padding-top: 0;">${one.tables.map(breakdown)}</div></section>`;
+    ${rest.length ? html`<section class="band"><div class="wrap" style="padding-top: 0;">${rest.map(breakdown)}</div></section>` : ""}`;
+}
+
+// A page's models as cards, in the order its chart draws them. Closed, a card holds the few numbers most readers
+// compare, set in columns so they still read down; open, every number by the question it answers, and the model's
+// share of the page's tables, which nobody reads across fourteen models. Comparing is the chart's job.
+function cards(numbers, page) {
+  const spec = page.cards;
+  const by = Object.fromEntries(page.numbers.map((one) => [one.id, one]));
+  const value = (model) => by[spec.order].values[model];
+  const models = [...numbers.models].sort((a, b) => (value(a) == null) - (value(b) == null) || value(a) - value(b));
+  const tables = spec.tables.map((id) => page.tables.find((table) => table.id === id)).filter(Boolean);
+  const columns = `--figures: ${spec.head.length};`;
+  return html`<div class="mcards">
+    <div class="mcard-heads" style="${columns}" aria-hidden="true"><span>Model</span>${spec.head.map((id) => html`<span class="num">${by[id].label}</span>`)}</div>
+    ${models.map((model) => html`<details class="mcard" data-model="${model}">
+      <summary style="${columns}"><span class="fg">${model}</span>${spec.head.map((id) => html`<span class="num fg"><span class="mlabel">${by[id].label}</span>${shown(by[id].values[model], by[id].unit)}</span>`)}</summary>
+      <div class="mcard-body">
+        ${spec.groups.map((group) => html`<div class="mgroup"><div class="label">${group.title}</div>${group.numbers.map((id) => html`
+          <div class="mrow" title="${by[id].means}"><span>${by[id].label}</span><span class="num fg">${shown(by[id].values[model], by[id].unit)}${rests(by[id], model)}</span></div>`)}</div>`)}
+        ${tables.map((table) => slice(table, model))}
+      </div>
+    </details>`)}
+  </div>`;
+}
+
+// A model's share of a table: its rows, where a column names the model, or its column, where each model has one.
+function slice(table, model) {
+  const long = table.columns.some((column) => column.id === "model");
+  const columns = long ? table.columns.filter((column) => column.id !== "model") : [table.columns[0], table.columns.find((column) => column.id === model)];
+  const rows = long ? table.rows.filter((row) => row.model === model) : table.rows;
+  if (!rows.length || !columns.at(-1)) return "";
+  // Every row as wide as the columns need, so a slice too wide for a phone scrolls inside its card with its columns aligned.
+  const template = `grid-template-columns: minmax(110px, 1.4fr) ${columns.slice(1).map(() => "minmax(56px, 1fr)").join(" ")}; min-width: ${110 + 68 * (columns.length - 1)}px;`;
+  const cell = (row, column) => html`<span class="${numeric(column.unit) ? "num fg" : ""}">${shown(row[column.id], column.unit)}</span>`;
+  return html`<div class="mslice${long ? " wide" : ""}" title="${table.how}"><div class="label">${table.title}</div>
+    ${long ? html`<div class="mrow head" style="${template}">${columns.map((column) => html`<span class="${numeric(column.unit) ? "num" : ""}">${column.label}</span>`)}</div>` : ""}
+    ${rows.map((row) => html`<div class="mrow" style="${template}">${columns.map((column) => cell(row, column))}</div>`)}
+  </div>`;
 }
 
 // Every number of the run: a row each, grouped by page, a column per model.

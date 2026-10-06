@@ -195,8 +195,24 @@ function rows(plot, chart) {
       mark.value !== undefined ? shown(mark.value, mark.unit) : mark.x !== undefined ? shown(mark.x, chart.x.unit) : `${shown(mark.from, chart.x.unit)} to ${shown(mark.to, chart.x.unit)}`,
       mark.name, TONE[mark.tone]]);
     answers(group, `${row.label}: ${said.map(([value, name]) => `${name} ${value}`).join("; ")}`, () => tell(group, row.label, said));
+    if (row.opens) opens(group, row.opens);
     svg.append(group);
   });
+}
+
+// A row that stands for a model opens its card on the page, by pointer or by Enter, and gives the card the focus.
+function opens(group, model) {
+  const open = () => {
+    const card = [...document.querySelectorAll("details[data-model]")].find((one) => one.dataset.model === model);
+    if (!card) return;
+    hush();
+    card.open = true;
+    card.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+    card.querySelector("summary").focus({ preventScroll: true });
+  };
+  group.classList.add("opens");
+  group.addEventListener("click", open);
+  group.addEventListener("keydown", (event) => { if (event.key === "Enter") open(); });
 }
 
 // One small plot per model, all on the same axes, so a slope in one can be set against a slope in another by eye.

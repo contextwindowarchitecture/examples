@@ -99,6 +99,8 @@ def test_a_models_wait_is_a_row_from_its_first_token_through_its_slowest_calls()
     # Seconds span ten times and more between models, so the axis is a scale of ratios; the quickest median call is first.
     assert chart["x"] == {"label": "Seconds", "unit": "seconds", "log": True}
     assert [row["label"] for row in chart["rows"]] == ["quick", "slow"]
+    # A row opens its model's card on the page.
+    assert [row["opens"] for row in chart["rows"]] == ["a/quick", "b/slow"]
     # Marks in the order a reader meets them, each a median or a percentile of its own.
     assert chart["rows"][1]["marks"] == [
         {"mark": "link", "from": 0.5, "to": 9, "tone": "quiet"},

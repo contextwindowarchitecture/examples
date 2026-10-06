@@ -608,7 +608,14 @@ def speed(calls: list[Call], summary: dict[str, Any]) -> dict[str, Any]:
                      "share": _r(len(found) / len(_of(calls, model))), "seconds": _r(median(call.ms for call in found) / 1000),
                      "first_token": _r(_scaled(_median(call.first_token for call in found if call.first_token is not None), 1 / 1000))}
                     for model, host in hosts]),
-        ]}
+        ],
+        # A card per model, in the order the chart draws them: closed on what most readers compare, open on every
+        # number by the question it answers, and on the model's own rows of the tables, which nobody reads across models.
+        "cards": {"order": "seconds_p50", "head": ["seconds_p50", "first_token_p50", "tokens_per_second", "reasoning_share"],
+                  "groups": [{"title": "The wait", "numbers": ["first_token_p50", "first_token_p90", "first_visible", "seconds_p50", "seconds_p90", "seconds_p99"]},
+                             {"title": "The writing", "numbers": ["tokens_per_second", "generating_per_second", "visible_per_second", "reasoning_share"]},
+                             {"title": "Around the call", "numbers": ["outside", "in_one_piece", "retried", "tried_more_hosts", "cut_short"]}],
+                  "tables": ["seconds_by_example", "by_host"]}}
 
 
 def stability(results: list[Result], models: list[str], listed: dict[str, Any] | None = None) -> dict[str, Any]:

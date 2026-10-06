@@ -546,3 +546,14 @@ def test_agents_sets_each_path_beside_the_committed_recording_and_the_budget() -
     assert values(page, "steps_over_recorded") == {MODEL: 0.75}  # 4 of 4 and 2 of 4 tool calls
     # At 100, 200 and 300 tokens an inference, a budget of 4,000 that starts at 1,000 binds after 30, 15 and 10 more.
     assert values(page, "inferences_until_budget") == {MODEL: 15}
+
+
+def test_speed_sets_each_model_as_a_card_that_opens_on_its_numbers_by_question() -> None:
+    page = metrics.speed([call(ms=3000, first_token=500, generating=2800)], {"models": {MODEL: listed()}, "jobs": []})
+    cards, numbers = page["cards"], [one["id"] for one in page["numbers"]]
+    # The models in the order the chart draws them, each closed on a few numbers and open on every one, once each.
+    assert cards["order"] == "seconds_p50" and set(cards["head"]) <= set(numbers)
+    assert [group["title"] for group in cards["groups"]] == ["The wait", "The writing", "Around the call"]
+    assert sorted(id for group in cards["groups"] for id in group["numbers"]) == sorted(numbers)
+    # A card holds its model's share of the page's tables, which are then not set out a second time.
+    assert cards["tables"] == ["seconds_by_example", "by_host"] and set(cards["tables"]) <= {table["id"] for table in page["tables"]}

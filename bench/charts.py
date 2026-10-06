@@ -126,12 +126,12 @@ def _speed(by: dict[str, Any], results: list[Any], models: list[str]) -> list[di
                "between them is reasoning. The tall tick is the median call, and the line runs on to the slow call, "
                "the 90th percentile, and the slowest calls, the 99th. Each mark is a median or a percentile of its "
                "own, not one call cut into parts. A dot on its tall tick is a host that sends its reply in one piece.",
-        "values": "Its values are six of the numbers on this page.",
+        "values": "Its values are six of the numbers on this page. A row opens its model's card below.",
         # A slow model's tail can be a hundred times another's first token: on a scale of ratios both stay readable.
         "x": {"label": "Seconds", "unit": "seconds", "log": True} if max(seconds) >= 10 * min(seconds) else {"label": "Seconds", "unit": "seconds", "zero": True},
         "legend": [{"mark": "dot", "tone": "ink", "label": "Median time to first token"}, {"mark": "ring", "tone": "ink", "label": "First visible token, estimated"},
                    {"mark": "tick", "tone": "ink", "label": "Median call"}, {"mark": "tick", "tone": "quiet", "label": "Slow and slowest calls"}],
-        "rows": [{"label": _short(model), "marks": marks(model)} for model in timed]}]
+        "rows": [{"label": _short(model), "opens": model, "marks": marks(model)} for model in timed]}]
 
 
 def _stability(by: dict[str, Any], results: list[Any], models: list[str]) -> list[dict[str, Any] | None]:
