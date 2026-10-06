@@ -144,7 +144,7 @@ export function page(run, numbers, id, sort, file, lead = "") {
 // What a page's cards are ordered by, which is the order its chart of models draws them in, where it has one.
 function ordered(page) {
   const by = page.numbers.find((one) => one.id === page.cards.order);
-  return `A card per model, ${page.cards.down ? "highest" : "lowest"} ${by.label.toLowerCase()} first · open one for every number it has`;
+  return `A card per model · ${by.label}, ${page.cards.down ? "highest" : "lowest"} first · open one for every number it has`;
 }
 
 // A page's models as cards, in the order its chart draws them. Closed, a card holds the few numbers most readers

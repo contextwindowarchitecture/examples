@@ -162,7 +162,11 @@ def test_a_models_wait_is_a_row_from_its_first_token_through_its_slowest_calls()
 def test_what_a_model_cited_of_what_it_was_sent_is_a_bar() -> None:
     results = [result(sent=("help:a@1#0", "help:b@1#0"), cited=("help:a@1#0",), supported=0.9)]
     chart = drawn([metrics.grounding(results, [MODEL])], results, [MODEL], "grounding", "cited")
-    assert chart["rows"] == [{"label": "model", "marks": [{"mark": "bar", "x": 0.5, "tone": "ink", "name": "Articles cited, of those sent"}]}]
+    assert chart["rows"] == [{"label": "model", "opens": MODEL, "marks": [{"mark": "bar", "x": 0.5, "tone": "ink", "name": "Articles cited, of those sent"}]}]
+    # The models that cite the most of what they were sent first, as their cards are.
+    two = [result(model=model, sent=("help:a@1#0", "help:b@1#0"), cited=cited) for model, cited in (("a/less", ("help:a@1#0",)), ("b/more", ("help:a@1#0", "help:b@1#0")))]
+    ranked = drawn([metrics.grounding(two, ["a/less", "b/more"])], two, ["a/less", "b/more"], "grounding", "cited")
+    assert [row["label"] for row in ranked["rows"]] == ["more", "less"]
     assert chart["x"] == {"label": "Articles cited, of those sent", "unit": "percent", "zero": True, "to": 1}
 
 

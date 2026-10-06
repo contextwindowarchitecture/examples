@@ -825,7 +825,12 @@ def grounding(results: list[Result], models: list[str]) -> dict[str, Any]:
                      "cited": _median(len(one.cited) for one in here(case, model)),
                      "supported": _r(_mean(one.supported for one in here(case, model) if one.supported is not None))}
                     for case, model in cases]),
-        ]}
+        ],
+        # A card per model, the most of what it was sent cited first as the chart sets them, each with its own cases.
+        "cards": {"order": "cited_of_sent", "down": True, "head": ["cited_of_sent", "citations_sent", "uncited", "words_in_context"],
+                  "groups": [{"title": "What it cited", "numbers": ["cited_of_sent", "citations_sent", "uncited", "cited_rank", "cites_first"]},
+                             {"title": "Where its words came from", "numbers": ["words_in_context", "words_in_context_before"]}],
+                  "tables": ["by_case"]}}
 
 
 def agents(results: list[Result], models: list[str]) -> dict[str, Any]:

@@ -231,13 +231,14 @@ def _gap(page: dict[str, Any], models: list[str]) -> dict[str, Any] | None:
 
 def _grounding(by: dict[str, Any], results: list[Any], models: list[str]) -> list[dict[str, Any] | None]:
     cited = _values(by["grounding"], "cited_of_sent")
-    rows = [{"label": _short(model), "marks": [{"mark": "bar", "x": cited[model], "tone": "ink", "name": "Articles cited, of those sent"}]}
-            for model in models if cited.get(model) is not None]
+    ranked = sorted((model for model in models if cited.get(model) is not None), key=lambda model: -cited[model])
+    rows = [{"label": _short(model), "opens": model, "marks": [{"mark": "bar", "x": cited[model], "tone": "ink", "name": "Articles cited, of those sent"}]}
+            for model in ranked]
     return [rows and {
         "id": "cited", "kind": "rows", "title": "How much of what it was sent each model cited",
         "how": "Across the answers whose request carried knowledge: the articles an answer cites that its request "
-               "carried, over the articles it carried.",
-        "values": "Its values are a column of the table on this page.",
+               "carried, over the articles it carried. The most first.",
+        "values": "Its values are one of the numbers on this page. A row opens its model's card below.",
         "x": {"label": "Articles cited, of those sent", "unit": "percent", "zero": True, "to": 1}, "legend": [], "rows": rows}]
 
 
