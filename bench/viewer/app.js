@@ -1,7 +1,8 @@
 // The viewer: a run's results, organized by the CWA construct they exercised. Every page reads a run's summary.json
 // and, for what it shows in detail, the job files the summary names.
 //
-//   #/<run>                          the constructs, the invariants and the models
+//   #/                               what bench is and does, the latest run, and how to find your way
+//   #/<run>                          the constructs and the invariants
 //   #/<run>/construct/<id>           one construct: the cases that exercised it, and how each model did
 //   #/<run>/case/<example>/<case>    one case: what CWA decided for each run of it, and each model's answer
 //   #/<run>/numbers                  every number of the run, a row each and a column per model
@@ -114,10 +115,73 @@ const inRepeat = (r) => state.repeat === "all" || String(r.repeat) === state.rep
 
 // Pages
 
+const invariantsOf = (s) => s.jobs.flatMap((job) => (job.invariants ?? []).map((check) => ({ ...check, job: job.job })));
+const brokenOf = (checks) => checks.filter((c) => c.measure === "invariant" && c.passed === false);
+const callsOf = (s) => Object.values(s.models).reduce((sum, m) => sum + m.calls, 0);
+
+// The site's front page: what bench is and does, the newest run, and the header's pages, each opened on that run.
 function home(run, s) {
-  const invariantChecks = s.jobs.flatMap((job) => (job.invariants ?? []).map((check) => ({ ...check, job: job.job })));
-  const broken = invariantChecks.filter((c) => c.measure === "invariant" && c.passed === false);
-  const calls = Object.values(s.models).reduce((sum, m) => sum + m.calls, 0);
+  const broken = brokenOf(invariantsOf(s));
+  const way = [
+    [`#/${run}/numbers`, "See the Numbers", "A page for each family of numbers: what CWA decided, tokens, cost, speed, stability, grounding, 01's before and after, the agents' paths and the checks. Each opens with a reading of the run."],
+    [`#/${run}`, "Constructs", "A card for each decision CWA makes, with the requirement behind it. Open one for the evidence from the run's own traces, and every model's answer beside it."],
+    [`#/${run}/cases`, "Cases", "Every question the examples asked. A case shows what CWA decided for each run of it, item by item, and what each model did with it."],
+    [`#/${run}/models`, "Models", "Each model's calls, tokens, latency, cost, the hosts that answered it, and the checks its answers passed."],
+    ["#/runs", "Runs", "Every graded run, newest first. Run, at the top of each page, switches the run being read."],
+  ];
+  return html`
+    <section class="wrap head">
+      <div class="kicker ruled">Benchmark</div>
+      <h1>CWA across models.</h1>
+      <p class="lede">CWA bench runs the example applications of Context Window Architecture against a list of models on OpenRouter, and records two things for every request: what CWA decided to send, and what the model did with it.</p>
+      <p class="body">CWA is a draft specification for how an application builds what it sends a model. Producers propose typed items: instructions, retrieved chunks, conversation turns, tool results. The application freezes them into a snapshot with a route policy and a budget, and an assembler turns the snapshot into the request and a trace of what was sent, what was left out and why. Every example here is built on the same assembler, assembler-python, so every model is handed context decided the same way.</p>
+      <div class="actions"><a class="ghost" href="#/${run}">Open the latest run →</a>
+        <button type="button" class="ghost" data-action="tour">New here? Take the tour →</button></div>
+    </section>
+    <section class="band surface"><div class="wrap">
+      <div class="kicker">What it does</div>
+      <h2>Run, check, grade, show.</h2>
+      <p class="body">A run is the examples against the models in bench.toml, a set number of times each. Nothing an example sends is changed.</p>
+      <div class="hair four">
+        <div class="cell"><div class="label">1 · Run</div><div class="card-title">Each example, as an application.</div>
+          <div class="card-copy">Every case runs through the example's own command line, once per model and repeat. A local proxy passes each call to OpenRouter and keeps the request and response exactly as they were.</div></div>
+        <div class="cell"><div class="label">2 · Check</div><div class="card-title">Four invariants.</div>
+          <div class="card-copy">The request sent is the payload the assembler rendered, a refused assembly asks no model, 01–03 use their committed snapshots, and every snapshot assembles again to the same request. A failure is a bug, not a finding about a model.</div></div>
+        <div class="cell"><div class="label">3 · Grade</div><div class="card-title">Each answer, against its own run.</div>
+          <div class="card-copy">Did it stay within what was sent, side with a conflict's winner, leave alone what CWA left out, and resist an instruction injected into a tool result? 05 is graded by its own eval suite too. No model grades another.</div></div>
+        <div class="cell"><div class="label">4 · Show</div><div class="card-title">By CWA construct.</div>
+          <div class="card-copy">This site: for each decision the assembler makes, the cases that exercised it and how each model did given the same decision, with the numbers behind it.</div></div>
+      </div>
+    </div></section>
+    <section class="band"><div class="wrap">
+      <div class="kicker">The latest run</div>
+      <h2 class="case mono">${run}</h2>
+      <div class="meta"><span>started ${s.started}</span><span>commit <b>${s.repository.commit.slice(0, 7)}</b></span>
+        <span>${plural(Object.keys(s.models).length, "model")} · ${plural(s.jobs.length, "job")} · ${plural(callsOf(s), "call")}</span>
+        <span>spent <b>${dollars(s.spent)}</b></span></div>
+      <p class="body">${broken.length ? html`<span class="fail">${plural(broken.length, "invariant check")} broke in this run.</span>` : "Every invariant held in every job."} ${plural(s.constructs.filter((c) => c.cases.length).length, "construct")} of ${s.constructs.length} were exercised.</p>
+      <a class="ghost" href="#/${run}">Open it →</a>
+    </div></section>
+    <section class="band surface"><div class="wrap">
+      <div class="kicker">Finding your way</div>
+      <h2>The header, left to right.</h2>
+      <p class="body">Each page opens on the run picked in Run, at the top. Tour walks through the site a step at a time, and Dark switches the theme.</p>
+      <div class="hair cards">${way.map(([href, title, copy]) => html`<a class="cell" href="${href}"><div class="card-title">${title}</div><div class="card-copy">${copy}</div></a>`)}</div>
+    </div></section>
+    <section class="band"><div class="wrap">
+      <div class="kicker">What it is not</div>
+      <h2>A smoke test, not a leaderboard.</h2>
+      <p class="body">Each example has three to six cases, so repeats show how much a model varies, not whether a difference between models is significant. The checks are patterns, there is no single score, and it does not measure general model quality. Everything sent is the examples' fictional data.</p>
+      <div class="links"><a href="https://github.com/contextwindowarchitecture/examples/tree/main/bench" target="_blank" rel="noopener">How bench works →</a>
+        <a href="https://contextwindowarchitecture.io/spec.html" target="_blank" rel="noopener">The specification →</a></div>
+    </div></section>`;
+}
+
+// A run's home: its constructs and the invariants. Its models are on their own page.
+function constructs(run, s) {
+  const invariantChecks = invariantsOf(s);
+  const broken = brokenOf(invariantChecks);
+  const calls = callsOf(s);
   return html`
     <section class="wrap head">
       <div class="kicker ruled">Benchmark · run ${run}</div>
@@ -160,12 +224,6 @@ function home(run, s) {
           <div class="card-title">${construct.title}</div><div class="card-copy">${construct.description}</div>
           <div class="card-foot">${measurePills(s, construct, results)}</div></a>`;
       })}</div>
-    </div></section>
-    <section class="band surface"><div class="wrap">
-      <div class="kicker">Models</div>
-      <h2>What each model was sent, and what it cost.</h2>
-      <p class="body">Every call went through the recording proxy. Hosts are the ones OpenRouter says answered; checks count those graded, and a count in the accent colour has a failure in it.</p>
-      <div data-tour="models">${modelsTable(s)}</div>
     </div></section>`;
 }
 
@@ -189,7 +247,9 @@ function modelsTable(s) {
 function models(run, s) {
   return html`<section class="wrap head"><div class="crumb"><a href="#/${run}">Run ${run}</a> / Models</div>
     <div class="kicker">Models · ${plural(Object.keys(s.models).length, "model")}</div><h1>Models</h1>
-    <p class="lede">What each model was sent, what it cost, and the checks its answers passed.</p>${modelsTable(s)}</section>`;
+    <p class="lede">What each model was sent, what it cost, and the checks its answers passed.</p>
+    <p class="body">Every call went through the recording proxy. Hosts are the ones OpenRouter says answered; checks count those graded, and a count in the accent colour has a failure in it.</p>
+    <div data-tour="models">${modelsTable(s)}</div></section>`;
 }
 
 function cases(run, s) {
@@ -518,8 +578,14 @@ async function draw() {
       <p class="lede">Run the benchmark with uv run --env-file .env run.py, then reload this page.</p></section>`);
     return;
   }
-  const run = parts[0] ?? index.runs[0].run;
-  if (!parts.length) { location.replace(`#/${run}`); return; }
+  if (!parts.length) {
+    const latest = index.runs[0].run;
+    header(index, latest, "home");
+    picker.value = latest;
+    view.innerHTML = String(home(latest, await data.summary(latest)));
+    return;
+  }
+  const run = parts[0];
   const s = await data.summary(run);
   const page = parts[1] ?? "constructs";
   header(index, run, page);
@@ -530,7 +596,7 @@ async function draw() {
         : page === "cases" ? cases(run, s)
           : page === "models" ? models(run, s)
             : page === "numbers" ? numbers(run, parts[2])
-              : home(run, s));
+              : constructs(run, s));
 }
 
 function header(index, run, page) {

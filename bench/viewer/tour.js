@@ -36,7 +36,7 @@ const STEPS = [
     body: () => "Relevance thresholds, budgets, conflicts, scope, the guard on tools: each card names the requirement in the spec behind it, the cases that exercised it in this run, and how the models' answers did on its checks.",
   },
   {
-    page: "", parts: ["models"], kicker: "Models", title: "What each model cost, and how it did.",
+    page: "models", parts: ["models"], kicker: "Models", title: "What each model cost, and how it did.",
     body: () => "Calls, tokens, latency, cost and the hosts OpenRouter routed each call to, then the checks passed, by measure. A count in clay has a failure in it.",
   },
   {
