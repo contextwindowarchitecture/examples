@@ -1,0 +1,19 @@
+# The viewer on OpenShift: oc apply -k openshift/ from bench/. Set the image below and the hostname in route.yaml.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: cwa-bench-viewer
+      app.kubernetes.io/part-of: cwa-examples
+    includeSelectors: true
+
+resources:
+  - deployment.yaml
+  - service.yaml
+  - route.yaml
+
+images:
+  - name: cwa-bench-viewer
+    newName: quay.io/your-org/cwa-bench-viewer  # where you pushed it
+    newTag: 2026-10-05T224455Z-5c3f660           # the newest run it holds, so a new run is a new tag

@@ -1,0 +1,7 @@
+# The viewer's build context is an allowlist: bench/.env holds the key and must never reach an image or a builder.
+*
+!serve.py
+!config.py
+!viewer
+!results
+**/__pycache__

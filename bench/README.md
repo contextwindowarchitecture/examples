@@ -410,7 +410,7 @@ results/<run-id>/    # for example 2026-10-02T153007Z-bebe9ab
 
 ## The viewer
 
-`uv run serve.py` serves the viewer ([viewer/](viewer/)) and `results/` at http://127.0.0.1:8765/, on this machine only; `--host 0.0.0.0` listens on every interface, as it does in a container. Nothing else in `bench/` is served, `.env` included, and no folder is listed. The viewer is static HTML and JavaScript with no build step, in the site's visual language. It holds everything it runs but one thing: the charts are drawn with [D3](https://d3js.org) 7.9.0 (ISC licence), which `index.html` loads from cdn.jsdelivr.net with an integrity hash, so the browser refuses any other file. Without the network the pages keep their tables and each chart says it could not be drawn. The viewer reads `results/index.json`, the run's `summary.json` and `numbers.json`, and the job files the summary names:
+`uv run serve.py` serves the viewer ([viewer/](viewer/)) and `results/` at http://127.0.0.1:8765/, on this machine only; `--host 0.0.0.0` listens on every interface, as it does in its [container](#on-openshift). Nothing else in `bench/` is served, `.env` included, and no folder is listed. The viewer is static HTML and JavaScript with no build step, in the site's visual language. It holds everything it runs but one thing: the charts are drawn with [D3](https://d3js.org) 7.9.0 (ISC licence), which `index.html` loads from cdn.jsdelivr.net with an integrity hash, so the browser refuses any other file. Without the network the pages keep their tables and each chart says it could not be drawn. The viewer reads `results/index.json`, the run's `summary.json` and `numbers.json`, and the job files the summary names:
 
 | Page | What it shows |
 | --- | --- |
@@ -444,6 +444,95 @@ Answers are model output and are escaped before they reach the page. A long ques
 Each construct links to its requirement in the [specification](https://contextwindowarchitecture.io/spec.html). A case view shows the snapshot's items by slot with their authority, trust, freshness, lineage and scope, the trace's decisions, the rendered payload, and the models' answers side by side, each citation linked to the item it names. Raw JSON is one click away.
 
 The run picker reads `index.json`. Comparing two runs, for example before and after the assembler pin moves, comes later; the results already keep what it needs.
+
+## On OpenShift
+
+The viewer also runs as a container, behind a Route on a hostname of your own. [Containerfile](Containerfile) builds `serve.py`, `config.py`, `viewer/` and `results/` into an image on UBI 9's minimal Python 3.12, with nothing installed. The results are baked in, so an image shows the runs it was built with, and publishing a new run is a new image. [.containerignore](.containerignore) is an allowlist of those four, so `.env` never reaches a builder; [tests/test_image.py](tests/test_image.py) fails if it is widened. [openshift/](openshift/) is a kustomization: a Deployment of two replicas that fits the `restricted-v2` SCC with a read-only root filesystem, a Service, and an edge-terminated Route that redirects plain HTTP.
+
+```mermaid
+flowchart LR
+    B["podman build<br/>serve.py, viewer/, results/"] --> G["Registry"]
+    G --> D["Deployment<br/>serve.py --host 0.0.0.0, port 8765"]
+    D --> S["Service<br/>port 8080"]
+    S --> R["Route<br/>bench.example.com, edge TLS"]
+    U["Browser"] -->|"DNS CNAME to the router"| R
+```
+
+### Build and push
+
+Build from `bench/` once `results/` holds the runs to publish, and tag the image with the newest of them:
+
+```sh
+cd bench
+TAG=$(python3 -c 'import json; print(json.load(open("results/index.json"))["runs"][0]["run"])')
+podman build --platform linux/amd64 -t quay.io/your-org/cwa-bench-viewer:$TAG .
+podman push quay.io/your-org/cwa-bench-viewer:$TAG
+```
+
+`--platform linux/amd64` builds for an x86 cluster from an Apple silicon Mac; change it for an arm64 cluster. A private repository needs a pull secret in the project:
+
+```sh
+oc create secret docker-registry quay-pull --docker-server=quay.io --docker-username=<robot> --docker-password=<token>
+oc secrets link default quay-pull --for=pull
+```
+
+To use the cluster's own registry instead, where its default route is exposed, push to it and name the image as the cluster sees it, `image-registry.openshift-image-registry.svc:5000/<project>/cwa-bench-viewer`:
+
+```sh
+REGISTRY=$(oc registry info --public)
+oc whoami -t | podman login --username "$(oc whoami)" --password-stdin "$REGISTRY"
+podman tag quay.io/your-org/cwa-bench-viewer:$TAG $REGISTRY/<project>/cwa-bench-viewer:$TAG
+podman push $REGISTRY/<project>/cwa-bench-viewer:$TAG
+```
+
+Don't build with `oc start-build --from-dir`: it uploads all of `bench/` to the cluster, `.env` included.
+
+To run the image as OpenShift will, with an arbitrary UID, a read-only filesystem and no capabilities:
+
+```sh
+podman run --rm --read-only --cap-drop=ALL --user 1000770000:0 -p 8765:8765 quay.io/your-org/cwa-bench-viewer:$TAG
+```
+
+### Deploy
+
+Set two things: the image in [openshift/kustomization.yaml](openshift/kustomization.yaml), and your hostname in [openshift/route.yaml](openshift/route.yaml). Then apply the kustomization in a project of its own:
+
+```sh
+(cd openshift && kustomize edit set image cwa-bench-viewer=quay.io/your-org/cwa-bench-viewer:$TAG)
+oc new-project cwa-bench
+oc apply -k openshift/
+oc rollout status deployment/cwa-bench-viewer
+```
+
+Publishing a new run is the same three steps: build and push under the new run's tag, set the image, apply.
+
+### The hostname
+
+The router admits the Route for its host unless a Route in another project already claims it. Point the hostname at the router with a DNS CNAME to the router's canonical hostname:
+
+```sh
+oc get route cwa-bench-viewer -o jsonpath='{.status.ingress[0].routerCanonicalHostname}{"\n"}'
+oc get route cwa-bench-viewer -o jsonpath='{.status.ingress[0].conditions[0].type}={.status.ingress[0].conditions[0].status}{"\n"}'
+```
+
+The second prints `Admitted=True` once the router serves it. Only the browser fetches D3 from cdn.jsdelivr.net, so the pod needs no egress.
+
+The Route is public to whoever can reach the router. The results are the examples' fictional data and the models' answers, but to keep them to your own network, add the router's allowlist annotation:
+
+```sh
+oc annotate route cwa-bench-viewer haproxy.router.openshift.io/ip_allowlist='203.0.113.0/24 198.51.100.7'
+```
+
+### A certificate for the hostname
+
+The router's default certificate covers `*.apps.<cluster>` only, so browsers reject it for a hostname of your own. Give the Route the hostname's certificate, with its chain, and key, both PEM, from files kept out of the repository:
+
+```sh
+oc patch route cwa-bench-viewer --type=merge \
+  -p "$(jq -n --rawfile crt tls.crt --rawfile key tls.key '{spec: {tls: {certificate: $crt, key: $key}}}')"
+```
+
+`oc apply -k openshift/` leaves the patched certificate in place: the kustomization never sets those fields. Where cert-manager and its OpenShift Routes add-on run, annotate the Route with `cert-manager.io/issuer-name`, and `cert-manager.io/issuer-kind: ClusterIssuer` for a cluster issuer, instead: it fills them in and renews them.
 
 ## Changes to the examples
 

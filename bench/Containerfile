@@ -1,0 +1,17 @@
+# The viewer and the results it shows, served by serve.py. Standard library only, so nothing is installed.
+# Build from bench/ once results/ holds the runs to publish: podman build --platform linux/amd64 -t <image> .
+# The results are baked in, so an image shows the runs it was built with; publishing a new run is a new image.
+FROM registry.access.redhat.com/ubi9/python-312-minimal:latest
+
+WORKDIR /opt/app-root/bench
+# Owned by root and read-only to the server. OpenShift runs the pod as an arbitrary UID, which reads them as any
+# user does: results/ is written with the usual umask, 0644 files in 0755 folders.
+COPY serve.py config.py ./
+COPY viewer/ viewer/
+COPY results/ results/
+
+# The root filesystem is read-only in the Deployment: no bytecode cache to write.
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+USER 1001
+EXPOSE 8765
+CMD ["python", "serve.py", "--host", "0.0.0.0", "--port", "8765"]

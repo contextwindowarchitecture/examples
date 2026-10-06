@@ -1,0 +1,41 @@
+# Stateless: the results are in the image, so any number of replicas serve the same runs.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cwa-bench-viewer
+spec:
+  replicas: 2
+  template:
+    spec:
+      automountServiceAccountToken: false  # it never calls the API
+      containers:
+        - name: viewer
+          image: cwa-bench-viewer
+          ports:
+            - name: http
+              containerPort: 8765
+          readinessProbe:
+            httpGet:
+              path: /viewer/
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /viewer/
+              port: http
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          # Fits the restricted-v2 SCC; OpenShift picks the UID. serve.py writes nothing.
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
