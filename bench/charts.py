@@ -6,6 +6,7 @@
     grid     a cell per case and model
     scatter  a labelled point per model on two axes
     lines    a line per model
+    strips   a strip per number of a page, each on its own axis, with a dot per model
 
 Colour does one job in each chart, named by a mark's tone: ink for the data, quiet for what it is set against, accent
 for what the chart is about, and a plane's own colour for that plane. A model is never a colour: a dozen models are
@@ -119,7 +120,28 @@ def _speed(by: dict[str, Any], results: list[Any], models: list[str]) -> list[di
         "x": {"label": "Seconds", "unit": "seconds", "zero": True},
         "legend": [{"mark": "bar", "tone": "quiet", "label": "Median call"}, {"mark": "dot", "tone": "ink", "label": "Median time to first token"},
                    {"mark": "ring", "tone": "ink", "label": "First visible token, estimated"}],
-        "rows": rows}]
+        "rows": rows}, _strips(page, models)]
+
+
+def _strips(page: dict[str, Any], models: list[str]) -> dict[str, Any] | None:
+    """A strip per number of the page, each on its own axis, with a dot per model: the table of models, as a picture."""
+    strips = []
+    for number in page["numbers"]:
+        values = {model: value for model in models
+                  if isinstance(value := number["values"].get(model), (int, float)) and not isinstance(value, bool)}
+        if len(set(values.values())) < 2:
+            continue  # every model holds the same value, or none: nothing to set apart
+        low, high = min(values.values()), max(values.values())
+        strips.append({"label": number["label"], "unit": number["unit"], "log": low > 0 and high >= 10 * low,
+                       "points": [{"label": _short(model), "x": value} for model, value in values.items()]})
+    return strips and {
+        "id": "strips", "kind": "strips", "title": "Every number on this page, a dot per model",
+        "how": "A strip per number in the table below, each on its own axis. Point at a model's dot and it is marked on "
+               "every strip, so its profile reads down the page: quick to its first token, say, but slow at the tail. "
+               "An axis whose values span ten times or more is a scale of ratios, so one slow model does not crush the "
+               "rest. A number every model holds the same value of has nothing to set apart, and is left off.",
+        "values": "Its values are the table below, a strip a column.",
+        "strips": strips}
 
 
 def _stability(by: dict[str, Any], results: list[Any], models: list[str]) -> list[dict[str, Any] | None]:

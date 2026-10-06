@@ -211,6 +211,7 @@ Each page draws its numbers as well as tabling them. [charts.py](charts.py) says
 | Tokens | A panel per model on shared axes: each request's host count against the estimate, the line through them, and the estimate with the declared margin | Seeing a fixed amount added (a line that starts high) apart from a different way of counting (a line that climbs faster) |
 | Cost | A labelled point per model: cost per result with every check passed, on a scale of ratios, against cases passed in every repeat | Which models are steady for less |
 | Speed | A bar per model for its median call, with its time to first token marked on it | How much of a call is waiting, and which hosts send a reply in one piece |
+| Speed | A strip per number, each on its own axis, with a dot per model; pointing at one marks that model on every strip | One model's profile across every number at once, and which models stand apart from the rest |
 | Stability | A cell per case and model, filled where a repeat failed | Which cases change between repeats, and for whom |
 | Grounding | A bar per model | How much of what it was sent each model cited |
 | Before and after | For each question, a ring and a dot per model | Which way, and how far, CWA moved the request |
