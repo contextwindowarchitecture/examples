@@ -209,6 +209,7 @@ Each page draws its numbers as well as tabling them. [charts.py](charts.py) says
 | --- | --- | --- |
 | What CWA decided | A bar per request, of its route's `budget.input`, by plane | Where a budget goes, and how much is left |
 | Tokens | A panel per model on shared axes: each request's host count against the estimate, the line through them, and the estimate with the declared margin | Seeing a fixed amount added (a line that starts high) apart from a different way of counting (a line that climbs faster) |
+| Tokens | A cell per 01–03 request and model, the models in the order of the margin they needed, filled with that margin where the declared one did not cover the request | Which requests and which models the declared margin misses, and by how much |
 | Cost | A labelled point per model: cost per result with every check passed, on a scale of ratios, against cases passed in every repeat | Which models are steady for less |
 | Speed | A row per model, quickest first, on a scale of ratios: its median time to first token, its first visible token, its median call, and the line on to its slow and slowest calls | How long a reader waits, how much of the wait is reasoning, how far the tail runs, and which hosts send a reply in one piece |
 | Stability | A cell per case and model, filled where a repeat failed | Which cases change between repeats, and for whom |

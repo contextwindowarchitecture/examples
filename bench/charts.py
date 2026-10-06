@@ -84,7 +84,28 @@ def _tokens(by: dict[str, Any], results: list[Any], models: list[str]) -> list[d
                     if len(declared) == 1 else [])],
         "legend": [{"mark": "dot", "tone": "ink", "label": "A request"}, {"mark": "ring", "tone": "ink", "label": "A request that pastes a block of text"},
                    {"mark": "line", "tone": "ink", "label": "The line through a model's requests"}],
-        "panels": panels}]
+        "panels": panels}, _margins(page, models)]
+
+
+def _margins(page: dict[str, Any], models: list[str]) -> dict[str, Any] | None:
+    """The margin each request needed, as a cell per request and model: the shape of Stability's grid, and the same
+    reading, since what matters is the few cells the declared margin did not cover."""
+    needed, margins = _values(page, "margin_needed"), _rows(page, "margin_by_case")
+    order = sorted((model for model in models if needed.get(model) is not None), key=lambda model: needed[model])
+    declared = sorted({row["declared"] for row in margins})
+    return order and margins and {
+        "id": "margins", "kind": "grid", "unit": "percent", "name": "Margin needed",
+        "title": "Each request, and the models whose host needed more than its declared margin",
+        "how": "A cell per 01–03 request and model, the models in the order of the margin they needed, the least "
+               "first. A quiet cell is a request its route's declared margin covered: the host counted no more than "
+               "the estimate plus " + (f"{declared[0]:.0%}" if len(declared) == 1 else "the route's margin") + ". A filled "
+               "one did not, and says the margin it needed: the route's budget.input could be exceeded by that much.",
+        "values": "Its values are in the table of the margin each request needed, on this page.",
+        "columns": [_short(model) for model in order],
+        "legend": [{"mark": "dot", "tone": "quiet", "label": "Covered by the declared margin"},
+                   {"mark": "cell", "tone": "accent", "label": "Not covered, with the margin it needed"}],
+        "rows": [{"label": row["case"], "cells": [None if row.get(model) is None else {"value": row[model], "over": row[model] > row["declared"]}
+                                                  for model in order]} for row in margins]}
 
 
 def _cost(by: dict[str, Any], results: list[Any], models: list[str]) -> list[dict[str, Any] | None]:

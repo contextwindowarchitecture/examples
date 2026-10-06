@@ -257,13 +257,20 @@ function panels(plot, chart) {
   plot.append(said);
 }
 
-// A cell per case and model. What passed every repeat is quiet; what did not is the point, and says its count.
+// A cell per case and model. What is quiet is fine; what is filled is the point, and says its count or its measure.
 function grid(plot, chart) {
   const total = plot.clientWidth;
-  const left = Math.min(Math.ceil(Math.max(...chart.rows.map((row) => width(row.label)))) + 18, Math.floor(total * 0.5));
-  const size = Math.max(34, Math.min(96, Math.floor((total - left - 8) / chart.columns.length)));
+  // The last column's slanted name leans past its cell, so the cells leave it room at the right edge. Where that
+  // squeezes the cells, the rows' names give up width first, ending in an ellipsis and whole in the tooltip; where
+  // even the narrowest cells leave too little, the plot scrolls rather than cut the name off.
+  const leans = width(chart.columns[chart.columns.length - 1]) * 0.8 + 8;
+  const room = (left) => Math.floor((total - left - 8 - leans) / (chart.columns.length - 0.5));
+  const named = Math.min(Math.ceil(Math.max(...chart.rows.map((row) => width(row.label)))) + 18, Math.floor(total * 0.5));
+  const left = room(named) >= 34 ? named : Math.min(named, Math.floor(total * 0.4));
+  const size = Math.max(32, Math.min(96, room(left)));
   const head = Math.ceil(Math.max(...chart.columns.map((column) => width(column))) * 0.62) + 26, tall = 30;
-  const svg = frame(plot, head + tall * chart.rows.length + 8, chart.title, Math.max(total, left + size * chart.columns.length + 40));
+  const wide = Math.ceil(Math.max(left + size * chart.columns.length + 8, left + size * (chart.columns.length - 0.5) + leans + 8));
+  const svg = frame(plot, head + tall * chart.rows.length + 8, chart.title, Math.max(total, wide));
   chart.columns.forEach((column, n) => {
     const at = left + size * n + size / 2;
     svg.append(el("text", { x: at, y: head - 12, class: "row-label", transform: `rotate(-38 ${at} ${head - 12})` }, column));
@@ -274,12 +281,17 @@ function grid(plot, chart) {
     svg.append(el("text", { x: left - 12, y: top + tall / 2 + 4, class: "row-label", "text-anchor": "end" }, fit(row.label, left - 16)));
     row.cells.forEach((cell, c) => {
       if (!cell) return;
-      const group = el("g"), x = left + size * c, every = cell.value === cell.of;
-      group.append(el("rect", { x: x + 1, y: top + 1, width: size - 2, height: tall - 2, class: every ? "band" : "cell-failed" }));
-      group.append(every ? el("circle", { cx: x + size / 2, cy: top + tall / 2, r: 3, fill: TONE.quiet })
-        : el("text", { x: x + size / 2, y: top + tall / 2 + 4, class: "cell-count", "text-anchor": "middle" }, `${cell.value}/${cell.of}`));
-      const said = [[`${cell.value} of ${cell.of}`, "repeats passed", every ? TONE.quiet : TONE.accent]];
-      answers(group, `${chart.columns[c]}, ${row.label}: passed ${cell.value} of ${cell.of} repeats`, () => tell(group, `${chart.columns[c]} · ${row.label}`, said));
+      // A cell counts repeats passed of those run, or holds a measure that is over what it is set against or not.
+      const counted = cell.of !== undefined;
+      const group = el("g"), x = left + size * c, quiet = counted ? cell.value === cell.of : !cell.over;
+      const value = counted ? `${cell.value} of ${cell.of}` : shown(cell.value, chart.unit);
+      // In the cell, a share is a whole percentage: its tenths are in the tooltip, and would not fit a narrow cell.
+      const brief = counted ? `${cell.value}/${cell.of}` : chart.unit === "percent" ? `${Math.round(cell.value * 100)}%` : value;
+      group.append(el("rect", { x: x + 1, y: top + 1, width: size - 2, height: tall - 2, class: quiet ? "band" : "cell-failed" }));
+      group.append(quiet ? el("circle", { cx: x + size / 2, cy: top + tall / 2, r: 3, fill: TONE.quiet })
+        : el("text", { x: x + size / 2, y: top + tall / 2 + 4, class: "cell-count", "text-anchor": "middle" }, brief));
+      const name = counted ? "repeats passed" : chart.name;
+      answers(group, `${chart.columns[c]}, ${row.label}: ${name} ${value}`, () => tell(group, `${chart.columns[c]} · ${row.label}`, [[value, name, quiet ? TONE.quiet : TONE.accent]]));
       svg.append(group);
     });
   });
