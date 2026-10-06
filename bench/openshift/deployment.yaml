@@ -11,6 +11,8 @@ spec:
       containers:
         - name: viewer
           image: cwa-bench-viewer
+          # The tag names the newest run it holds, so a viewer change rebuilt over the same run reuses it.
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8765
