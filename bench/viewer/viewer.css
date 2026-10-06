@@ -61,7 +61,7 @@ a:hover { color: var(--fg); }
 .nav a { color: var(--muted); white-space: nowrap; }
 .nav a:hover { color: var(--fg); }
 .nav a[aria-current="page"] { color: var(--fg); border-bottom: 2px solid var(--accent); padding-bottom: 2px; }
-/* See the numbers: a menu among the links. It opens under its own name, over the page, and closes on a choice. */
+/* See the Numbers: a menu among the links. It opens under its own name, over the page, and closes on a choice. */
 .menu { position: relative; }
 .menu > summary { list-style: none; cursor: pointer; color: var(--muted); white-space: nowrap; display: flex; align-items: center; gap: 8px; }
 .menu > summary::-webkit-details-marker { display: none; }

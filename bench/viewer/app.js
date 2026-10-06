@@ -219,7 +219,7 @@ function runs(index) {
     </div></div></section>`;
 }
 
-// See the numbers: one page of the run's numbers.json, or with no page named, all of them.
+// See the Numbers: one page of the run's numbers.json, or with no page named, all of them.
 function numbers(run, id) {
   const file = data.href(run, "numbers.json");
   const found = data.numbers(run);
