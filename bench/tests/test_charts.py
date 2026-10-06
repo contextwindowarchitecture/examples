@@ -53,6 +53,8 @@ def test_a_request_is_a_cell_per_model_filled_where_the_declared_margin_did_not_
     table = next(table for table in page["tables"] if table["id"] == "margin_by_case")["rows"]
     assert [row["label"] for row in chart["rows"]] == [row["case"] for row in table]
     assert chart["rows"][0]["cells"] == [{"value": table[0]["a/exact"], "over": False}, {"value": table[0]["b/adds"], "over": True}]
+    # A column opens its model's card on the page.
+    assert chart["opens"] == ["a/exact", "b/adds"]
 
 
 def test_a_pass_rate_is_a_dot_inside_the_range_it_could_have() -> None:

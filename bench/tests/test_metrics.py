@@ -232,10 +232,11 @@ def test_tokens_splits_what_a_host_adds_from_how_it_counts() -> None:
     # The routes declared 15%: it covers a count 10% over the estimate, but not the log, nor a request 1,000 tokens over.
     assert values(page, "margin_covered") == {"a/adds": 0, "b/counts": 0.75}
     assert values(page, "over_budget") == {"a/adds": 0, "b/counts": 0}
-    [answer, _, _, pasted_log] = rows(page, "by_case")
+    [answer, _, _, pasted_log] = rows(page, "requests")
     assert answer == {"case": "01-docs-qa/01-answer", "question": "one line", "estimate": 100, "normalized": None, "budget": 1500,
-                      "used": round(100 / 1500, 6), "a/adds": 1100, "b/counts": 110}
-    assert (pasted_log["question"], pasted_log["b/counts"]) == ("pastes a block", 1200)
+                      "used": round(100 / 1500, 6)}
+    assert rows(page, "counts_by_case")[0] == {"case": "01-docs-qa/01-answer", "a/adds": 1100, "b/counts": 110}
+    assert (pasted_log["question"], rows(page, "counts_by_case")[3]["b/counts"]) == ("pastes a block", 1200)
     assert rows(page, "margin_by_case")[0] == {"case": "01-docs-qa/01-answer", "declared": 0.15, "a/adds": 10, "b/counts": 0.1}
 
 
@@ -244,7 +245,7 @@ def test_tokens_sets_the_estimate_beside_a_count_that_is_the_same_for_every_mode
     page = metrics.tokens([call(normalized=288), call(repeat=2, normalized=None)], [MODEL])
     [total] = page["totals"]
     assert (total["id"], total["value"], total["unit"]) == ("normalized_over_estimate", round(288 / 283, 6), "ratio")
-    assert rows(page, "by_case")[0]["normalized"] == 288
+    assert rows(page, "requests")[0]["normalized"] == 288
 
 
 def test_tokens_names_each_models_tokenizer_and_how_little_of_its_window_a_budget_is() -> None:
@@ -557,3 +558,15 @@ def test_speed_sets_each_model_as_a_card_that_opens_on_its_numbers_by_question()
     assert sorted(id for group in cards["groups"] for id in group["numbers"]) == sorted(numbers)
     # A card holds its model's share of the page's tables, which are then not set out a second time.
     assert cards["tables"] == ["seconds_by_example", "by_host"] and set(cards["tables"]) <= {table["id"] for table in page["tables"]}
+
+
+def test_tokens_sets_each_model_as_a_card_and_keeps_what_belongs_to_the_requests_on_the_page() -> None:
+    page = metrics.tokens([call()], [MODEL])
+    cards, numbers = page["cards"], [one["id"] for one in page["numbers"]]
+    assert cards["order"] == "margin_needed" and set(cards["head"]) <= set(numbers)
+    assert [group["title"] for group in cards["groups"]] == ["How the host counts", "The margin", "The window"]
+    assert sorted(id for group in cards["groups"] for id in group["numbers"]) == sorted(numbers)
+    # The counts and margins by request move into the cards. The table of requests, whose columns are the request's
+    # and not a model's, stays on the page.
+    assert cards["tables"] == ["counts_by_case", "margin_by_case"]
+    assert {table["id"] for table in page["tables"]} - set(cards["tables"]) == {"requests"}

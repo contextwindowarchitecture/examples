@@ -292,6 +292,7 @@ function grid(plot, chart) {
         : el("text", { x: x + size / 2, y: top + tall / 2 + 4, class: "cell-count", "text-anchor": "middle" }, brief));
       const name = counted ? "repeats passed" : chart.name;
       answers(group, `${chart.columns[c]}, ${row.label}: ${name} ${value}`, () => tell(group, `${chart.columns[c]} · ${row.label}`, [[value, name, quiet ? TONE.quiet : TONE.accent]]));
+      if (chart.opens) opens(group, chart.opens[c]);
       svg.append(group);
     });
   });

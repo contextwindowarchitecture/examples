@@ -433,17 +433,18 @@ def tokens(calls: list[Call], models: list[str], pasted: frozenset[str] = frozen
                     {model: sum(owner == model for owner, _, _ in resent) for model in models}),
         ],
         "tables": [
-            _table("by_case", "The same request, counted by each model",
+            _table("requests", "Each request, as the assembler counted it",
                    "Each 01–03 request: the assembler's estimate, OpenRouter's count of the same request with its own "
-                   "tokenizer, the route's budget.input and how much of it the estimate uses, then the tokens each "
-                   "model's host counted, the median across repeats.",
+                   "tokenizer, the route's budget.input and how much of it the estimate uses.",
                    [_column("case", "Request"), _column("question", "Question"), _column("estimate", "Estimate", "tokens"),
-                    _column("normalized", "OpenRouter's count", "tokens"), _column("budget", "Budget", "tokens"), _column("used", "Used", "percent"),
-                    *(_column(model, _short(model), "tokens") for model in models)],
+                    _column("normalized", "OpenRouter's count", "tokens"), _column("budget", "Budget", "tokens"), _column("used", "Used", "percent")],
                    [{"case": case, "question": "pastes a block" if task[case] in pasted else "one line",
                      "estimate": call.estimate, "normalized": _median(one.normalized for one in same if _case(one) == case and one.normalized),
-                     "budget": call.budget, "used": _r(call.estimate / call.budget),
-                     **{model: requests[model].get(case, (None, None))[1] for model in models}} for case, call in first.items()]),
+                     "budget": call.budget, "used": _r(call.estimate / call.budget)} for case, call in first.items()]),
+            _table("counts_by_case", "The same request, counted by each model",
+                   "Each 01–03 request: the tokens each model's host counted, the median across repeats.",
+                   [_column("case", "Request"), *(_column(model, _short(model), "tokens") for model in models)],
+                   [{"case": case, **{model: requests[model].get(case, (None, None))[1] for model in models}} for case in first]),
             _table("margin_by_case", "The margin each request needed",
                    "Each 01–03 request: the margin its route declares, then for each model the host's count over the "
                    "estimate, less one. A request is covered when that is within the declared margin.",
@@ -452,7 +453,14 @@ def tokens(calls: list[Call], models: list[str], pasted: frozenset[str] = frozen
                    [{"case": case, "declared": (call.margin or 0) / 100,
                      **{model: _r(requests[model][case][1] / call.estimate - 1) if case in requests[model] else None
                         for model in models}} for case, call in first.items()]),
-        ]}
+        ],
+        # A card per model, in the order of the margin it needed, as the chart of margins sets them. The table of
+        # requests stays on the page; each card takes its model's counts and margins.
+        "cards": {"order": "margin_needed", "head": ["margin_needed", "margin_covered", "tokens_per_estimated", "tokens_added"],
+                  "groups": [{"title": "How the host counts", "numbers": ["tokenizer", "tokens_per_estimated", "tokens_added", "tokens_per_estimated_pasted"]},
+                             {"title": "The margin", "numbers": ["margin_needed", "margin_covered", "over_budget"]},
+                             {"title": "The window", "numbers": ["context", "budget_share", "cached_share", "resend_factor"]}],
+                  "tables": ["counts_by_case", "margin_by_case"]}}
 
 
 def cost(calls: list[Call], results: list[Result], summary: dict[str, Any]) -> dict[str, Any]:

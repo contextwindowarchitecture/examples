@@ -148,7 +148,7 @@ function cards(numbers, page) {
   const spec = page.cards;
   const by = Object.fromEntries(page.numbers.map((one) => [one.id, one]));
   const value = (model) => by[spec.order].values[model];
-  const models = [...numbers.models].sort((a, b) => (value(a) == null) - (value(b) == null) || value(a) - value(b));
+  const models = [...numbers.models].sort((a, b) => (value(a) == null) - (value(b) == null) || (spec.down ? value(b) - value(a) : value(a) - value(b)));
   const tables = spec.tables.map((id) => page.tables.find((table) => table.id === id)).filter(Boolean);
   const columns = `--figures: ${spec.head.length};`;
   return html`<div class="mcards">

@@ -57,7 +57,9 @@ def _decisions(by: dict[str, Any], results: list[Any], models: list[str]) -> lis
 
 def _tokens(by: dict[str, Any], results: list[Any], models: list[str]) -> list[dict[str, Any] | None]:
     page = by["tokens"]
-    requests, slopes, added = _rows(page, "by_case"), _values(page, "tokens_per_estimated"), _values(page, "tokens_added")
+    counts = {row["case"]: row for row in _rows(page, "counts_by_case")}
+    requests = [{**row, **counts[row["case"]]} for row in _rows(page, "requests")]
+    slopes, added = _values(page, "tokens_per_estimated"), _values(page, "tokens_added")
     declared = sorted({row["declared"] for row in _rows(page, "margin_by_case")})
 
     def panel(model: str) -> dict[str, Any] | None:
@@ -76,7 +78,7 @@ def _tokens(by: dict[str, Any], results: list[Any], models: list[str]) -> list[d
                "estimate across, the host's count up. A hollow point is a request whose question pastes a block of "
                "text, which the line is not drawn through. A point above the accent line needed more than the margin "
                "its route declares.",
-        "values": "Its values are in the table of requests on this page, and each line is two of the numbers above it.",
+        "values": "Its values are in the table of requests on this page and in each model's card, which holds its line's two numbers.",
         "x": {"label": "The assembler's estimate", "unit": "tokens", "zero": True},
         "y": {"label": "The host's count", "unit": "tokens", "zero": True},
         "rules": [{"label": "The assembler's estimate", "slope": 1, "tone": "quiet"},
@@ -100,8 +102,8 @@ def _margins(page: dict[str, Any], models: list[str]) -> dict[str, Any] | None:
                "first. A quiet cell is a request its route's declared margin covered: the host counted no more than "
                "the estimate plus " + (f"{declared[0]:.0%}" if len(declared) == 1 else "the route's margin") + ". A filled "
                "one did not, and says the margin it needed: the route's budget.input could be exceeded by that much.",
-        "values": "Its values are in the table of the margin each request needed, on this page.",
-        "columns": [_short(model) for model in order],
+        "values": "Its values are in each model's card below, which a cell opens.",
+        "columns": [_short(model) for model in order], "opens": order,
         "legend": [{"mark": "dot", "tone": "quiet", "label": "Covered by the declared margin"},
                    {"mark": "cell", "tone": "accent", "label": "Not covered, with the margin it needed"}],
         "rows": [{"label": row["case"], "cells": [None if row.get(model) is None else {"value": row[model], "over": row[model] > row["declared"]}
