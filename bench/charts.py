@@ -248,10 +248,10 @@ def _before_after(by: dict[str, Any], results: list[Any], models: list[str]) -> 
         "id": f"prompt-{case.split('/')[-1]}", "kind": "rows", "title": f"{case}: prompt tokens, before and after",
         "how": "Each model's count of the two requests for this question: the ring is before.py's, built by hand, and "
                "the dot is after.py's, built through CWA. A dot to the right of its ring is a request CWA made larger.",
-        "values": "Its values are in the table of questions on this page.",
+        "values": "Its values are in each model's card below, which a row opens.",
         "x": {"label": "Prompt tokens, by the model's own count", "unit": "tokens", "zero": True},
         "legend": [{"mark": "ring", "tone": "ink", "label": "before.py, by hand"}, {"mark": "dot", "tone": "ink", "label": "after.py, through CWA"}],
-        "rows": [{"label": _short(row["model"]), "marks": [
+        "rows": [{"label": _short(row["model"]), "opens": row["model"], "marks": [
             {"mark": "link", "from": row["prompt_before"], "to": row["prompt_after"], "tone": "quiet"},
             {"mark": "ring", "x": row["prompt_before"], "tone": "ink", "name": "before.py, by hand"},
             {"mark": "dot", "x": row["prompt_after"], "tone": "ink", "name": "after.py, through CWA"}]} for row in table if row["case"] == case]}

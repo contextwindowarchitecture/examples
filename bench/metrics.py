@@ -769,7 +769,12 @@ def before_after(calls: list[Call], results: list[Result], models: list[str]) ->
                      "cited_before": middle(case, model, "before", cited), "cited_after": middle(case, model, "after", cited),
                      "left_out": _r(_mean(len(one.left_out) for one in by_hand[model] if one.case == case))}
                     for case, model in cases]),
-        ]}
+        ],
+        # A card per model, the answers citing what the threshold left out first, each with its own questions.
+        "cards": {"order": "answers_citing_left_out", "down": True, "head": ["answers_citing_left_out", "prompt_change", "cost_change", "seconds_change"],
+                  "groups": [{"title": "What the threshold kept out", "numbers": ["left_out_cited", "answers_citing_left_out", "asked_anyway"]},
+                             {"title": "What changed", "numbers": ["prompt_change", "cost_change", "seconds_change", "words_change"]}],
+                  "tables": ["by_case"]}}
 
 
 def grounding(results: list[Result], models: list[str]) -> dict[str, Any]:

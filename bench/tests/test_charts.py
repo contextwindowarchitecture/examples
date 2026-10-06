@@ -132,7 +132,7 @@ def test_before_and_after_join_the_two_requests_one_model_answered() -> None:
     results = [result(variant="before"), result()]
     [chart] = [one for one in charts.add([metrics.before_after(calls, results, [MODEL])], results, [MODEL])[0]["charts"]]
     assert (chart["id"], chart["kind"], chart["title"]) == ("prompt-01-answer", "rows", "01-docs-qa/01-answer: prompt tokens, before and after")
-    assert chart["rows"] == [{"label": "model", "marks": [
+    assert chart["rows"] == [{"label": "model", "opens": MODEL, "marks": [
         {"mark": "link", "from": 500, "to": 400, "tone": "quiet"},
         {"mark": "ring", "x": 500, "tone": "ink", "name": "before.py, by hand"},
         {"mark": "dot", "x": 400, "tone": "ink", "name": "after.py, through CWA"}]}]

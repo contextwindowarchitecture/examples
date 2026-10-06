@@ -585,7 +585,7 @@ def test_cost_sets_each_model_as_a_card_with_the_largest_spend_first() -> None:
     assert cards["tables"] == ["identity", "by_example"] == [table["id"] for table in page["tables"]]
 
 
-CARDED = {"tokens", "cost", "speed", "stability", "grounding"}
+CARDED = {"tokens", "cost", "speed", "stability", "grounding", "before-after"}
 
 
 def test_every_page_with_cards_puts_each_number_in_one_group_and_names_tables_it_has(tmp_path: Path) -> None:
