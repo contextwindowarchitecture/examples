@@ -583,3 +583,22 @@ def test_cost_sets_each_model_as_a_card_with_the_largest_spend_first() -> None:
     assert [group["title"] for group in cards["groups"]] == ["What was spent", "What it bought"]
     assert sorted(id for group in cards["groups"] for id in group["numbers"]) == sorted(numbers)
     assert cards["tables"] == ["identity", "by_example"] == [table["id"] for table in page["tables"]]
+
+
+CARDED = {"tokens", "cost", "speed"}
+
+
+def test_every_page_with_cards_puts_each_number_in_one_group_and_names_tables_it_has(tmp_path: Path) -> None:
+    name = job(tmp_path, "01-docs-qa", "01-answer/after", {"answer": "Check spam [help:sign-in@6#0].", "error": None}, ANSWER)
+    called(tmp_path, name, 375)
+    pages = metrics.write(tmp_path, graded(tmp_path, [name]))["pages"]
+    assert {page["id"] for page in pages if page.get("cards")} == CARDED
+    for page in (page for page in pages if page.get("cards")):
+        cards, numbers, tables = page["cards"], [one["id"] for one in page["numbers"]], {table["id"] for table in page["tables"]}
+        assert cards["order"] in numbers and set(cards["head"]) <= set(numbers), page["id"]
+        assert sorted(id for group in cards["groups"] for id in group["numbers"]) == sorted(numbers), page["id"]
+        assert set(cards["tables"]) <= tables, page["id"]
+        # A table a card takes holds a column of models or a column per model, or it has no share to give a card.
+        for id in cards["tables"]:
+            columns = {column["id"] for column in next(table for table in page["tables"] if table["id"] == id)["columns"]}
+            assert "model" in columns or MODEL in columns, (page["id"], id)
