@@ -67,6 +67,21 @@ def test_a_pass_rate_is_a_dot_inside_the_range_it_could_have() -> None:
                             {"mark": "dot", "x": 0.75, "tone": "ink", "name": "Checks passed"}]
 
 
+def test_passing_on_average_is_set_against_passing_every_repeat_a_row_a_model() -> None:
+    models = ["b/flips", "a/steady"]
+    results = [result(model=model, repeat=n, checks=(("answer answered", model == "a/steady" or n == 1),)) for model in models for n in (1, 2, 3)]
+    page = metrics.stability(results, models)
+    chart = drawn([page], results, models, "stability", "gap")
+    average, every = (next(one for one in page["numbers"] if one["id"] == id)["values"] for id in ("pass_average", "pass_every"))
+    assert (chart["kind"], chart["x"]) == ("rows", {"label": "Share passed", "unit": "percent", "zero": True, "to": 1})
+    # The steadiest first, each row opening its model's card.
+    assert [(row["label"], row["opens"]) for row in chart["rows"]] == [("steady", "a/steady"), ("flips", "b/flips")]
+    assert chart["rows"][1]["marks"] == [
+        {"mark": "link", "from": every["b/flips"], "to": average["b/flips"], "tone": "accent"},
+        {"mark": "ring", "x": average["b/flips"], "tone": "ink", "name": "Results with every check passed"},
+        {"mark": "dot", "x": every["b/flips"], "tone": "ink", "name": "Cases passed in every repeat"}]
+
+
 def test_a_case_is_a_cell_per_model_filled_by_the_repeats_it_passed() -> None:
     results = [result(model=model, repeat=n, checks=(("answer answered", model == "a/steady" or n == 1),)) for model in ("a/steady", "b/flips") for n in (1, 2, 3)]
     results += [result(model="a/steady", case="01-docs-qa/03-off-topic", checks=(), answer=None)]  # refused: nothing to grade

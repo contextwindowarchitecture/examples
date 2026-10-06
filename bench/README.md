@@ -213,6 +213,7 @@ Each page draws its numbers as well as tabling them. [charts.py](charts.py) says
 | Cost | A bar per model, the largest first, of what it was charged, split into prompt and completion, with what was planned marked | Where the run's money went, how much of it paid for what CWA assembled, and how it compared with the plan |
 | Cost | A labelled point per model: cost per result with every check passed, on a scale of ratios, against cases passed in every repeat | Which models are steady for less |
 | Speed | A row per model, quickest first, on a scale of ratios: its median time to first token, its first visible token, its median call, and the line on to its slow and slowest calls | How long a reader waits, how much of the wait is reasoning, how far the tail runs, and which hosts send a reply in one piece |
+| Stability | A row per model, the steadiest first: a ring at its share of results with every check passed, a dot at its share of cases passed in every repeat, and an accent line between | What a suite run once would report against what a profile should be held to (R-19), and how far apart they are |
 | Stability | A cell per case and model, filled where a repeat failed | Which cases change between repeats, and for whom |
 | Grounding | A bar per model | How much of what it was sent each model cited |
 | Before and after | For each question, a ring and a dot per model | Which way, and how far, CWA moved the request |
