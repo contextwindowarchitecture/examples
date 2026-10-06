@@ -141,6 +141,7 @@ a.cell:hover { background: var(--accent-soft); }
 .panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; padding: 12px 18px; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
 .panel-body { padding: 18px; }
 .scroll { overflow-x: auto; }
+.fitted .row > span { min-width: 0; overflow-wrap: anywhere; }  /* a name longer than its column breaks, figures never need to */
 .row { display: grid; gap: 14px; padding: 14px 18px; border-bottom: 1px solid var(--line); align-items: baseline; font-family: var(--mono); font-size: 12.5px; line-height: 1.6; }
 .row.headrow { padding: 10px 18px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
 .row:last-child { border-bottom: 0; }

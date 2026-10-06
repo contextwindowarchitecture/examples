@@ -84,14 +84,32 @@ function how(page) {
       <span><span class="means">${cited(one.means)}</span><span class="muted">${cited(one.how)}</span></span></div>`)}</div>`;
 }
 
+// How wide each of a breakdown's columns must be: a figure column as wide as its widest figure, and every column as
+// wide as the longest word of its heading. A column of names or text wraps, breaking a long name anywhere, so it asks
+// for no more than a share of the page. A table then scrolls only when its figures alone are wider than the page.
+const ruler = document.createElement("canvas").getContext("2d");
+function measured(text, size, spacing = 0) {
+  ruler.font = `${size}px 'IBM Plex Mono', monospace`;
+  return ruler.measureText(text).width + spacing * size * text.length;
+}
+function fitted(table) {
+  return table.columns.map((column, n) => {
+    const heading = Math.max(...column.label.split(/\s+/).map((word) => measured(word.toUpperCase(), 11, 0.12)));
+    const widest = Math.max(0, ...table.rows.map((row) => measured(String(shown(row[column.id], column.unit)), 12.5)));
+    const wraps = n === 0 || !numeric(column.unit);
+    return Math.ceil(Math.max(heading, wraps ? Math.min(widest, n === 0 ? 200 : 150) : widest)) + 2;
+  });
+}
+
 // A breakdown: its own columns, each with a unit. A column named for a model carries that model's values.
 function breakdown(table) {
-  const [first, ...rest] = table.columns;
-  const texts = rest.filter((column) => !numeric(column.unit)).length;
-  const columns = `grid-template-columns: minmax(240px, 1.6fr) ${rest.map((column) => (numeric(column.unit) ? "minmax(104px, 1fr)" : "minmax(180px, 1.4fr)")).join(" ")}; min-width: ${240 + 118 * (rest.length - texts) + 190 * texts}px;`;
+  const [first] = table.columns;
+  const widths = fitted(table);
+  const tracks = table.columns.map((column, n) => `minmax(${widths[n]}px, ${n === 0 ? 1.6 : numeric(column.unit) ? 1 : 1.4}fr)`);
+  const columns = `grid-template-columns: ${tracks.join(" ")}; min-width: ${widths.reduce((sum, one) => sum + one, 0) + 14 * (widths.length - 1) + 36}px;`;
   const cell = (row, column) => html`<span class="${numeric(column.unit) ? "num" : ""}${column === first ? " fg" : ""}">${shown(row[column.id], column.unit)}</span>`;
   return html`<h2 class="case" style="margin-top: 56px;">${table.title}</h2><p class="body">${table.how}</p>
-    ${table.rows.length ? html`<div class="panel scroll"><div>
+    ${table.rows.length ? html`<div class="panel scroll fitted"><div>
       <div class="row headrow" style="${columns}">${table.columns.map((column) => html`<span class="${numeric(column.unit) ? "num" : ""}">${column.label}</span>`)}</div>
       ${table.rows.map((row) => html`<div class="row" style="${columns}">${table.columns.map((column) => cell(row, column))}</div>`)}
     </div></div>` : html`<p class="body mono">Nothing to list in this run.</p>`}`;
