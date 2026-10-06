@@ -940,6 +940,8 @@ def verdicts(calls: list[Call], results: list[Result], models: list[str]) -> dic
     cells = _cells(graded)
     cases = sorted({key[1:] for key in cells}, key=str)
     every = lambda model, case: all(one.clean for one in cells[model, *case]) if (model, *case) in cells else None
+    # The cases one model passed in every repeat and another did not.
+    beat = lambda model, other: sum(every(model, case) is True and every(other, case) is False for case in cases)
     served: dict[str, set[str]] = defaultdict(set)
     for call in calls:
         served[call.job].add(call.host or "unnamed host")
@@ -984,19 +986,26 @@ def verdicts(calls: list[Call], results: list[Result], models: list[str]) -> dic
                             "models": ", ".join(_short(model) for model in models if any(owner == model and not passed for owner, passed in found))}
                            for name, found in named.items() if not all(passed for _, passed in found)),
                           key=lambda row: (-row["failed"], row["check"]))),
-            _table("disagreements", "Where one model passed and another did not",
-                   "Each cell counts the cases the model in the row passed in every repeat and the model in the column "
-                   "did not. Two models with zeros both ways were not told apart.",
-                   [_column("model", "Passed every repeat"), *(_column(model, _short(model), "count") for model in models)],
-                   [{"model": row, **{column: None if column == row else sum(every(row, case) is True and every(column, case) is False for case in cases)
-                                      for column in models}} for row in models]),
+            _table("versus", "Against each other model",
+                   "For each pair of models, both ways: the cases the model passed in every repeat and the other did "
+                   "not, and the cases the other passed in every repeat and the model did not. Two models with zeros "
+                   "both ways were not told apart.",
+                   [_column("model", "Model"), _column("other", "Against"), _column("won", "Passed, the other did not", "count"),
+                    _column("lost", "The other passed, it did not", "count")],
+                   [{"model": model, "other": _short(other), "won": beat(model, other), "lost": beat(other, model)}
+                    for model in models for other in models if other != model]),
             _table("by_host", "Results by the host that answered",
                    "A job's calls are usually answered by one host. For each: the results of the jobs it answered "
                    "alone, and the share of them with every check passed.",
                    [_column("model", "Model"), _column("host", "Host"), _column("results", "Results", "count"), _column("clean", "Every check passed", "percent")],
                    [{"model": model, "host": host, "results": len(flags), "clean": _r(_share(flags))}
                     for (model, host), flags in sorted(by_host.items(), key=lambda row: (models.index(row[0][0]), row[0][1]))]),
-        ]}
+        ],
+        # A card per model, the most checks passed first as the chart sets them, each with how it fared against each
+        # other model and its results by host.
+        "cards": {"order": "checks_passed", "down": True, "head": ["checks_passed", "hosts", "busiest_host_share"],
+                  "groups": [{"title": "The checks", "numbers": ["checks_passed"]}, {"title": "The hosts", "numbers": ["hosts", "busiest_host_share"]}],
+                  "tables": ["versus", "by_host"]}}
 
 
 def _cells(results: list[Result]) -> dict[tuple[str, str, str | None], list[Result]]:

@@ -62,7 +62,7 @@ def test_a_pass_rate_is_a_dot_inside_the_range_it_could_have() -> None:
     chart = drawn([metrics.verdicts([], results, [MODEL])], results, [MODEL], "checks", "passed")
     [row] = chart["rows"]
     low, high = metrics.wilson(3, 4)
-    assert row["label"] == "model" and chart["x"]["zero"] is False
+    assert (row["label"], row["opens"]) == ("model", MODEL) and chart["x"]["zero"] is False
     assert row["marks"] == [{"mark": "range", "from": round(low, 6), "to": round(high, 6), "tone": "quiet", "name": "Where the rate could lie"},
                             {"mark": "dot", "x": 0.75, "tone": "ink", "name": "Checks passed"}]
 

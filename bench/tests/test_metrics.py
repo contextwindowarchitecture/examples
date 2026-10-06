@@ -466,7 +466,8 @@ def test_checks_says_how_far_the_checks_tell_the_models_apart() -> None:
     # Three checks across the two cases; one of them, one model failed once. So one failure in 12, and in one case of 2.
     assert totals == {"failed": (1, 12), "always_passed": (round(2 / 3, 6), None), "cases_with_failure": (1, 2)}
     assert rows(page, "failures") == [{"check": "answer mentions_any", "failed": 1, "graded": 4, "models": "flips"}]
-    assert rows(page, "disagreements") == [{"model": steady, steady: None, flips: 1}, {"model": flips, steady: 0, flips: None}]
+    # Each pair of models both ways: the cases one passed in every repeat and the other did not, and the reverse.
+    assert rows(page, "versus") == [{"model": steady, "other": "flips", "won": 1, "lost": 0}, {"model": flips, "other": "steady", "won": 0, "lost": 1}]
     assert rows(page, "by_host") == [{"model": steady, "host": "One", "results": 4, "clean": 1},
                                      {"model": flips, "host": "One", "results": 3, "clean": 1},
                                      {"model": flips, "host": "Two", "results": 1, "clean": 0}]
@@ -585,7 +586,7 @@ def test_cost_sets_each_model_as_a_card_with_the_largest_spend_first() -> None:
     assert cards["tables"] == ["identity", "by_example"] == [table["id"] for table in page["tables"]]
 
 
-CARDED = {"tokens", "cost", "speed", "stability", "grounding", "before-after", "agents"}
+CARDED = {"tokens", "cost", "speed", "stability", "grounding", "before-after", "agents", "checks"}
 
 
 def test_every_page_with_cards_puts_each_number_in_one_group_and_names_tables_it_has(tmp_path: Path) -> None:

@@ -276,15 +276,16 @@ def _agents(by: dict[str, Any], results: list[Any], models: list[str]) -> list[d
 def _checks(by: dict[str, Any], results: list[Any], models: list[str]) -> list[dict[str, Any] | None]:
     number = next(one for one in by["checks"]["numbers"] if one["id"] == "checks_passed")
     ranges = number.get("ranges") or {}
-    rows = [{"label": _short(model), "marks": [
+    ranked = sorted((model for model in models if number["values"].get(model) is not None), key=lambda model: -number["values"][model])
+    rows = [{"label": _short(model), "opens": model, "marks": [
         *([{"mark": "range", "from": ranges[model][0], "to": ranges[model][1], "tone": "quiet", "name": "Where the rate could lie"}] if ranges.get(model) else []),
         {"mark": "dot", "x": number["values"][model], "tone": "ink", "name": "Checks passed"}]}
-        for model in models if number["values"].get(model) is not None]
+        for model in ranked]
     return [rows and {
         "id": "passed", "kind": "rows", "title": "Checks passed, with the range each rate could have",
         "how": "The dot is the share of graded checks a model passed. The line is where that rate could lie over many "
                "more runs, 19 times in 20. Where two models' lines overlap, this run does not tell them apart.",
-        "values": "Its values are the first column of the table on this page, with the range under each.",
+        "values": "Its values are one of the numbers on this page, with the range under each. A row opens its model's card below.",
         "x": {"label": "Checks passed", "unit": "percent", "zero": False, "to": 1},
         "legend": [{"mark": "dot", "tone": "ink", "label": "Checks passed"}, {"mark": "range", "tone": "quiet", "label": "Where the rate could lie"}],
         "rows": rows}]
