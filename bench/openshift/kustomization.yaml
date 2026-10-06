@@ -1,4 +1,4 @@
-# The viewer on OpenShift: oc apply -k openshift/ from bench/. Set the image below and the hostname in route.yaml.
+# The viewer on OpenShift: oc apply -k openshift/ from bench/. Set the image's tag below and the hostname in route.yaml.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -15,5 +15,5 @@ resources:
 
 images:
   - name: cwa-bench-viewer
-    newName: quay.io/your-org/cwa-bench-viewer  # where you pushed it
-    newTag: 2026-10-05T224455Z-5c3f660           # the newest run it holds, so a new run is a new tag
+    newName: quay.io/contextwindowarchitecture/bench  # the image this repository publishes
+    newTag: 2026-10-05T224455Z-5c3f660                # the newest run it holds, so a new run is a new tag

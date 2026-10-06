@@ -460,29 +460,30 @@ flowchart LR
 
 ### Build and push
 
-Build from `bench/` once `results/` holds the runs to publish, and tag the image with the newest of them:
+The image is `quay.io/contextwindowarchitecture/bench`. Build it from `bench/` once `results/` holds the runs to publish, and tag it with the newest of them:
 
 ```sh
 cd bench
 TAG=$(python3 -c 'import json; print(json.load(open("results/index.json"))["runs"][0]["run"])')
-podman build --platform linux/amd64 -t quay.io/your-org/cwa-bench-viewer:$TAG .
-podman push quay.io/your-org/cwa-bench-viewer:$TAG
+podman build --platform linux/amd64 -t quay.io/contextwindowarchitecture/bench:$TAG .
+podman login quay.io
+podman push quay.io/contextwindowarchitecture/bench:$TAG
 ```
 
-`--platform linux/amd64` builds for an x86 cluster from an Apple silicon Mac; change it for an arm64 cluster. A private repository needs a pull secret in the project:
+`--platform linux/amd64` builds for an x86 cluster from an Apple silicon Mac; change it for an arm64 cluster. While the repository on quay.io is private, the project needs a pull secret, from a robot account with read access:
 
 ```sh
 oc create secret docker-registry quay-pull --docker-server=quay.io --docker-username=<robot> --docker-password=<token>
 oc secrets link default quay-pull --for=pull
 ```
 
-To use the cluster's own registry instead, where its default route is exposed, push to it and name the image as the cluster sees it, `image-registry.openshift-image-registry.svc:5000/<project>/cwa-bench-viewer`:
+To use the cluster's own registry instead, where its default route is exposed, push to it and name the image as the cluster sees it, `image-registry.openshift-image-registry.svc:5000/<project>/bench`:
 
 ```sh
 REGISTRY=$(oc registry info --public)
 oc whoami -t | podman login --username "$(oc whoami)" --password-stdin "$REGISTRY"
-podman tag quay.io/your-org/cwa-bench-viewer:$TAG $REGISTRY/<project>/cwa-bench-viewer:$TAG
-podman push $REGISTRY/<project>/cwa-bench-viewer:$TAG
+podman tag quay.io/contextwindowarchitecture/bench:$TAG $REGISTRY/<project>/bench:$TAG
+podman push $REGISTRY/<project>/bench:$TAG
 ```
 
 Don't build with `oc start-build --from-dir`: it uploads all of `bench/` to the cluster, `.env` included.
@@ -490,15 +491,15 @@ Don't build with `oc start-build --from-dir`: it uploads all of `bench/` to the 
 To run the image as OpenShift will, with an arbitrary UID, a read-only filesystem and no capabilities:
 
 ```sh
-podman run --rm --read-only --cap-drop=ALL --user 1000770000:0 -p 8765:8765 quay.io/your-org/cwa-bench-viewer:$TAG
+podman run --rm --read-only --cap-drop=ALL --user 1000770000:0 -p 8765:8765 quay.io/contextwindowarchitecture/bench:$TAG
 ```
 
 ### Deploy
 
-Set two things: the image in [openshift/kustomization.yaml](openshift/kustomization.yaml), and your hostname in [openshift/route.yaml](openshift/route.yaml). Then apply the kustomization in a project of its own:
+Set two things: the image's tag in [openshift/kustomization.yaml](openshift/kustomization.yaml), and your hostname in [openshift/route.yaml](openshift/route.yaml). Then apply the kustomization in a project of its own:
 
 ```sh
-(cd openshift && kustomize edit set image cwa-bench-viewer=quay.io/your-org/cwa-bench-viewer:$TAG)
+(cd openshift && kustomize edit set image cwa-bench-viewer=quay.io/contextwindowarchitecture/bench:$TAG)
 oc new-project cwa-bench
 oc apply -k openshift/
 oc rollout status deployment/cwa-bench-viewer
