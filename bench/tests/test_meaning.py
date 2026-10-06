@@ -88,3 +88,20 @@ def test_a_reading_of_many_models_counts_them_rather_than_naming_each() -> None:
     every = [result(model=model, repeat=n, checks=(("answer answered", n == 1),)) for model in models for n in (1, 2)]
     [page] = meaning.explain([metrics.stability(every, models)], models)
     assert page["reading"][0] == "Every model changed its result on at least one case between repeats. The request was the same to the byte each time."
+
+
+def test_the_speed_reading_says_what_went_wrong_in_sentences_and_names_only_who_it_happened_to() -> None:
+    models = ["a/flaky", "b/steady"]
+    calls = [call(model="a/flaky", attempts=2, tried=2 if n == 1 else 1, repeat=n) for n in (1, 2, 3)] + [call(model="b/steady")]
+    [speed] = meaning.explain([metrics.speed(calls, {"models": {model: listed() for model in models}, "jobs": []})], models)
+    assert speed["reading"] == [
+        "3 of flaky's calls had to be retried after a rate limit or an outage; no other model's did.",
+        "1 of flaky's calls went to a second host before one answered; no other model's did.",
+        "No answer ran out of reserved output.",
+    ]
+    many = [f"m/{n}" for n in range(8)]
+    spread = [call(model=model, tried=2) for model in many[:6] for _ in range(1 + 4 * (model == "m/0"))]
+    [speed] = meaning.explain([metrics.speed(spread, {"models": {model: listed() for model in many}, "jobs": []})], many)
+    # Across many models a sentence counts them, and names only the one most of it happened to.
+    assert "10 calls went to a second host before one answered, across 6 of the 8 models; 5 of them 0's." in speed["reading"]
+    assert "No call had to be retried." in speed["reading"]

@@ -295,6 +295,8 @@ The proxy times every call from start to finish. The examples do not stream, so 
 | Calls that tried more than one host | Calls for which OpenRouter went to a second host before one answered |
 | Answers cut short | Calls that ended with `finish_reason` `length`: the output ran out |
 
+Retries, second hosts and answers cut short are rare, so the page's reading says them as sentences that name only the models they happened to, most first, or says that none did.
+
 Two tables give the median seconds of a job by example, and each model's calls by the host that answered, with that host's median call and time to first token. A run that holds no stats from OpenRouter shows no first-token numbers until `generations.py` has fetched them and the run is graded again.
 
 ### Stability

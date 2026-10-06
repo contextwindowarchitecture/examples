@@ -253,7 +253,26 @@ def _speed(page: _Page, models: list[str]) -> list[str | None]:
                     f"{'its' if len(at_once) == 1 else 'their'} time to first token is the time to the whole reply.",
         most and most != least and f"Reasoning was {_percent(reasoning[most])} of {_short(most)}'s output and "
                                    f"{_percent(reasoning[least])} of {_short(least)}'s.",
+        # What went wrong is rare, so it is said of the models it happened to, never set out as a column of zeros.
+        _went(page.values("retried"), models, "had to be retried after a rate limit or an outage", "No call had to be retried."),
+        _went(page.values("tried_more_hosts"), models, "went to a second host before one answered",
+              "Every call was answered by the first host OpenRouter tried."),
+        _went(page.values("cut_short"), models, "ran out of reserved output and were cut short", "No answer ran out of reserved output."),
     ]
+
+
+def _went(counts: dict[str, int], models: list[str], happened: str, none: str) -> str | None:
+    """Calls something happened to: the models it happened to, most first, or that it happened to none."""
+    found = sorted(((model, count) for model, count in counts.items() if count), key=lambda pair: -pair[1])
+    if not counts:
+        return None
+    if not found:
+        return none
+    (top, most), total = found[0], sum(count for _, count in found)
+    if len(found) > 3:
+        return f"{_plural(total, 'call')} {happened}, across {_some([model for model, _ in found], models)}; {_count(most)} of them {_short(top)}'s."
+    parts = [f"{_count(count)} of {_short(model)}'s" for model, count in found]
+    return f"{_and([parts[0] + ' calls', *parts[1:]])} {happened}" + ("." if len(found) == len(counts) else "; no other model's did.")
 
 
 def _stability(page: _Page, models: list[str]) -> list[str | None]:
