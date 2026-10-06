@@ -115,7 +115,7 @@ def _cost(by: dict[str, Any], results: list[Any], models: list[str]) -> list[dic
     steady = _values(by["stability"], "pass_every") if "stability" in by else {}
     points = [{"label": _short(model), "x": price[model], "y": steady[model]} for model in models
               if price.get(model) and steady.get(model) is not None]
-    return [points and {
+    return [_spent(by["cost"], models), points and {
         "id": "frontier", "kind": "scatter", "title": "What a steady answer costs",
         "how": "Each model once: across, what the run spent for each of its results with every check passed, on a "
                "scale of ratios; up, the share of its cases it passed in every repeat. Up and to the left is steadier "
@@ -124,6 +124,38 @@ def _cost(by: dict[str, Any], results: list[Any], models: list[str]) -> list[dic
         "x": {"label": "Cost per result with every check passed", "unit": "usd", "log": True},
         "y": {"label": "Cases passed in every repeat", "unit": "percent", "zero": False},
         "points": points}]
+
+
+def _spent(page: dict[str, Any], models: list[str]) -> dict[str, Any] | None:
+    """Where the run's money went: what each model cost, how much of it was the prompt CWA assembled, and the plan."""
+    spend, planned, prompt = _values(page, "spend"), _values(page, "planned"), _values(page, "prompt_share_of_spend")
+
+    def marks(model: str) -> list[dict[str, Any]]:
+        spent, share = spend[model], prompt.get(model)
+        found = ([{"mark": "segment", "from": 0, "to": round(spent * share, 6), "tone": "ink", "name": f"Prompt, {share:.0%} of {_usd(spent)}",
+                   "value": round(spent * share, 6), "unit": "usd"},
+                  {"mark": "segment", "from": round(spent * share, 6), "to": spent, "tone": "quiet", "name": "Completion",
+                   "value": round(spent * (1 - share), 6), "unit": "usd"}]
+                 if spent and share is not None else [{"mark": "bar", "x": spent, "tone": "ink", "name": "Spent"}])
+        return found + ([{"mark": "tick", "x": planned[model], "tone": "accent", "tall": True, "name": "Planned, likely"}] if planned.get(model) else [])
+
+    spending = sorted((model for model in models if spend.get(model) is not None), key=lambda model: -spend[model])
+    return spending and {
+        "id": "spent", "kind": "rows", "title": "Where the money went, and what was planned",
+        "how": "A bar per model of what OpenRouter charged it, the largest first, split by the share of the charge its "
+               "hosts said was the prompt: the prompt is what CWA assembled, the completion is the model's answer, "
+               "reasoning included. The accent tick is what plan.py expected before the run. A model with no split "
+               "is one bar; a free model has none.",
+        "values": "Its values are three of the numbers on this page. A row opens its model's card below.",
+        "x": {"label": "Dollars spent", "unit": "usd", "zero": True},
+        "legend": [{"mark": "segment", "tone": "ink", "label": "Prompt"}, {"mark": "segment", "tone": "quiet", "label": "Completion"},
+                   {"mark": "tick", "tone": "accent", "label": "Planned, likely"}],
+        "rows": [{"label": _short(model), "opens": model, "marks": marks(model)} for model in spending]}
+
+
+def _usd(amount: float) -> str:
+    """Dollars as the viewer shows them: two figures below a cent, since a check can cost a hundredth of one."""
+    return f"${amount:,.2f}" if amount >= 1 else f"${amount:,.3f}" if amount >= 0.01 else f"${amount:.2g}"
 
 
 def _speed(by: dict[str, Any], results: list[Any], models: list[str]) -> list[dict[str, Any] | None]:

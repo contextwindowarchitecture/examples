@@ -86,6 +86,22 @@ def test_cost_sets_each_model_where_its_price_and_its_steadiness_put_it() -> Non
     assert chart["points"] == [{"label": "steady", "x": 0.01, "y": 1}, {"label": "flips", "x": 0.004, "y": 0}]
 
 
+def test_what_a_model_cost_is_a_bar_of_prompt_and_completion_against_what_was_planned() -> None:
+    models = {"b/cheap": listed(cost=0.004), "a/dear": listed(cost=0.02, planned={"likely": 0.03})}
+    calls = [call(model="a/dear", prompt_cost=0.001, completion_cost=0.003), call(model="b/cheap")]
+    chart = drawn([metrics.cost(calls, [], {"models": models, "jobs": []})], [], list(models), "cost", "spent")
+    assert (chart["kind"], chart["x"]) == ("rows", {"label": "Dollars spent", "unit": "usd", "zero": True})
+    # The largest spend first. Each row opens its model's card.
+    assert [(row["label"], row["opens"]) for row in chart["rows"]] == [("dear", "a/dear"), ("cheap", "b/cheap")]
+    # What was spent, split by the share of the charge its hosts said was prompt, and the plan marked against it.
+    assert chart["rows"][0]["marks"] == [
+        {"mark": "segment", "from": 0, "to": 0.005, "tone": "ink", "name": "Prompt, 25% of $0.020", "value": 0.005, "unit": "usd"},
+        {"mark": "segment", "from": 0.005, "to": 0.02, "tone": "quiet", "name": "Completion", "value": 0.015, "unit": "usd"},
+        {"mark": "tick", "x": 0.03, "tone": "accent", "tall": True, "name": "Planned, likely"}]
+    # A model whose hosts did not say how the charge splits is one bar, and one with no plan has nothing marked.
+    assert chart["rows"][1]["marks"] == [{"mark": "bar", "x": 0.004, "tone": "ink", "name": "Spent"}]
+
+
 def test_an_agents_count_is_a_line_through_its_inferences_under_the_budget() -> None:
     results = [result(case="04-tools/01-owner-reenables", variant=None, repeat=n, estimates=estimates, budget=4000)
                for n, estimates in enumerate(((1000, 1100, 1300), (1000, 1200), (1000,)), start=1)]
