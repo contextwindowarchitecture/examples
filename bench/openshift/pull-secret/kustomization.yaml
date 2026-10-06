@@ -1,0 +1,21 @@
+# A pull secret for a private image, as a component: switch it on in ../kustomization.yaml.
+# auth.json is a registry login, written by: podman login quay.io --authfile openshift/pull-secret/auth.json
+# It is gitignored here. The secret's name carries a hash of it, so new credentials roll the pods onto them.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+secretGenerator:
+  - name: cwa-bench-viewer-pull
+    type: kubernetes.io/dockerconfigjson
+    files:
+      - .dockerconfigjson=auth.json
+
+patches:
+  - target:
+      kind: Deployment
+      name: cwa-bench-viewer
+    patch: |-
+      - op: add
+        path: /spec/template/spec/imagePullSecrets
+        value:
+          - name: cwa-bench-viewer-pull

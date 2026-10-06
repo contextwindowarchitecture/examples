@@ -470,12 +470,7 @@ podman login quay.io
 podman push quay.io/contextwindowarchitecture/bench:$TAG
 ```
 
-`--platform linux/amd64` builds for an x86 cluster from an Apple silicon Mac; change it for an arm64 cluster. While the repository on quay.io is private, the project needs a pull secret, from a robot account with read access:
-
-```sh
-oc create secret docker-registry quay-pull --docker-server=quay.io --docker-username=<robot> --docker-password=<token>
-oc secrets link default quay-pull --for=pull
-```
+`--platform linux/amd64` builds for an x86 cluster from an Apple silicon Mac; change it for an arm64 cluster. A new repository on quay.io is private, so the cluster needs credentials to pull from it: see [Pull credentials](#pull-credentials).
 
 To use the cluster's own registry instead, where its default route is exposed, push to it and name the image as the cluster sees it, `image-registry.openshift-image-registry.svc:5000/<project>/bench`:
 
@@ -506,6 +501,16 @@ oc rollout status deployment/cwa-bench-viewer
 ```
 
 Publishing a new run is the same three steps: build and push under the new run's tag, set the image, apply.
+
+### Pull credentials
+
+While `quay.io/contextwindowarchitecture/bench` is private, the pods need a pull secret. [openshift/pull-secret/](openshift/pull-secret/) is a kustomize component that makes one from `openshift/pull-secret/auth.json`, a registry login that its `.gitignore` keeps out of the repository, and gives it to the Deployment. Create a robot account on quay.io with read access to the repository, log it in to that file, and switch the component on:
+
+```sh
+podman login quay.io --authfile openshift/pull-secret/auth.json --username 'contextwindowarchitecture+<robot>'
+```
+
+Then uncomment `components:` and `- pull-secret` in [openshift/kustomization.yaml](openshift/kustomization.yaml), and apply as above. Quay's robot account page offers the same file under Docker Configuration. The secret's name ends in a hash of `auth.json`, so new credentials make a new secret and roll the pods onto it; the old one stays until you delete it. With the component on and no `auth.json`, `oc apply -k` stops before applying anything. A public image needs none of this.
 
 ### The hostname
 

@@ -17,3 +17,10 @@ def test_env_files_are_left_out_by_name_after_every_allowed_path() -> None:
     rules = [line for line in lines if line and not line.startswith("#")]
     last_allowed = max(i for i, rule in enumerate(rules) if rule.startswith("!"))
     assert {".env", "**/.env"} <= set(rules[last_allowed + 1:])
+
+
+def test_the_pull_secret_overlay_keeps_its_credentials_out_of_git() -> None:
+    # openshift/pull-secret/, a kustomize component, builds the pull secret from auth.json, a login that stays local.
+    overlay = HERE / "openshift" / "pull-secret"
+    assert "auth.json" in (overlay / ".gitignore").read_text().split()
+    assert "auth.json" in (overlay / "kustomization.yaml").read_text()

@@ -13,6 +13,10 @@ resources:
   - service.yaml
   - route.yaml
 
+# For a private image, give the pods a pull secret: write pull-secret/auth.json, then uncomment these two lines.
+# components:
+#   - pull-secret
+
 images:
   - name: cwa-bench-viewer
     newName: quay.io/contextwindowarchitecture/bench  # the image this repository publishes
