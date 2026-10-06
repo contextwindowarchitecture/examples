@@ -29,7 +29,7 @@ def responded(run: Path, job: str, call: int, body: dict[str, Any]) -> Path:
 
 
 def test_each_calls_stats_are_kept_beside_it_without_what_names_the_account(tmp_path: Path) -> None:
-    response = responded(tmp_path, "vendor-model/01-docs-qa/01-answer/after/1", 1, {"id": "gen-1", "choices": []})
+    response = responded(tmp_path, "vendor-model/01-docs-qa/01-answer/after/1", 1, {"id": "gen-1", "choices": [{"index": 0}]})
     asked = []
     fetched, missing = generations.gather(tmp_path, "sk-or-real", fetch=lambda id, key: asked.append((id, key)) or REPLY, out=io.StringIO())
     assert (fetched, missing, asked) == (1, 0, [("gen-1", "sk-or-real")])
@@ -44,10 +44,12 @@ def test_each_calls_stats_are_kept_beside_it_without_what_names_the_account(tmp_
 
 
 def test_what_a_run_already_holds_is_not_fetched_again_and_what_openrouter_lacks_is_reported(tmp_path: Path) -> None:
-    held = responded(tmp_path, "vendor-model/01-docs-qa/01-answer/after/1", 1, {"id": "gen-1"})
+    held = responded(tmp_path, "vendor-model/01-docs-qa/01-answer/after/1", 1, {"id": "gen-1", "choices": [{"index": 0}]})
     write(held.with_name("1.generation.json"), {"latency": 1})
-    gone = responded(tmp_path, "vendor-model/01-docs-qa/01-answer/after/1", 2, {"id": "gen-2"})
+    gone = responded(tmp_path, "vendor-model/01-docs-qa/01-answer/after/1", 2, {"id": "gen-2", "choices": [{"index": 0}]})
     responded(tmp_path, "vendor-model/01-docs-qa/01-answer/after/1", 3, {"error": {"message": "rate limited"}})  # never answered: no id
+    # An error can carry an id too, and OpenRouter keeps no stats for it: there was no generation.
+    responded(tmp_path, "vendor-model/01-docs-qa/01-answer/after/1", 4, {"id": "gen-4", "error": {"message": "Upstream error", "code": 502}})
     asked = []
     out = io.StringIO()
     fetched, missing = generations.gather(tmp_path, "key", fetch=lambda id, key: asked.append(id), out=out)

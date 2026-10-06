@@ -69,7 +69,8 @@ def gather(run: Path, key: str, *, fetch: Callable[[str, str], dict[str, Any] | 
     pending = []
     for response in sorted(run.rglob("calls/*.response.json")):
         beside = response.with_name(response.name.replace(".response.json", ".generation.json"))
-        id = _object(response).get("id")
+        body = _object(response)
+        id = body.get("id") if body.get("choices") else None  # an error carries an id too, and no generation lies behind it
         if id and not beside.exists():
             pending.append((id, beside))
 
