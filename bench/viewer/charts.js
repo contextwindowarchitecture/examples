@@ -73,6 +73,7 @@ function key(entry) {
   if (entry.mark === "dot") swatch.append(el("circle", { cx: 11, cy: 6, r: R, fill: tone }));
   else if (entry.mark === "ring") swatch.append(el("circle", { cx: 11, cy: 6, r: R - 1, fill: "var(--bg)", stroke: tone, "stroke-width": 2 }));
   else if (entry.mark === "cell") swatch.append(el("rect", { x: 3, y: 1, width: 16, height: 10, fill: "var(--accent-soft)" }));
+  else if (entry.mark === "tick") swatch.append(el("line", { x1: 11, x2: 11, y1: 1, y2: 11, stroke: tone, "stroke-width": 2.5, "stroke-linecap": "round" }));
   else if (entry.mark === "segment" || entry.mark === "bar") swatch.append(el("rect", { x: 3, y: 1, width: 16, height: 10, fill: tone }));
   else swatch.append(el("line", { x1: 1, x2: 21, y1: 6, y2: 6, stroke: tone, "stroke-width": 2, "stroke-linecap": "round" }));
   const label = document.createElement("span");
@@ -165,22 +166,28 @@ function rows(plot, chart) {
   const xs = chart.rows.flatMap((row) => row.marks.flatMap((mark) => [mark.x, mark.from, mark.to].filter((value) => value !== undefined)));
   const low = chart.x.zero ? 0 : d3.min(xs), high = chart.x.to ?? d3.max(xs);
   const pad = chart.x.zero ? 0 : (high - low || 1) * 0.12;
-  const x = d3.scaleLinear().domain([low - pad, chart.x.to ?? high + (chart.x.zero ? 0 : pad)]).range([left, total - right]);
-  if (chart.x.to === undefined) x.nice();
+  const x = chart.x.log ? d3.scaleLog().domain([low / 1.3, high * 1.3]).range([left, total - right])
+    : d3.scaleLinear().domain([low - pad, chart.x.to ?? high + (chart.x.zero ? 0 : pad)]).range([left, total - right]);
+  if (chart.x.to === undefined && !chart.x.log) x.nice();
   const svg = frame(plot, bottom + 42, chart.title);
-  axisX(svg, x, chart.x.unit, top, bottom, chart.x.label);
+  axisX(svg, x, chart.x.unit, top, bottom, chart.x.label, chart.x.log ? "ratios" : 5);
   chart.rows.forEach((row, n) => {
     const group = el("g");
     const mid = top + step * n + (above ? 16 + ROW / 2 : ROW / 2);
     group.append(el("rect", { x: 0, y: top + step * n, width: total, height: step, class: "band" }));
     group.append(above ? el("text", { x: left, y: top + step * n + 14, class: "row-label" }, fit(row.label, total - left - 8))
       : el("text", { x: left - 12, y: mid + 4, class: "row-label", "text-anchor": "end" }, row.label));
-    for (const mark of row.marks) {
+    // Points over the lines they sit on, and a dot over a ring it shares a place with, whatever the order a reader
+    // meets them in.
+    const layer = { ring: 1, dot: 2 };
+    for (const mark of [...row.marks].sort((a, b) => (layer[a.mark] ?? 0) - (layer[b.mark] ?? 0))) {
       const tone = TONE[mark.tone];
       if (mark.mark === "bar") group.append(el("path", { d: barPath(x(x.domain()[0]), x(mark.x), mid - 6, 12), fill: tone }));
       // Segments that touch are parted by 2px of the surface, never by a line drawn round them.
       if (mark.mark === "segment" && x(mark.to) - x(mark.from) > 2) group.append(el("rect", { x: x(mark.from) + 1, y: mid - 7, width: x(mark.to) - x(mark.from) - 2, height: 14, fill: tone }));
       if (mark.mark === "link" || mark.mark === "range") group.append(el("line", { x1: x(mark.from), x2: x(mark.to), y1: mid, y2: mid, stroke: tone, "stroke-width": 2, "stroke-linecap": "round" }));
+      // A tick marks a value on a line: a tall one is what the row is measured by, a short one what it is set against.
+      if (mark.mark === "tick") group.append(el("line", { x1: x(mark.x), x2: x(mark.x), y1: mid - (mark.tall ? 9 : 5), y2: mid + (mark.tall ? 9 : 5), stroke: tone, "stroke-width": mark.tall ? 2.5 : 2, "stroke-linecap": "round" }));
       if (mark.mark === "dot") group.append(el("circle", { cx: x(mark.x), cy: mid, r: R, fill: tone, class: "ringed" }));
       if (mark.mark === "ring") group.append(el("circle", { cx: x(mark.x), cy: mid, r: R - 1, fill: "var(--bg)", stroke: tone, "stroke-width": 2 }));
     }

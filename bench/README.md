@@ -210,7 +210,7 @@ Each page draws its numbers as well as tabling them. [charts.py](charts.py) says
 | What CWA decided | A bar per request, of its route's `budget.input`, by plane | Where a budget goes, and how much is left |
 | Tokens | A panel per model on shared axes: each request's host count against the estimate, the line through them, and the estimate with the declared margin | Seeing a fixed amount added (a line that starts high) apart from a different way of counting (a line that climbs faster) |
 | Cost | A labelled point per model: cost per result with every check passed, on a scale of ratios, against cases passed in every repeat | Which models are steady for less |
-| Speed | A bar per model for its median call, with its time to first token marked on it | How much of a call is waiting, and which hosts send a reply in one piece |
+| Speed | A row per model, quickest first, on a scale of ratios: its median time to first token, its first visible token, its median call, and the line on to its slow and slowest calls | How long a reader waits, how much of the wait is reasoning, how far the tail runs, and which hosts send a reply in one piece |
 | Stability | A cell per case and model, filled where a repeat failed | Which cases change between repeats, and for whom |
 | Grounding | A bar per model | How much of what it was sent each model cited |
 | Before and after | For each question, a ring and a dot per model | Which way, and how far, CWA moved the request |

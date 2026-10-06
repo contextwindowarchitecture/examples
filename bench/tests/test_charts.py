@@ -91,15 +91,23 @@ def test_before_and_after_join_the_two_requests_one_model_answered() -> None:
         {"mark": "dot", "x": 400, "tone": "ink", "name": "after.py, through CWA"}]}]
 
 
-def test_a_call_is_a_bar_with_the_wait_for_its_first_token_marked_on_it() -> None:
-    calls = [call(completion=200, reasoning=100, ms=3000, first_token=500, generating=2800)]
-    chart = drawn([metrics.speed(calls, {"models": {MODEL: listed()}, "jobs": []})], [], [MODEL], "speed", "wait")
-    assert chart["rows"] == [{"label": "model", "marks": [
-        {"mark": "bar", "x": 3, "tone": "quiet", "name": "Median call"},
+def test_a_models_wait_is_a_row_from_its_first_token_through_its_slowest_calls() -> None:
+    models = ["b/slow", "a/quick"]
+    calls = [call(model="b/slow", completion=200, reasoning=100, ms=ms, first_token=500, generating=ms - 200) for ms in (3000, 3000, 9000)]
+    calls += [call(model="a/quick", ms=1000)]  # a run that holds no stats from OpenRouter for it
+    chart = drawn([metrics.speed(calls, {"models": {model: listed() for model in models}, "jobs": []})], [], models, "speed", "wait")
+    # Seconds span ten times and more between models, so the axis is a scale of ratios; the quickest median call is first.
+    assert chart["x"] == {"label": "Seconds", "unit": "seconds", "log": True}
+    assert [row["label"] for row in chart["rows"]] == ["quick", "slow"]
+    # Marks in the order a reader meets them, each a median or a percentile of its own.
+    assert chart["rows"][1]["marks"] == [
+        {"mark": "link", "from": 0.5, "to": 9, "tone": "quiet"},
+        {"mark": "dot", "x": 0.5, "tone": "ink", "name": "Median time to first token"},
         {"mark": "ring", "x": 1.65, "tone": "ink", "name": "First visible token, estimated"},
-        {"mark": "dot", "x": 0.5, "tone": "ink", "name": "Median time to first token"}]}]
-    unknown = drawn([metrics.speed([call(ms=3000)], {"models": {MODEL: listed()}, "jobs": []})], [], [MODEL], "speed", "wait")
-    assert [mark["mark"] for mark in unknown["rows"][0]["marks"]] == ["bar"]  # a run that holds no stats from OpenRouter
+        {"mark": "tick", "x": 3, "tone": "ink", "tall": True, "name": "Median call"},
+        {"mark": "tick", "x": 9, "tone": "quiet", "name": "Slow call"},
+        {"mark": "tick", "x": 9, "tone": "quiet", "name": "Slowest calls"}]
+    assert [mark["mark"] for mark in chart["rows"][0]["marks"]] == ["link", "tick", "tick", "tick"]
 
 
 def test_what_a_model_cited_of_what_it_was_sent_is_a_bar() -> None:

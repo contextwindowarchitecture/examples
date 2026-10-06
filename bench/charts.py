@@ -1,7 +1,8 @@
 """The charts on each page of numbers: what to draw, from values the page already holds. The viewer draws them with D3
 (viewer/charts.js) and computes nothing: a chart is a list of marks with their places on its axes.
 
-    rows     a row per model or request on one axis: bars, dots, rings, ranges, links and stacked segments
+    rows     a row per model or request on one axis, or on a scale of ratios: bars, dots, rings, ticks, ranges, links
+             and stacked segments
     panels   one small plot per model on shared axes: its points, the line through them, and what they are set against
     grid     a cell per case and model
     scatter  a labelled point per model on two axes
@@ -104,22 +105,33 @@ def _cost(by: dict[str, Any], results: list[Any], models: list[str]) -> list[dic
 
 def _speed(by: dict[str, Any], results: list[Any], models: list[str]) -> list[dict[str, Any] | None]:
     page = by["speed"]
-    whole, first, visible = _values(page, "seconds_p50"), _values(page, "first_token_p50"), _values(page, "first_visible")
-    rows = [{"label": _short(model), "marks": [
-        {"mark": "bar", "x": whole[model], "tone": "quiet", "name": "Median call"},
-        *([{"mark": "ring", "x": visible[model], "tone": "ink", "name": "First visible token, estimated"}] if visible.get(model) is not None else []),
-        *([{"mark": "dot", "x": first[model], "tone": "ink", "name": "Median time to first token"}] if first.get(model) is not None else []),
-    ]} for model in models if whole.get(model) is not None]
-    return [rows and {
-        "id": "wait", "kind": "rows", "title": "How long a call takes, and how much of it is waiting",
-        "how": "Each model's median call as a bar. The dot is its median time to the first token, a reasoning token "
-               "included; the ring estimates when the first visible token came. A dot at the end of its bar is a host "
-               "that sends its reply in one piece.",
-        "values": "Its values are three columns of the table on this page.",
-        "x": {"label": "Seconds", "unit": "seconds", "zero": True},
-        "legend": [{"mark": "bar", "tone": "quiet", "label": "Median call"}, {"mark": "dot", "tone": "ink", "label": "Median time to first token"},
-                   {"mark": "ring", "tone": "ink", "label": "First visible token, estimated"}],
-        "rows": rows}]
+    first, visible = _values(page, "first_token_p50"), _values(page, "first_visible")
+    median, slow, slowest = _values(page, "seconds_p50"), _values(page, "seconds_p90"), _values(page, "seconds_p99")
+
+    def marks(model: str) -> list[dict[str, Any]]:
+        # In the order a reader meets them. A run that holds no stats from OpenRouter has no first token to mark.
+        found = [*([{"mark": "dot", "x": first[model], "tone": "ink", "name": "Median time to first token"}] if first.get(model) else []),
+                 *([{"mark": "ring", "x": visible[model], "tone": "ink", "name": "First visible token, estimated"}] if visible.get(model) else []),
+                 {"mark": "tick", "x": median[model], "tone": "ink", "tall": True, "name": "Median call"},
+                 {"mark": "tick", "x": slow[model], "tone": "quiet", "name": "Slow call"},
+                 {"mark": "tick", "x": slowest[model], "tone": "quiet", "name": "Slowest calls"}]
+        return [{"mark": "link", "from": min(mark["x"] for mark in found), "to": slowest[model], "tone": "quiet"}, *found]
+
+    timed = sorted((model for model in models if median.get(model) and slowest.get(model)), key=lambda model: median[model])
+    seconds = [mark["x"] for model in timed for mark in marks(model)[1:]]
+    return [timed and {
+        "id": "wait", "kind": "rows", "title": "How long a reader waits, and how long the tail runs",
+        "how": "A row per model, the quickest median call first. The dot is the median time to the first token, a "
+               "reasoning token included; the ring estimates when the first token a reader sees came, so the gap "
+               "between them is reasoning. The tall tick is the median call, and the line runs on to the slow call, "
+               "the 90th percentile, and the slowest calls, the 99th. Each mark is a median or a percentile of its "
+               "own, not one call cut into parts. A dot on its tall tick is a host that sends its reply in one piece.",
+        "values": "Its values are six of the numbers on this page.",
+        # A slow model's tail can be a hundred times another's first token: on a scale of ratios both stay readable.
+        "x": {"label": "Seconds", "unit": "seconds", "log": True} if max(seconds) >= 10 * min(seconds) else {"label": "Seconds", "unit": "seconds", "zero": True},
+        "legend": [{"mark": "dot", "tone": "ink", "label": "Median time to first token"}, {"mark": "ring", "tone": "ink", "label": "First visible token, estimated"},
+                   {"mark": "tick", "tone": "ink", "label": "Median call"}, {"mark": "tick", "tone": "quiet", "label": "Slow and slowest calls"}],
+        "rows": [{"label": _short(model), "marks": marks(model)} for model in timed]}]
 
 
 def _stability(by: dict[str, Any], results: list[Any], models: list[str]) -> list[dict[str, Any] | None]:
