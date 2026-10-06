@@ -106,7 +106,7 @@ assembled account-help-small-messages v1: 819 input tokens of 1000 with a 15% ma
   - interaction.history      turn:s_long:0004             over_budget
 ```
 
-`~` marks an item sent as its summary. The trace's `compressed[]` rows record each one's size before and after, its variant id and the method that wrote it. Here is what the policy did, in the order [conformance/README.md](https://github.com/contextwindowarchitecture/website/blob/main/conformance/README.md) fixes:
+`~` marks an item sent as its summary. The trace's `compressed[]` rows record each one's size before and after, its variant id and the method that wrote it. Here is what the policy did, in the order [conformance/README.md](https://github.com/contextwindowarchitecture/contextwindowarchitecture/blob/main/conformance/README.md) fixes:
 
 1. The instructions, the account and the question are protected. They are sent whole, the same 244, 40 and 23 tokens as on the large route.
 2. The history slot is capped at 200 tokens. Its long turns are summarized first, oldest first, and then the oldest turns are dropped until it fits.
