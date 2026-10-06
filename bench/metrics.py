@@ -327,13 +327,18 @@ def decisions(assemblies: list[Assembly], models: list[str]) -> dict[str, Any]:
                      "around": made.estimate - sum(size for _, size in made.sent)} for made in requests if made.estimate]),
             _table("reasons", "Why items were left out",
                    "Each reason, with the stage that gave it: a producer reporting what it suppressed, or the "
-                   "assembler. For 01–03, the items and their tokens, each request once; for 04 and 05, the items "
-                   "across each model's own assemblies.",
+                   "assembler. For 01–03, the items and their tokens, each request once.",
                    [_column("reason", "Reason"), _column("stage", "Stage"), _column("committed", "01–03, items", "count"),
-                    _column("tokens", "01–03, tokens", "tokens"), *(_column(model, _short(model), "count") for model in models)],
+                    _column("tokens", "01–03, tokens", "tokens")],
                    [{"reason": reason, "stage": stage,
                      "committed": sum((left, by) == (reason, stage) for made in requests for left, by, _ in made.left_out),
-                     "tokens": sum(size or 0 for made in requests for left, by, size in made.left_out if (left, by) == (reason, stage)),
+                     "tokens": sum(size or 0 for made in requests for left, by, size in made.left_out if (left, by) == (reason, stage))}
+                    for reason, stage in sorted(reasons)]),
+            _table("reasons_by_model", "Why each model's items were left out, in 04 and 05",
+                   "Each reason, with the stage that gave it: the items left out across each model's own assemblies, "
+                   "since in 04 and 05 the model's tool calls decide what each snapshot holds.",
+                   [_column("reason", "Reason, by stage"), *(_column(model, _short(model), "count") for model in models)],
+                   [{"reason": f"{reason} · {stage}",
                      **{model: sum((left, by) == (reason, stage) for made in own[model] for left, by, _ in made.left_out) for model in models}}
                     for reason, stage in sorted(reasons)]),
             _table("relevance", "How close each relevance call was",
@@ -343,7 +348,13 @@ def decisions(assemblies: list[Assembly], models: list[str]) -> dict[str, Any]:
                     _column("strongest_left", "Highest left out", "count")],
                    [{"request": name(made), "threshold": made.threshold, "weakest_sent": made.weakest_sent, "strongest_left": made.strongest_left}
                     for made in requests if made.threshold is not None and (made.weakest_sent is not None or made.strongest_left is not None)]),
-        ]}
+        ],
+        # A card per model for what 04 and 05's assemblies did, the fullest budget first. 01–03's requests are the same
+        # for every model, so their tables stay on the page.
+        "cards": {"order": "budget_peak", "down": True, "head": ["assemblies", "left_out_each", "superseded", "budget_peak"],
+                  "groups": [{"title": "What it assembled", "numbers": ["assemblies", "left_out_each", "budget_peak"]},
+                             {"title": "What it decided", "numbers": ["not_offered", "superseded", "conflicts_decided"]}],
+                  "tables": ["reasons_by_model"]}}
 
 
 def tokens(calls: list[Call], models: list[str], pasted: frozenset[str] = frozenset(),

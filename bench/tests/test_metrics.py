@@ -513,8 +513,11 @@ def test_decisions_says_what_the_assembler_did_with_what_it_was_offered() -> Non
     assert (route["request"], route["saved"], route["used"]) == (f"{small} · account-help-small", 43, 0.82)
     assert rows(page, "planes")[0] == {"request": "01-docs-qa/01-answer", "governance": 140, "state": 0, "evidence": 110, "interaction": 10, "around": 40}
     reasons = {row["reason"]: row for row in rows(page, "reasons")}
-    assert reasons["below_threshold"] == {"reason": "below_threshold", "stage": "assembler", "committed": 3, "tokens": 120, MODEL: 0, "b/other": 0}
-    assert (reasons["superseded"]["committed"], reasons["superseded"][MODEL]) == (0, 1)
+    assert reasons["below_threshold"] == {"reason": "below_threshold", "stage": "assembler", "committed": 3, "tokens": 120}
+    # 04 and 05's, by model, in a table of their own that each model's card takes.
+    by_model = {row["reason"]: row for row in rows(page, "reasons_by_model")}
+    assert by_model["below_threshold · assembler"] == {"reason": "below_threshold · assembler", MODEL: 0, "b/other": 0}
+    assert (reasons["superseded"]["committed"], by_model["superseded · assembler"][MODEL]) == (0, 1)
     assert rows(page, "relevance") == [{"request": "01-docs-qa/01-answer", "threshold": 2, "weakest_sent": 2.4, "strongest_left": 1.8},
                                        {"request": "01-docs-qa/03-off-topic", "threshold": 2, "weakest_sent": None, "strongest_left": 1.2}]
 
@@ -586,7 +589,7 @@ def test_cost_sets_each_model_as_a_card_with_the_largest_spend_first() -> None:
     assert cards["tables"] == ["identity", "by_example"] == [table["id"] for table in page["tables"]]
 
 
-CARDED = {"tokens", "cost", "speed", "stability", "grounding", "before-after", "agents", "checks"}
+CARDED = {"tokens", "cost", "speed", "stability", "grounding", "before-after", "agents", "checks", "decisions"}
 
 
 def test_every_page_with_cards_puts_each_number_in_one_group_and_names_tables_it_has(tmp_path: Path) -> None:
