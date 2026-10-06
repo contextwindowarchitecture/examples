@@ -152,6 +152,18 @@ a.row:hover { background: var(--accent-soft); }
 .row.how { grid-template-columns: minmax(200px, 1fr) minmax(0, 3fr); font-family: var(--sans); font-size: 14.5px; }
 .row.how .fg { font-family: var(--mono); font-size: 12.5px; }
 .row.group { background: var(--surface); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); padding-top: 10px; padding-bottom: 10px; }
+/* The key to the example numbers, inverted so it stands out in either theme. */
+.key { padding-top: 24px; }
+.key details { background: var(--fg); color: var(--bg); padding: 16px 22px; }
+.key summary { cursor: pointer; font-size: 16px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.4; }
+.key ul { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px 28px; }
+.key li { font-size: 14.5px; line-height: 1.45; }
+.key li .mono { font-size: 13px; }
+.key li .what { display: block; opacity: 0.85; }
+.key p { margin: 14px 0 0; font-size: 14.5px; line-height: 1.55; max-width: 90ch; }
+.key a { color: var(--bg); text-decoration: underline; text-underline-offset: 3px; }
+.key a:hover { color: var(--bg); text-decoration-thickness: 2px; }
+
 /* Models: a card a model in a hairline grid that reflows to one column, so nothing scrolls sideways. */
 .order { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 20px; }
 .order > .label { margin-right: 6px; }
