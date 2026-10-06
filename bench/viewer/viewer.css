@@ -154,8 +154,12 @@ a.row:hover { background: var(--accent-soft); }
 .row.group { background: var(--surface); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); padding-top: 10px; padding-bottom: 10px; }
 /* The key to the example numbers, inverted so it stands out in either theme. */
 .key { padding-top: 24px; }
-.key details { background: var(--fg); color: var(--bg); padding: 16px 22px; }
-.key summary { cursor: pointer; font-size: 16px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.4; }
+.key-box { background: var(--fg); color: var(--bg); padding: 16px 22px; }
+.key-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.key h2 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.4; }
+.key-hide { flex: none; font-family: var(--mono); font-size: 12px; letter-spacing: 0.05em; color: var(--bg); background: transparent; border: 1px solid currentColor; border-radius: var(--pill); padding: 8px 16px; min-height: 40px; cursor: pointer; }
+.key-hide:hover { background: var(--bg); color: var(--fg); }
+.key-hide:focus-visible { outline: 2px solid var(--bg); outline-offset: 2px; }
 .key ul { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px 28px; }
 .key li { font-size: 14.5px; line-height: 1.45; }
 .key li .mono { font-size: 13px; }

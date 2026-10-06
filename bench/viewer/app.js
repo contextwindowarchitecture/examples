@@ -580,8 +580,8 @@ function modelCard(run, s, r) {
   </div>`;
 }
 
-// The pages name the examples by number. The key says what each number is, above every page that uses them. It opens
-// until a reader closes it, and stays as they left it.
+// The pages name the examples by number. The key says what each number is, above every page that uses them, until a
+// reader hides it. Hidden, it stays hidden for them; where nothing can be stored, until the page is loaded again.
 const EXAMPLES_KEY = [
   ["01", "docs-qa", "A help-center Q&A bot over a product's docs"],
   ["02", "account-aware", "The same bot, aware of who is asking"],
@@ -589,19 +589,26 @@ const EXAMPLES_KEY = [
   ["04", "tools", "The bot as an agent, with tools from an MCP server"],
   ["05", "production", "The agent, made production-shaped"],
 ];
+let keyHidden = false;
+try { keyHidden = localStorage.getItem("cwa-key") === "hidden"; } catch { /* a private window keeps no storage */ }
 function examplesKey() {
-  let open = true;
-  try { open = localStorage.getItem("cwa-key") !== "closed"; } catch { /* a private window keeps no storage */ }
-  return html`<section class="wrap key"><details${open ? " open" : ""}>
-    <summary>01 to 05 are the five example applications bench runs</summary>
+  if (keyHidden) return "";
+  return html`<section class="wrap key" aria-labelledby="key-title"><div class="key-box">
+    <div class="key-head"><h2 id="key-title">What does the use of 01-03 or 05 mean?</h2>
+      <button type="button" class="key-hide" data-action="hide-key">Hide</button></div>
     <ul>${EXAMPLES_KEY.map(([n, folder, what]) => html`<li><b class="mono">${n}</b> <span class="mono">${folder}</span><span class="what">${what}</span></li>`)}</ul>
     <p><b>01–03 are Q&amp;A bots:</b> every model is sent the same snapshots. <b>04 and 05 are agents:</b> each model's tool calls decide what its next snapshot holds. A case such as <span class="mono">01-docs-qa/03-off-topic</span> is one example's case. <a href="https://github.com/contextwindowarchitecture/examples#the-examples" target="_blank" rel="noopener">The examples on GitHub →</a></p>
-  </details></section>`;
+  </div></section>`;
 }
-document.addEventListener("toggle", (event) => {
-  if (!event.target.closest?.(".key")) return;
-  try { localStorage.setItem("cwa-key", event.target.open ? "open" : "closed"); } catch { /* as above */ }
-}, true);
+function hideKey() {
+  keyHidden = true;
+  try { localStorage.setItem("cwa-key", "hidden"); } catch { /* as above */ }
+  view.querySelector(".key")?.remove();
+  document.getElementById("status").textContent = "The key to the example numbers is hidden";
+  // The button is gone, so the focus goes to the page's heading rather than the top of the document.
+  const heading = view.querySelector("h1");
+  if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
+}
 const KEYED = new Set(["constructs", "construct", "cases", "case", "numbers"]);
 
 // Routing, the header, and the page's controls
@@ -697,6 +704,7 @@ view.addEventListener("click", (event) => {
   if (!button) return;
   const { action, value } = button.dataset;
   if (action === "tour") { startTour(); return; }
+  if (action === "hide-key") { hideKey(); return; }
   if (action === "sort") state.sort = { by: value, down: state.sort.by === value ? !state.sort.down : true };
   if (action === "repeat") state.repeat = value;
   if (action === "order") state.order = value;
