@@ -116,6 +116,8 @@ function frame(beat, at, width) {
   for (const row of sent) { segment.set(idOf(row), along); along += row.tokens; }
   const counts = new Map();
   const next = (key) => { const n = counts.get(key) ?? 0; counts.set(key, n + 1); return n; };
+  // An offered item keeps its place in its slot's row: one that leaves leaves a gap, and nothing shifts into it.
+  const place = new Map(slots.flatMap((slot) => offered.filter((item) => item.slot === slot).map((item, n) => [item.id, n])));
   const chips = [];
   for (const item of offered) {
     const gone = out.get(item.id), tone = TONE[item.slot.split(".")[0]];
@@ -127,7 +129,7 @@ function frame(beat, at, width) {
     } else {
       const small = squashed.has(item.id) && fitted >= 0 && at >= fitted;
       const inset = small ? 3 : 0;
-      box = { x: left.x + label + next(item.slot) * (SIZE + GAP) + inset, y: left.y + slots.indexOf(item.slot) * ROW + (ROW - SIZE) / 2 + inset,
+      box = { x: left.x + label + place.get(item.id) * (SIZE + GAP) + inset, y: left.y + slots.indexOf(item.slot) * ROW + (ROW - SIZE) / 2 + inset,
               w: SIZE - 2 * inset, h: SIZE - 2 * inset, dim: kind === "refuse" };
     }
     chips.push({ id: item.id, item, tone, gone: gone && gone[1] <= at ? gone[0] : null, squashed: squashed.get(item.id), tokens: tokens.get(item.id), ...box });
@@ -271,6 +273,11 @@ function player(root, run, s) {
   function draw(fresh) {
     const beat = state.beats[state.beat], step = beat.steps[state.step];
     const f = frame(beat, state.step, plot.clientWidth);
+    // A conflict's line starts where the loser was offered, the step before, not where it is left out.
+    if (f.kind === "conflict" && state.step > 0) {
+      const before = frame(beat, state.step - 1, plot.clientWidth).chips;
+      f.link = f.link.map((link) => ({ ...link, from: before.find((chip) => chip.id === link.from.id) ?? link.from }));
+    }
     const time = still ? 0 : MOVE;
     beatName.textContent = beat.label;
     pills.replaceChildren(...beat.steps.map((one, n) => {
@@ -309,7 +316,12 @@ function player(root, run, s) {
     // A conflict: the loser is drawn to the winner before it is left out.
     d3.select(layers.links).selectAll("path").data(f.link, (d) => d.from.id).join(
       (enter) => enter.append("path").attr("class", "asm-link"), (update) => update, (exit) => exit.remove())
-      .attr("d", (d) => `M${d.from.x + SIZE / 2},${d.from.y + SIZE / 2} C${(d.from.x + d.to.x) / 2},${d.from.y - 30} ${(d.from.x + d.to.x) / 2},${d.to.y - 30} ${d.to.x + SIZE / 2},${d.to.y + SIZE / 2}`);
+      // From the loser's right edge to the winner's, bowed out past both, so it clears the squares between them.
+      .attr("d", (d) => {
+        const x1 = d.from.x + d.from.w, y1 = d.from.y + d.from.h / 2, x2 = d.to.x + d.to.w, y2 = d.to.y + d.to.h / 2;
+        const bow = Math.max(x1, x2) + 28 + Math.abs(y2 - y1) * 0.25;
+        return `M${x1},${y1} C${bow},${y1} ${bow},${y2} ${x2},${y2}`;
+      });
 
     const wait = f.kind === "conflict" ? time : 0;
     d3.select(layers.chips).selectAll("rect").data(f.chips, (chip) => chip.id).join(
