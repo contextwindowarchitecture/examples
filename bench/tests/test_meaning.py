@@ -77,3 +77,14 @@ def test_the_before_and_after_reading_says_which_way_the_request_changed() -> No
     [page] = meaning.explain([metrics.before_after(calls, results, ["a/smaller", "b/larger"])], ["a/smaller", "b/larger"])
     assert page["reading"] == ["No model cited a chunk the assembly left out.",
                                "By each model's own count, after.py's request ran from 10% smaller to 10% larger than before.py's."]
+
+
+def test_a_reading_of_many_models_counts_them_rather_than_naming_each() -> None:
+    models = [f"v/m{n}" for n in range(8)]
+    results = [result(model=model, repeat=n, checks=(("answer answered", model == "v/m0" or n == 1),)) for model in models for n in (1, 2)]
+    [page] = meaning.explain([metrics.stability(results, models)], models)
+    assert page["reading"][:2] == ["m0 passed every graded case in every repeat.",
+                                   "7 of the 8 models changed their result on at least one case between repeats. The request was the same to the byte each time."]
+    every = [result(model=model, repeat=n, checks=(("answer answered", n == 1),)) for model in models for n in (1, 2)]
+    [page] = meaning.explain([metrics.stability(every, models)], models)
+    assert page["reading"][0] == "Every model changed its result on at least one case between repeats. The request was the same to the byte each time."

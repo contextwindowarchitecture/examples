@@ -202,7 +202,7 @@ def _decisions(page: _Page, models: list[str]) -> list[str | None]:
         most and f"Most of what was left out was {most['reason']}: {_plural(most['committed'], 'item')}.",
         page.total("summarized") and f"{_plural(page.total('summarized'), 'item')} went as a summary written ahead of time, "
                                      f"which saved {_count(page.total('saved'))} tokens.",
-        looked and (f"In 04 and 05 only {_names(twice)} looked at the same thing twice, so only {'its' if len(twice) == 1 else 'their'} "
+        looked and (f"In 04 and 05 only {_some(twice, models)} looked at the same thing twice, so only {_its(twice, models)} "
                     "traces show a newer result replacing an older one." if twice and len(twice) < len(looked)
                     else None if twice else "In 04 and 05 no model looked at the same thing twice, so no trace shows supersession."),
     ]
@@ -218,8 +218,8 @@ def _tokens(page: _Page, models: list[str]) -> list[str | None]:
     ratio = page.total("normalized_over_estimate")
     return [
         covered and len(declared) == 1 and f"The routes declare a margin of {_percent(declared[0])}. It covered " + _clauses(
-            [*([f"every 01–03 request for {_names(whole)}"] if whole else []), *([f"none for {_names(none)}"] if none else []),
-             *([f"some for {_names(part)}"] if part else [])]) + ".",
+            [*([f"every 01–03 request for {_some(whole, models)}"] if whole else []), *([f"none for {_some(none, models)}"] if none else []),
+             *([f"some for {_some(part, models)}"] if part else [])]) + ".",
         most and needed[most] > 0 and f"{_short(most)} needed the largest margin, {_percent(needed[most])}" + (
             f"; its host adds about {_count(round(added[most], -1))} tokens to every request." if added.get(most, 0) >= 100 else "."),
         calls and f"{_plural(calls, 'call')} {'was' if calls == 1 else 'were'} counted over their route's budget.input, "
@@ -261,8 +261,8 @@ def _stability(page: _Page, models: list[str]) -> list[str | None]:
     steady = [model for model, share in every.items() if share == 1]
     moved = [model for model in every if some.get(model)]
     return [
-        steady and f"{_names(steady)} passed every graded case in every repeat.",
-        moved and f"{_names(moved)} changed {'its' if len(moved) == 1 else 'their'} result on at least one case between repeats. "
+        steady and f"{_cap(_some(steady, models))} passed every graded case in every repeat.",
+        moved and f"{_cap(_some(moved, models))} changed {_its(moved, models)} result on at least one case between repeats. "
                   "The request was the same to the byte each time.",
         len(alike) > 1 and f"Answers to the same request shared from {_percent(min(alike.values()))} to {_percent(max(alike.values()))} of their words between repeats.",
     ]
@@ -272,7 +272,7 @@ def _grounding(page: _Page, models: list[str]) -> list[str | None]:
     sent, used, words = page.values("citations_sent"), page.values("cited_of_sent"), page.values("words_in_context")
     invented = [model for model, share in sent.items() if share < 1]
     return [
-        sent and (f"{_names(invented)} cited an article {'its' if len(invented) == 1 else 'their'} request did not carry." if invented
+        sent and (f"{_cap(_some(invented, models))} cited an article {_its(invented, models)} request did not carry." if invented
                   else "Every citation named an article its request carried."),
         len(used) > 1 and f"Models cited from {_percent(min(used.values()))} to {_percent(max(used.values()))} of the articles they were sent.",
         len(words) > 1 and f"From {_percent(min(words.values()))} to {_percent(max(words.values()))} of an answer's words were in the request it answered.",
@@ -283,8 +283,8 @@ def _before_after(page: _Page, models: list[str]) -> list[str | None]:
     citing, anyway, prompt = page.values("answers_citing_left_out"), page.values("asked_anyway"), page.values("prompt_change")
     did, did_not = [model for model, share in citing.items() if share], [model for model, share in citing.items() if not share]
     return [
-        did and f"Sent by before.py, a chunk the assembly left out was cited by {_names(did)}"
-                + (f", and never by {_names(did_not)}." if did_not else "."),
+        did and f"Sent by before.py, a chunk the assembly left out was cited by {_some(did, models)}"
+                + (f", and never by {_some(did_not, models)}." if did_not else "."),
         citing and not did and "No model cited a chunk the assembly left out.",
         anyway and sum(anyway.values()) and f"before.py spent {_dollars(sum(anyway.values()))} asking questions after.py's assembly refused.",
         len(prompt) > 1 and f"By each model's own count, after.py's request ran from {_change(min(prompt.values()))} to "
@@ -300,11 +300,11 @@ def _agents(page: _Page, models: list[str]) -> list[str | None]:
     return [
         tried and f"The guard refused {_count(sum(refused.values()))} of {_plural(sum(tried.values()), 'tool call')}.",
         page.values("injected_attempted") and (
-            _and([f"{_names(found)} {verb} what the injected text asked for" for verb, found in
-                  (("tried", injected["attempted"]), ("recommended", injected["recommended"]), ("repeated", injected["repeated"])) if found]) + "."
+            _cap(_clauses([f"{_some(found, models)} {verb} what the injected text asked for" for verb, found in
+                      (("tried", injected["attempted"]), ("recommended", injected["recommended"]), ("repeated", injected["repeated"])) if found])) + "."
             if any(injected.values()) else "No model tried, recommended or repeated what the injected text asked for."),
         claims and (f"{_plural(sum(claims.values()), 'answer')} did not match what {'its' if sum(claims.values()) == 1 else 'their'} run did, "
-                    f"from {_names(misreported)}." if misreported else "Every answer matched what its run did."),
+                    f"from {_some(misreported, models)}." if misreported else "Every answer matched what its run did."),
         took and f"From {_percent(min(took.values()))} to {_percent(max(took.values()))} of a model's runs took the path of 04's recording."
         if len(took) > 1 else None,
     ]
@@ -335,6 +335,22 @@ def _short(model: str) -> str:
 
 def _names(models: list[str]) -> str:
     return _and([_short(model) for model in models])
+
+
+def _cap(text: str) -> str:
+    """At the start of a sentence. A model's name keeps its case; a count starts with a figure."""
+    return "Every model" + text[len("every model"):] if text.startswith("every model") else text
+
+
+def _its(found: list[str], models: list[str]) -> str:
+    return "its" if len(found) == 1 or set(found) == set(models) else "their"
+
+
+def _some(found: list[str], models: list[str]) -> str:
+    """Which models, in a run of a few or of many: every model, a count of them, or their names."""
+    if set(found) == set(models):
+        return "every model"
+    return f"{len(found)} of the {len(models)} models" if len(found) > 5 else _names(found)
 
 
 def _and(parts: list[str]) -> str:
