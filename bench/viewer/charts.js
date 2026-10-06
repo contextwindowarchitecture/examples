@@ -31,7 +31,7 @@ export function mount(root, page) {
       plot.textContent = "This chart is drawn with D3, which the page loads from cdn.jsdelivr.net. It did not load, so read the values from the tables on this page.";
       continue;
     }
-    ({ rows, panels, grid, scatter, lines, strips })[chart.kind]?.(plot, chart);
+    ({ rows, panels, grid, scatter, lines })[chart.kind]?.(plot, chart);
   }
 }
 
@@ -324,71 +324,5 @@ function lines(plot, chart) {
     const said = here.map(([label, value]) => [shown(value, chart.y.unit), label, TONE.ink]);
     answers(hit, `${chart.x.label} ${at}: ${here.map(([label, value]) => `${label} ${shown(value, chart.y.unit)}`).join("; ")}`, () => tell(hair, `${chart.x.label} ${at}`, said));
     svg.append(hair, hit);
-  }
-}
-
-// A strip per number, each on its own axis, with a dot per model. Dots that would sit on one another step up and down
-// out of each other's way. Pointing at a model marks it on every strip, with its value, and quiets the rest: a model's
-// profile reads down the strips, which no one strip and no one column of the table shows.
-function strips(plot, chart) {
-  const total = plot.clientWidth, right = 28, step = 2 * R + 1, lanes = 4;
-  const longest = Math.max(...chart.strips.map((strip) => width(strip.label)));
-  const above = longest > total * 0.35;  // on a narrow page a strip's name takes a line of its own, over its dots
-  const left = above ? 16 : Math.ceil(longest) + 24;
-  const marked = new Map();  // a model's label: its dots and their values, on every strip
-  const placed = chart.strips.map((strip) => {
-    const xs = strip.points.map((point) => point.x);
-    const x = strip.log ? d3.scaleLog().domain([d3.min(xs) / 1.25, d3.max(xs) * 1.25])
-      : d3.scaleLinear().domain([Math.min(0, d3.min(xs)), strip.unit === "percent" ? Math.max(1, d3.max(xs)) : d3.max(xs)]).nice();
-    x.range([left, total - right]);
-    // The lane nearest the middle where a dot touches no other, alternating above and below; the outermost when none.
-    const taken = [];
-    const points = [...strip.points].sort((a, b) => a.x - b.x).map((point) => {
-      const at = x(point.x);
-      const order = [0, ...Array.from({ length: lanes }, (_, n) => [-(n + 1), n + 1]).flat()];
-      const lane = order.find((one) => !taken.some((other) => other.lane === one && Math.abs(other.at - at) < step)) ?? order[order.length - 1];
-      taken.push({ lane, at });
-      return { ...point, at, lane };
-    });
-    const spread = Math.max(...points.map((point) => Math.abs(point.lane)));
-    return { strip, x, points, tall: Math.max(ROW, (2 * spread + 1) * step + 12) };
-  });
-  const head = above ? 18 : 0, foot = 22;
-  const height = placed.reduce((sum, one) => sum + head + one.tall + foot, 0) + 6;
-  const svg = frame(plot, height, chart.title);
-  const quiet = (picked) => {
-    svg.classList.toggle("picking", Boolean(picked));
-    for (const [label, dots] of marked) for (const { dot, value } of dots) {
-      dot.classList.toggle("picked", label === picked);
-      value.style.display = label === picked ? "" : "none";
-      if (label === picked) dot.parentNode.append(dot, value);  // over the dots it shares its strip with
-    }
-  };
-  let top = 6;
-  for (const { strip, x, points, tall } of placed) {
-    const band = top + head, mid = band + tall / 2;
-    if (above) svg.append(el("text", { x: left, y: top + 12, class: "row-label" }, fit(strip.label, total - left - 8)));
-    else svg.append(el("text", { x: left - 14, y: mid + 4, class: "row-label", "text-anchor": "end" }, strip.label));
-    axisX(svg, x, strip.unit, band, band + tall, null, strip.log ? "ratios" : 4);
-    svg.append(el("line", { x1: left, x2: total - right, y1: mid, y2: mid, class: "grid" }));
-    const dots = el("g"), hits = el("g");
-    for (const point of points) {
-      const cy = mid + point.lane * step, value = shown(point.x, strip.unit);
-      const dot = el("circle", { cx: point.at, cy, r: R, class: "ringed strip-dot" });
-      const late = point.at > total - right - width(value) - 16;  // a value near the edge reads to the left of its dot
-      const said = el("text", { x: point.at + (late ? -10 : 10), y: cy + 4, class: "strip-value", "text-anchor": late ? "end" : "start" }, value);
-      said.style.display = "none";
-      dots.append(dot, said);
-      if (!marked.has(point.label)) marked.set(point.label, []);
-      marked.get(point.label).push({ dot, value: said });
-      const hit = el("circle", { cx: point.at, cy, r: 9, fill: "transparent" });
-      const unmark = () => { if (document.activeElement !== hit) quiet(null); };
-      answers(hit, `${point.label}, ${strip.label}: ${value}`, () => { quiet(point.label); tell(hit, point.label, [[value, strip.label, TONE.accent]]); });
-      hit.addEventListener("pointerleave", unmark);
-      hit.addEventListener("blur", () => quiet(null));
-      hits.append(hit);
-    }
-    svg.append(dots, hits);
-    top += head + tall + foot;
   }
 }

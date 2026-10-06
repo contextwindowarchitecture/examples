@@ -102,24 +102,6 @@ def test_a_call_is_a_bar_with_the_wait_for_its_first_token_marked_on_it() -> Non
     assert [mark["mark"] for mark in unknown["rows"][0]["marks"]] == ["bar"]  # a run that holds no stats from OpenRouter
 
 
-def test_each_number_on_speed_is_a_strip_with_a_dot_per_model() -> None:
-    models = ["a/quick", "b/slow"]
-    calls = [call(model="a/quick", ms=1000), call(model="b/slow", ms=3000, attempts=2)]
-    chart = drawn([metrics.speed(calls, {"models": {model: listed() for model in models}, "jobs": []})], [], models, "speed", "strips")
-    found = {strip["label"]: strip for strip in chart["strips"]}
-    assert chart["kind"] == "strips"
-    assert found["Median call"] == {"label": "Median call", "unit": "seconds", "log": False,
-                                    "points": [{"label": "quick", "x": 1}, {"label": "slow", "x": 3}]}
-    # A count that is 0 for one model is set on an axis from zero, never on a scale of ratios.
-    assert found["Calls tried more than once"]["log"] is False
-    # A number every model holds the same value of has nothing to set apart.
-    assert "Answers cut short" not in found
-    wide = drawn([metrics.speed([call(model="a/quick", ms=1000), call(model="b/slow", ms=30000)], {"models": {model: listed() for model in models}, "jobs": []})],
-                 [], models, "speed", "strips")
-    # Values that span ten times or more are set on a scale of ratios, so the slowest does not crush the rest.
-    assert next(strip for strip in wide["strips"] if strip["label"] == "Median call")["log"] is True
-
-
 def test_what_a_model_cited_of_what_it_was_sent_is_a_bar() -> None:
     results = [result(sent=("help:a@1#0", "help:b@1#0"), cited=("help:a@1#0",), supported=0.9)]
     chart = drawn([metrics.grounding(results, [MODEL])], results, [MODEL], "grounding", "cited")
