@@ -410,7 +410,7 @@ results/<run-id>/    # for example 2026-10-02T153007Z-bebe9ab
 
 ## The viewer
 
-`uv run serve.py` serves the viewer ([viewer/](viewer/)) and `results/` at http://127.0.0.1:8765/, on this machine only. Nothing else in `bench/` is served, `.env` included, and no folder is listed. The viewer is static HTML and JavaScript with no build step, in the site's visual language. It holds everything it runs but one thing: the charts are drawn with [D3](https://d3js.org) 7.9.0 (ISC licence), which `index.html` loads from cdn.jsdelivr.net with an integrity hash, so the browser refuses any other file. Without the network the pages keep their tables and each chart says it could not be drawn. The viewer reads `results/index.json`, the run's `summary.json` and `numbers.json`, and the job files the summary names:
+`uv run serve.py` serves the viewer ([viewer/](viewer/)) and `results/` at http://127.0.0.1:8765/, on this machine only; `--host 0.0.0.0` listens on every interface, as it does in a container. Nothing else in `bench/` is served, `.env` included, and no folder is listed. The viewer is static HTML and JavaScript with no build step, in the site's visual language. It holds everything it runs but one thing: the charts are drawn with [D3](https://d3js.org) 7.9.0 (ISC licence), which `index.html` loads from cdn.jsdelivr.net with an integrity hash, so the browser refuses any other file. Without the network the pages keep their tables and each chart says it could not be drawn. The viewer reads `results/index.json`, the run's `summary.json` and `numbers.json`, and the job files the summary names:
 
 | Page | What it shows |
 | --- | --- |

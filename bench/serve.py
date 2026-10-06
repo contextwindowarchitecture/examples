@@ -2,6 +2,7 @@
 
     uv run serve.py                  # http://127.0.0.1:8765/
     uv run serve.py --port 9000
+    python serve.py --host 0.0.0.0   # in a container, where the pod's network is the boundary (openshift/)
 
 The viewer is static: it reads results/index.json, each run's summary.json and the job files under it. Only
 viewer/ and results/ are served. bench/.env holds the key, so nothing else in bench/ is, and no folder is listed.
@@ -53,15 +54,17 @@ class Handler(SimpleHTTPRequestHandler):
         pass
 
 
-def server(port: int = 8765) -> ThreadingHTTPServer:
-    return ThreadingHTTPServer(("127.0.0.1", port), functools.partial(Handler, directory=str(HERE)))
+def server(host: str = "127.0.0.1", port: int = 8765) -> ThreadingHTTPServer:
+    return ThreadingHTTPServer((host, port), functools.partial(Handler, directory=str(HERE)))
 
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
-    with server(parser.parse_args(argv).port) as running:
-        print(f"http://127.0.0.1:{running.server_address[1]}/", flush=True)
+    args = parser.parse_args(argv)
+    with server(args.host, args.port) as running:
+        print(f"http://{args.host}:{running.server_address[1]}/", flush=True)
         try:
             running.serve_forever()
         except KeyboardInterrupt:

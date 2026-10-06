@@ -45,3 +45,12 @@ def test_it_listens_on_this_machine_only() -> None:
         assert server.server_address[0] == "127.0.0.1"
     finally:
         server.server_close()
+
+
+def test_a_container_can_listen_on_every_interface() -> None:
+    # In a container the pod's own network is the boundary; still only viewer/ and results/ are served.
+    server = serve.server(host="0.0.0.0", port=0)
+    try:
+        assert server.server_address[0] == "0.0.0.0"
+    finally:
+        server.server_close()
