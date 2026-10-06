@@ -1,12 +1,13 @@
 # The custom route: your own hostname, TLS at the router, plain HTTP redirected. Point the hostname's DNS at the
 # router (README: On OpenShift). Without a certificate here the router serves its default one, which covers
 # *.apps.<cluster> only, so a custom hostname needs its own (README: A certificate for the hostname).
+# LetsEncrypt certificate is best option but requires manual renewal
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
   name: cwa-bench-viewer
 spec:
-  host: bench.example.com  # your hostname
+  host: bench.contextwindowarchitecture.io
   to:
     kind: Service
     name: cwa-bench-viewer
