@@ -260,7 +260,7 @@ A route sets `budget.input` in the model's tokens, and its application declares 
 | Prompt tokens read from cache | Cached prompt tokens over prompt tokens, across every call |
 | Tokens sent per token of final request | An agent sends its context again at every inference. For each 04–05 task with more than one: the prompt tokens of all its inferences over those of its last, then the mean across tasks |
 
-A table of requests gives each one's estimate, OpenRouter's count, its route's budget and the share of it the estimate uses. Below it, a card per model, in the order of the margin it needed, replaces the table of models: closed, it shows the margin needed, the share of requests the declared margin covered, tokens per estimated token and tokens added; open, every number grouped under how the host counts, the margin and the window, and the model's own count and margin for each request. A cell of the chart of margins opens its model's card.
+A table of requests gives each one's estimate, OpenRouter's count, its route's budget and the share of it the estimate uses. Below it, a card per model, in the order of the margin it needed, replaces the table of models: closed, it shows the margin needed, the share of requests the declared margin covered, tokens per estimated token and tokens added; open, every number grouped under how the host counts, the margin and the window, and one list of each request with the model's own count and the margin it needed. A cell of the chart of margins opens its model's card.
 
 No request here overflowed a model: the examples' budgets are far below these models' context limits. What the page shows is how far a route's declared margin carries to a model it was not declared for.
 

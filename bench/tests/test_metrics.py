@@ -570,6 +570,10 @@ def test_tokens_sets_each_model_as_a_card_and_keeps_what_belongs_to_the_requests
     # and not a model's, stays on the page.
     assert cards["tables"] == ["counts_by_case", "margin_by_case"]
     assert {table["id"] for table in page["tables"]} - set(cards["tables"]) == {"requests"}
+    # In a card the two are one list, a request a row, since they are about the same requests in the same order.
+    assert cards["merge"] == [{"title": "Each request", "columns": {"counts_by_case": "The host's count", "margin_by_case": "Margin needed"}}]
+    tables = {table["id"]: table for table in page["tables"]}
+    assert len({tuple(row["case"] for row in tables[id]["rows"]) for id in cards["merge"][0]["columns"]}) == 1
 
 
 def test_cost_sets_each_model_as_a_card_with_the_largest_spend_first() -> None:

@@ -149,7 +149,9 @@ function cards(numbers, page) {
   const by = Object.fromEntries(page.numbers.map((one) => [one.id, one]));
   const value = (model) => by[spec.order].values[model];
   const models = [...numbers.models].sort((a, b) => (value(a) == null) - (value(b) == null) || (spec.down ? value(b) - value(a) : value(a) - value(b)));
-  const tables = spec.tables.map((id) => page.tables.find((table) => table.id === id)).filter(Boolean);
+  const find = (id) => page.tables.find((table) => table.id === id);
+  const merged = new Set((spec.merge ?? []).flatMap((group) => Object.keys(group.columns)));
+  const tables = spec.tables.filter((id) => !merged.has(id)).map(find).filter(Boolean);
   const columns = `--figures: ${spec.head.length};`;
   return html`<div class="mcards">
     <div class="mcard-heads" style="${columns}" aria-hidden="true"><span>Model</span>${spec.head.map((id) => html`<span class="num">${by[id].label}</span>`)}</div>
@@ -159,8 +161,25 @@ function cards(numbers, page) {
         ${spec.groups.map((group) => html`<div class="mgroup"><div class="label">${group.title}</div>${group.numbers.map((id) => html`
           <div class="mrow" title="${by[id].means}"><span>${by[id].label}</span><span class="num fg">${shown(by[id].values[model], by[id].unit)}${rests(by[id], model)}</span></div>`)}</div>`)}
         ${tables.map((table) => slice(table, model))}
+        ${(spec.merge ?? []).map((group) => together(group, find, model))}
       </div>
     </details>`)}
+  </div>`;
+}
+
+// A model's column of several tables about the same rows, as one list: a row each, a column a table.
+function together(group, find, model) {
+  const tables = Object.entries(group.columns).map(([id, label]) => [find(id), label]).filter(([table]) => table);
+  if (!tables.length) return "";
+  const [[first]] = tables, key = first.columns[0];
+  const of = (table) => Object.fromEntries(table.rows.map((row) => [row[key.id], row]));
+  const units = tables.map(([table]) => [of(table), table.columns.find((column) => column.id === model)]);
+  if (units.some(([, column]) => !column)) return "";
+  const template = `grid-template-columns: minmax(120px, 2fr) ${tables.map(() => "minmax(64px, 1fr)").join(" ")}; min-width: ${120 + 76 * tables.length}px;`;
+  return html`<div class="mslice wide"><div class="label">${group.title}</div>
+    <div class="mrow head" style="${template}"><span>${key.label}</span>${tables.map(([table, label]) => html`<span class="num" title="${table.how}">${label}</span>`)}</div>
+    ${first.rows.map((row) => html`<div class="mrow" style="${template}"><span>${shown(row[key.id], key.unit)}</span>${units.map(([rows, column]) => html`
+      <span class="num fg">${shown(rows[row[key.id]]?.[model], column.unit)}</span>`)}</div>`)}
   </div>`;
 }
 

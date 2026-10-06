@@ -460,7 +460,9 @@ def tokens(calls: list[Call], models: list[str], pasted: frozenset[str] = frozen
                   "groups": [{"title": "How the host counts", "numbers": ["tokenizer", "tokens_per_estimated", "tokens_added", "tokens_per_estimated_pasted"]},
                              {"title": "The margin", "numbers": ["margin_needed", "margin_covered", "over_budget"]},
                              {"title": "The window", "numbers": ["context", "budget_share", "cached_share", "resend_factor"]}],
-                  "tables": ["counts_by_case", "margin_by_case"]}}
+                  "tables": ["counts_by_case", "margin_by_case"],
+                  # Both are about the same requests in the same order, so a card sets them out as one list.
+                  "merge": [{"title": "Each request", "columns": {"counts_by_case": "The host's count", "margin_by_case": "Margin needed"}}]}}
 
 
 def cost(calls: list[Call], results: list[Result], summary: dict[str, Any]) -> dict[str, Any]:
