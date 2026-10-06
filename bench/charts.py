@@ -267,7 +267,7 @@ def _agents(by: dict[str, Any], results: list[Any], models: list[str]) -> list[d
         "how": "A line per model: the assembler's count at each inference of a 04 or 05 task, the median across the "
                "tasks that reached it. Each tool result is an item in the next snapshot. The accent line is the "
                "route's budget.input, where fitting would start to shed.",
-        "values": "Its values are in the last table on this page.",
+        "values": "Its values are in each model's card below.",
         "x": {"label": "Inference", "unit": "count"}, "y": {"label": "The assembler's count", "unit": "tokens", "zero": True},
         "rules": [{"label": "The route's budget.input", "y": budgets[0], "tone": "accent"}] if len(budgets) == 1 else [],
         "series": drawn}]

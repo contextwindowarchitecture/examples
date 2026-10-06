@@ -915,7 +915,14 @@ def agents(results: list[Result], models: list[str]) -> dict[str, Any]:
                    [_column("model", "Model"), *(_column(str(n), f"Inference {n}", "tokens") for n in range(1, longest + 1))],
                    [{"model": model, **{str(n): _median(one.estimates[n - 1] for one in _of(tasks, model) if len(one.estimates) >= n)
                                         for n in range(1, longest + 1)}} for model in models if any(one.estimates for one in _of(tasks, model))]),
-        ]}
+        ],
+        # A card per model, the most runs on the recorded path first, each with its own paths and its count at each
+        # inference: thirteen numbers are too many columns for a table that fits a page.
+        "cards": {"order": "recorded_path", "down": True, "head": ["steps_median", "recorded_path", "refused_by_guard", "claims_mismatch"],
+                  "groups": [{"title": "The path", "numbers": ["steps_median", "steps_most", "recorded_path", "steps_over_recorded", "inferences_median"]},
+                             {"title": "The guard", "numbers": ["tried", "refused_by_guard", "injected_attempted", "injected_recommended", "injected_repeated", "claims_mismatch"]},
+                             {"title": "The budget", "numbers": ["growth_per_inference", "inferences_until_budget"]}],
+                  "tables": ["paths", "growth"]}}
 
 
 def verdicts(calls: list[Call], results: list[Result], models: list[str]) -> dict[str, Any]:
