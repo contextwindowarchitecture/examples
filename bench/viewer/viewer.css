@@ -13,6 +13,7 @@
   --line: oklch(0.885 0.006 90);
   --accent: oklch(0.60 0.20 38);
   --accent-soft: oklch(0.94 0.035 45);
+  --accent-ink: oklch(0.50 0.17 38);   /* the accent as small text on its soft fill, dark enough to read */
   --p-gov: oklch(0.58 0.17 38);
   --p-state: oklch(0.56 0.14 250);
   --p-evid: oklch(0.54 0.13 155);
@@ -26,6 +27,7 @@ html[data-theme="dark"] {
   --line: oklch(0.305 0.008 80);
   --accent: oklch(0.74 0.17 45);
   --accent-soft: oklch(0.30 0.045 45);
+  --accent-ink: oklch(0.82 0.12 45);
   --p-gov: oklch(0.76 0.15 45);
   --p-state: oklch(0.76 0.12 250);
   --p-evid: oklch(0.76 0.13 155);
@@ -150,6 +152,24 @@ a.row:hover { background: var(--accent-soft); }
 .row.how { grid-template-columns: minmax(200px, 1fr) minmax(0, 3fr); font-family: var(--sans); font-size: 14.5px; }
 .row.how .fg { font-family: var(--mono); font-size: 12.5px; }
 .row.group { background: var(--surface); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); padding-top: 10px; padding-bottom: 10px; }
+/* Models: a card a model in a hairline grid that reflows to one column, so nothing scrolls sideways. */
+.order { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 20px; }
+.order > .label { margin-right: 6px; }
+.models { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+.model { background: var(--bg); padding: 22px; display: flex; flex-direction: column; gap: 18px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); min-width: 0; }
+.model-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.model-head > .label { white-space: nowrap; }
+.model-name { font-family: var(--mono); font-size: 13.5px; font-weight: 600; overflow-wrap: anywhere; }
+.model .unbroken { white-space: nowrap; }  /* a figure and its unit stay on one line */
+.model .sub { display: block; font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 14px 0; border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line); }
+.stats > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.stat { font-size: 21px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.model-checks { display: flex; flex-direction: column; gap: 8px; }
+.failed { display: flex; flex-wrap: wrap; gap: 6px; }
+.failed span { font-family: var(--mono); font-size: 12px; color: var(--accent-ink); background: var(--accent-soft); padding: 3px 8px; }
+.model-hosts { margin-top: auto; display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; line-height: 1.5; }
+.model-hosts summary { cursor: pointer; }
 .row .sort { all: unset; cursor: pointer; text-align: right; }
 .row .sort:hover, .row .sort[aria-pressed="true"] { color: var(--fg); }
 .row .sort:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

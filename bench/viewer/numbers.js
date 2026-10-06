@@ -2,7 +2,7 @@
 // metrics.py wrote every value with its label, its unit and the formula behind it, so one renderer draws every page:
 // a number is one value per model, a table is a breakdown with columns of its own.
 
-import { html, number } from "./html.js";
+import { html, number, opens } from "./html.js";
 
 const short = (model) => model.split("/").pop();
 const decimals = (value, places) => value.toLocaleString("en-US", { minimumFractionDigits: places, maximumFractionDigits: places });
@@ -116,14 +116,14 @@ function totals(page) {
     <div class="card-copy"><span class="means">${cited(total.means)}</span>${cited(total.how)}</div></div>`)}</div>`;
 }
 
-export function page(run, numbers, id, sort, file) {
+export function page(run, numbers, id, sort, file, lead = "") {
   const one = numbers.pages.find((candidate) => candidate.id === id);
   if (!one) return html`<section class="wrap head"><h1>No such page of numbers</h1>${pages(run, numbers, null)}</section>`;
   return html`
     <section class="wrap head">
-      <div class="crumb"><a href="#/${run}">Run ${run}</a> / <a href="#/${run}/numbers">See the Numbers</a> / ${one.title}</div>
+      <div class="crumb"><a href="${opens(run)}">Run ${run}</a> / <a href="#/${run}/numbers">See the Numbers</a> / ${one.title}</div>
       <div class="kicker">Numbers · ${one.title}</div>
-      <h1>${one.title}</h1><p class="lede">${one.lede}</p>
+      <h1>${one.title}</h1>${lead}<p class="lede">${one.lede}</p>
       ${pages(run, numbers, id)}
     </section>
     <section class="band surface"><div class="wrap">
@@ -146,7 +146,7 @@ export function all(run, numbers, file) {
   const count = numbers.pages.reduce((sum, one) => sum + one.numbers.length, 0);
   return html`
     <section class="wrap head">
-      <div class="crumb"><a href="#/${run}">Run ${run}</a> / See the Numbers</div>
+      <div class="crumb"><a href="${opens(run)}">Run ${run}</a> / See the Numbers</div>
       <div class="kicker">Numbers · ${count} of them, for ${models.length === 1 ? "1 model" : `${models.length} models`}</div>
       <h1>All numbers</h1>
       <p class="lede">Everything this run measured, one row a number and one column a model. There is no single score: a model that is cheap may be slow, and one that passes every check may change its answer between repeats. Each group's page says how its numbers are computed and breaks them down.</p>

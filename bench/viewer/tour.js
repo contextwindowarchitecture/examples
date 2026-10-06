@@ -13,31 +13,31 @@ const link = (href, text) => html`<a href="${href}" target="_blank" rel="noopene
 // for a step that stands alone; when: whether this run has what the step shows.
 const STEPS = [
   {
-    page: "", kicker: "Welcome", title: "What this site shows.",
+    page: "constructs", kicker: "Welcome", title: "What this site shows.",
     body: () => "CWA bench runs the example applications of Context Window Architecture, a draft specification for how an application builds what it sends a model, against a list of models on OpenRouter. Every request was put together by the same assembler, so each page can set two things side by side: what CWA decided to send, and what each model did with it.",
     links: () => [link(EXAMPLES, "The examples on GitHub"), link(SPEC, "The specification")],
     next: "Start the tour →", end: "Not now",
   },
   {
-    page: "", parts: ["run"], kicker: "This run", title: "A run is pinned, so it can be read again.",
+    page: "constructs", parts: ["run"], kicker: "This run", title: "A run is pinned, so it can be read again.",
     body: (s) => `It records the examples' commit, ${s.repository.commit.slice(0, 7)}, the assembler every example used, ${plural(Object.keys(s.models).length, "model")}, ${plural(s.jobs.length, "job")} and ${dollars(s.spent)} spent. Every graded run is kept: open another from Run at the top of the page.`,
   },
   {
-    page: "", parts: ["assembler"], kicker: "The assembler", title: "Every request was assembled by assembler-python.",
+    page: "constructs", parts: ["assembler"], kicker: "The assembler", title: "Every request was assembled by assembler-python.",
     body: (s) => `assembler-python is the Python implementation of the CWA assembler. Every example pins the same release, ${pins(s)}, and never builds a request itself: it hands the assembler a snapshot of what its producers proposed, and sends what comes back.`,
     links: () => [link(ASSEMBLER, "assembler-python on GitHub")],
   },
   {
-    page: "", parts: ["invariants"], kicker: "Invariants", title: "Four things that hold for every model.",
+    page: "constructs", parts: ["invariants"], kicker: "Invariants", title: "Four things that hold for every model.",
     body: () => "The payload sent is exactly the one the assembler rendered, a refused assembly asks no model, 01–03 use their committed snapshots, and every snapshot assembles again to the same bytes. A failure here is a bug in an example or the assembler, not a finding about a model.",
   },
   {
-    page: "", parts: ["construct"], kicker: "Constructs", title: "Each card is one decision CWA makes.",
+    page: "constructs", parts: ["construct"], kicker: "Constructs", title: "Each card is one decision CWA makes.",
     body: () => "Relevance thresholds, budgets, conflicts, scope, the guard on tools: each card names the requirement in the spec behind it, the cases that exercised it in this run, and how the models' answers did on its checks.",
   },
   {
     page: "models", parts: ["models"], kicker: "Models", title: "What each model cost, and how it did.",
-    body: () => "Calls, tokens, latency, cost and the hosts OpenRouter routed each call to, then the checks passed, by measure. A count in clay has a failure in it.",
+    body: () => "A card per model: what it cost, its median call, the tokens it was sent, the checks it passed with any it failed named first in clay, and the hosts OpenRouter routed its calls to. Order puts them by cost, speed or checks.",
   },
   {
     page: "construct/relevance-threshold", parts: ["evidence"], kicker: "A construct", title: "The evidence comes from the run's own trace.",

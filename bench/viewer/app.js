@@ -2,7 +2,8 @@
 // and, for what it shows in detail, the job files the summary names.
 //
 //   #/                               what bench is and does, the latest run, and how to find your way
-//   #/<run>                          the constructs and the invariants
+//   #/<run>                          where a run opens: #/<run>/numbers/decisions, the address replaced
+//   #/<run>/constructs               the constructs and the invariants
 //   #/<run>/construct/<id>           one construct: the cases that exercised it, and how each model did
 //   #/<run>/case/<example>/<case>    one case: what CWA decided for each run of it, and each model's answer
 //   #/<run>/numbers                  every number of the run, a row each and a column per model
@@ -12,7 +13,7 @@
 
 import * as data from "./data.js";
 import * as show from "./decision.js";
-import { count, dollars, html, number, plural, seconds } from "./html.js";
+import { count, dollars, html, number, opens, plural, seconds } from "./html.js";
 import { citedLeftOut, compared, marked, ordered, pairsOf } from "./beforeafter.js";
 import { asked, cell } from "./question.js";
 import * as figures from "./numbers.js";
@@ -31,7 +32,7 @@ const MEASURES = ["run", "invariant", "answer", "grounding", "conflict", "exclud
 const ASSEMBLER = "https://github.com/contextwindowarchitecture/assembler-python";
 const view = document.getElementById("view");
 const menu = document.getElementById("numbers");
-const state = { repeat: "1", pick: 0, inference: null, sort: { by: null, down: true } };
+const state = { repeat: "1", pick: 0, inference: null, sort: { by: null, down: true }, order: "run" };
 let fills = 0;
 const pending = new Set();
 
@@ -124,10 +125,10 @@ function home(run, s) {
   const broken = brokenOf(invariantsOf(s));
   const way = [
     [`#/${run}/numbers`, "See the Numbers", "A page for each family of numbers: what CWA decided, tokens, cost, speed, stability, grounding, 01's before and after, the agents' paths and the checks. Each opens with a reading of the run."],
-    [`#/${run}`, "Constructs", "A card for each decision CWA makes, with the requirement behind it. Open one for the evidence from the run's own traces, and every model's answer beside it."],
+    [`#/${run}/constructs`, "Constructs", "A card for each decision CWA makes, with the requirement behind it. Open one for the evidence from the run's own traces, and every model's answer beside it."],
     [`#/${run}/cases`, "Cases", "Every question the examples asked. A case shows what CWA decided for each run of it, item by item, and what each model did with it."],
     [`#/${run}/models`, "Models", "Each model's calls, tokens, latency, cost, the hosts that answered it, and the checks its answers passed."],
-    ["#/runs", "Runs", "Every graded run, newest first. Run, at the top of each page, switches the run being read."],
+    ["#/runs", "Runs", "Every graded run, newest first. Run, at the top of each page, reads the same page on another run."],
   ];
   return html`
     <section class="wrap head">
@@ -135,7 +136,7 @@ function home(run, s) {
       <h1>CWA across models.</h1>
       <p class="lede">CWA bench runs the example applications of Context Window Architecture against a list of models on OpenRouter, and records two things for every request: what CWA decided to send, and what the model did with it.</p>
       <p class="body">CWA is a draft specification for how an application builds what it sends a model. Producers propose typed items: instructions, retrieved chunks, conversation turns, tool results. The application freezes them into a snapshot with a route policy and a budget, and an assembler turns the snapshot into the request and a trace of what was sent, what was left out and why. Every example here is built on the same assembler, assembler-python, so every model is handed context decided the same way.</p>
-      <div class="actions"><a class="ghost" href="#/${run}">Open the latest run →</a>
+      <div class="actions"><a class="ghost" href="${opens(run)}">Open the latest run →</a>
         <button type="button" class="ghost" data-action="tour">New here? Take the tour →</button></div>
     </section>
     <section class="band surface"><div class="wrap">
@@ -160,7 +161,7 @@ function home(run, s) {
         <span>${plural(Object.keys(s.models).length, "model")} · ${plural(s.jobs.length, "job")} · ${plural(callsOf(s), "call")}</span>
         <span>spent <b>${dollars(s.spent)}</b></span></div>
       <p class="body">${broken.length ? html`<span class="fail">${plural(broken.length, "invariant check")} broke in this run.</span>` : "Every invariant held in every job."} ${plural(s.constructs.filter((c) => c.cases.length).length, "construct")} of ${s.constructs.length} were exercised.</p>
-      <a class="ghost" href="#/${run}">Open it →</a>
+      <a class="ghost" href="${opens(run)}">Open it →</a>
     </div></section>
     <section class="band surface"><div class="wrap">
       <div class="kicker">Finding your way</div>
@@ -177,20 +178,25 @@ function home(run, s) {
     </div></section>`;
 }
 
-// A run's home: its constructs and the invariants. Its models are on their own page.
+// Which run a page reads: its commit, the assembler every example pinned, its size and spend. Constructs and What CWA
+// decided, where a run opens, both carry it.
+function runLine(s) {
+  return html`<div class="meta" data-tour="run"><span>commit <b>${s.repository.commit.slice(0, 7)}</b></span>
+    <span data-tour="assembler">assembler ${[...new Map(s.assembler.map((pin) => [`${pin.tag} ${pin.commit}`, pin])).values()].map((pin) => html`<a href="${ASSEMBLER}/tree/${pin.commit ?? pin.tag}" target="_blank" rel="noopener">assembler-python</a> <b>${pin.tag} · ${(pin.commit ?? "").slice(0, 7)}</b>`)}</span>
+    <span>${plural(Object.keys(s.models).length, "model")} · ${plural(s.jobs.length, "job")} · ${plural(callsOf(s), "call")}</span>
+    <span>spent <b>${dollars(s.spent)}</b>${s.max_cost_usd ? ` of ${dollars(s.max_cost_usd)}` : ""}</span><span>started ${s.started}</span></div>`;
+}
+
+// A run's constructs and the invariants. Its models are on their own page.
 function constructs(run, s) {
   const invariantChecks = invariantsOf(s);
   const broken = brokenOf(invariantChecks);
-  const calls = callsOf(s);
   return html`
     <section class="wrap head">
       <div class="kicker ruled">Benchmark · run ${run}</div>
       <h1>Constructs</h1>
       <p class="lede">The decisions the assembler made for every request in this run. Each card names the requirement behind it, the cases that exercised it, and how the models did with the context it produced.</p>
-      <div class="meta" data-tour="run"><span>commit <b>${s.repository.commit.slice(0, 7)}</b></span>
-        <span data-tour="assembler">assembler ${[...new Map(s.assembler.map((pin) => [`${pin.tag} ${pin.commit}`, pin])).values()].map((pin) => html`<a href="${ASSEMBLER}/tree/${pin.commit ?? pin.tag}" target="_blank" rel="noopener">assembler-python</a> <b>${pin.tag} · ${(pin.commit ?? "").slice(0, 7)}</b>`)}</span>
-        <span>${plural(Object.keys(s.models).length, "model")} · ${plural(s.jobs.length, "job")} · ${plural(calls, "call")}</span>
-        <span>spent <b>${dollars(s.spent)}</b>${s.max_cost_usd ? ` of ${dollars(s.max_cost_usd)}` : ""}</span><span>started ${s.started}</span></div>
+      ${runLine(s)}
       <button type="button" class="ghost" data-action="tour">New here? Take the tour →</button>
       ${s.repository.dirty ? html`<div class="note">This run started from a tree with uncommitted changes. The manifest records it, and commit ${s.repository.commit.slice(0, 7)} alone won't reproduce it.</div>` : ""}
       ${s.skipped.length ? html`<div class="note">${s.skipped.join(". ")}.</div>` : ""}
@@ -227,34 +233,47 @@ function constructs(run, s) {
     </div></section>`;
 }
 
-function modelsTable(s) {
-  const columns = "minmax(240px, 2fr) 150px 70px 170px 150px 80px 120px minmax(260px, 3fr)";
-  return html`<div class="panel scroll"><div style="min-width: 1100px;">
-    <div class="row headrow" style="grid-template-columns: ${columns};"><span>Model</span><span>Jobs</span><span>Calls</span><span>Tokens in · out</span><span>Call median · longest</span><span>Cost</span><span>Hosts</span><span>Checks passed</span></div>
-    ${Object.entries(s.models).map(([model, m]) => html`<div class="row" style="grid-template-columns: ${columns};">
-      <span class="fg">${model}<span class="sub">${m.free ? "free" : `$${(m.input_price * 1e6).toFixed(2)} · $${(m.output_price * 1e6).toFixed(2)} per million`}</span></span>
-      <span>${m.done} done${m.failed ? html`<span class="fail"> · ${m.failed} failed</span>` : ""}${m.not_run ? ` · ${m.not_run} not run` : ""}</span>
-      <span>${number(m.calls)}</span>
-      <span>${number(m.tokens.prompt)} · ${number(m.tokens.completion)}<span class="sub">${number(m.tokens.reasoning)} reasoning</span></span>
-      <span>${seconds(m.ms.median)} · ${seconds(m.ms.most)}</span>
-      <span>${dollars(m.cost)}</span>
-      <span>${Object.keys(m.hosts).join(", ") || "—"}</span>
-      <span style="display: flex; flex-wrap: wrap; gap: 2px 12px;">${MEASURES.filter((name) => m.measures[name]).map((name) => count(name, m.measures[name]))}</span>
-    </div>`)}
-  </div></div>`;
-}
-
+// Models: a card a model, in a grid that reflows to one column, so nothing scrolls sideways. A check the model failed
+// is named first; the count leaves out the invariants, which hold for every model. Comparing one number across the
+// models is what See the Numbers is for.
+const ORDERS = [["run", "As run"], ["cost", "Cost"], ["speed", "Call median"], ["checks", "Checks passed"]];
 function models(run, s) {
-  return html`<section class="wrap head"><div class="crumb"><a href="#/${run}">Run ${run}</a> / Models</div>
+  const cards = Object.entries(s.models).map(([model, m], at) => {
+    const measured = MEASURES.filter((name) => m.measures[name]);
+    const [passed, graded] = measured.filter((name) => name !== "invariant")
+      .reduce(([p, g], name) => [p + m.measures[name][0], g + m.measures[name][1]], [0, 0]);
+    return { model, m, at, passed, graded, failed: measured.filter((name) => m.measures[name][0] < m.measures[name][1]),
+      ok: measured.filter((name) => m.measures[name][0] === m.measures[name][1]) };
+  });
+  const keys = { run: (c) => c.at, cost: (c) => c.m.cost, speed: (c) => c.m.ms.median ?? Infinity, checks: (c) => -(c.graded ? c.passed / c.graded : 0) };
+  cards.sort((a, b) => keys[state.order](a) - keys[state.order](b));
+  return html`<section class="wrap head"><div class="crumb"><a href="${opens(run)}">Run ${run}</a> / Models</div>
     <div class="kicker">Models · ${plural(Object.keys(s.models).length, "model")}</div><h1>Models</h1>
     <p class="lede">What each model was sent, what it cost, and the checks its answers passed.</p>
-    <p class="body">Every call went through the recording proxy. Hosts are the ones OpenRouter says answered; checks count those graded, and a count in the accent colour has a failure in it.</p>
-    <div data-tour="models">${modelsTable(s)}</div></section>`;
+    <p class="body">A card per model. A check a model failed is named first, in the accent; the count beside it leaves out the invariants, which hold for every model. Hosts are the ones OpenRouter says answered. To compare one number across the models, See the Numbers has a table for each.</p>
+    <div class="order"><span class="label">Order</span>${ORDERS.map(([value, label]) => html`<button type="button" class="ghost" data-action="order" data-value="${value}" aria-pressed="${state.order === value}">${label}</button>`)}</div>
+    <div class="models" data-tour="models">${cards.map(modelProfile)}</div></section>`;
 }
-
+function modelProfile({ model, m, passed, graded, failed, ok }) {
+  const hosts = Object.keys(m.hosts);
+  return html`<article class="model">
+    <div class="model-head"><div><div class="model-name">${model}</div><span class="sub">${m.free ? "free" : `$${(m.input_price * 1e6).toFixed(2)} · $${(m.output_price * 1e6).toFixed(2)} per million`}</span></div>
+      <span class="label">${m.done} done${m.failed ? html`<span class="fail"> · ${m.failed} failed</span>` : ""}${m.not_run ? ` · ${m.not_run} not run` : ""}</span></div>
+    <div class="stats">
+      <div><span class="label">Cost</span><span class="stat">${dollars(m.cost)}</span><span class="sub">${plural(m.calls, "call")}</span></div>
+      <div><span class="label">Call median</span><span class="stat">${seconds(m.ms.median)}</span><span class="sub">longest <span class="unbroken">${seconds(m.ms.most)}</span></span></div>
+      <div><span class="label">Tokens in</span><span class="stat">${number(m.tokens.prompt)}</span><span class="sub">out ${number(m.tokens.completion)}${m.tokens.reasoning ? ` · ${number(m.tokens.reasoning)} reasoning` : ""}</span></div>
+    </div>
+    <div class="model-checks"><div class="label split"><span>Checks passed</span><span class="fg">${number(passed)} / ${number(graded)}</span></div>
+      ${failed.length ? html`<div class="failed">${failed.map((name) => html`<span>${name} ${m.measures[name][0]}/${m.measures[name][1]}</span>`)}</div>` : ""}
+      ${ok.length ? html`<div class="card-copy">${failed.length ? "All passed" : "Every check passed"}: ${ok.join(", ")}</div>` : ""}</div>
+    <div class="model-hosts"><span class="label">${hosts.length === 1 ? "1 host" : `${hosts.length} hosts`}</span>
+      ${hosts.length > 3 ? html`<details><summary>${hosts.slice(0, 3).join(", ")} + ${hosts.length - 3} more</summary>${hosts.slice(3).join(", ")}</details>` : html`<span>${hosts.join(", ") || "—"}</span>`}</div>
+  </article>`;
+}
 function cases(run, s) {
   const columns = "minmax(260px, 1.4fr) minmax(280px, 2fr) minmax(220px, 1.4fr)";
-  return html`<section class="wrap head"><div class="crumb"><a href="#/${run}">Run ${run}</a> / Cases</div>
+  return html`<section class="wrap head"><div class="crumb"><a href="${opens(run)}">Run ${run}</a> / Cases</div>
     <div class="kicker">Cases · ${plural(s.cases.length, "case")}</div><h1>Cases</h1>
     <p class="lede">Every question this run asked, with the constructs its results exercised.</p>
     <div class="panel scroll"><div style="min-width: 860px;">
@@ -272,7 +291,7 @@ function runs(index) {
     <p class="lede">Newest first. A run is graded when it ends; grade.py grades one again from its files.</p>
     <div class="panel scroll"><div style="min-width: 860px;">
       <div class="row headrow" style="grid-template-columns: ${columns};"><span>Run</span><span>Commit</span><span>Assembler</span><span>Jobs</span><span>Spent</span></div>
-      ${index.runs.map((r) => html`<a class="row" href="#/${r.run}" style="grid-template-columns: ${columns};">
+      ${index.runs.map((r) => html`<a class="row" href="${opens(r.run)}" style="grid-template-columns: ${columns};">
         <span>${r.run}<span class="sub">${r.models.map(short).join(", ")}</span></span>
         <span>${r.commit.slice(0, 7)}${r.dirty ? html`<span class="fail"> · changes</span>` : ""}</span><span>${r.assembler.join(", ")}</span>
         <span>${r.done} done · ${r.failed} failed · ${r.not_run} not run</span><span>${dollars(r.spent)}</span></a>`)}
@@ -280,10 +299,10 @@ function runs(index) {
 }
 
 // See the Numbers: one page of the run's numbers.json, or with no page named, all of them.
-function numbers(run, id) {
+function numbers(run, id, s) {
   const file = data.href(run, "numbers.json");
   const found = data.numbers(run);
-  const drawn = later(found.then((all) => (id ? figures.page(run, all, id, state.sort, file) : figures.all(run, all, file)), () => figures.missing(run)));
+  const drawn = later(found.then((all) => (id ? figures.page(run, all, id, state.sort, file, id === "decisions" ? runLine(s) : "") : figures.all(run, all, file)), () => figures.missing(run)));
   // The page fills in first: this is asked of the same promise after it. Then its charts have somewhere to be drawn.
   found.then((all) => Promise.resolve().then(() => { const page = all.pages.find((one) => one.id === id); if (page) charts.mount(view, page); }), () => {});
   return drawn;
@@ -296,7 +315,7 @@ function construct(run, s, id) {
   const results = s.results.filter((r) => c.cases.includes(r.case));
   return html`
     <section class="wrap head">
-      <div class="crumb"><a href="#/${run}">Constructs</a> / ${c.title}</div>
+      <div class="crumb"><a href="#/${run}/constructs">Constructs</a> / ${c.title}</div>
       <div class="kicker">Construct · ${c.spec.join(" · ")}${c.measures.length ? ` · measures ${c.measures.join(", ")}` : ""}</div>
       <h1>${c.title}</h1><p class="lede">${c.description}</p>
       <div class="meta"><span>${plural(c.cases.length, "case")} in this run</span>${measurePills(s, c, results)}
@@ -586,8 +605,9 @@ async function draw() {
     return;
   }
   const run = parts[0];
+  if (parts.length === 1) { location.replace(opens(run)); return; }
   const s = await data.summary(run);
-  const page = parts[1] ?? "constructs";
+  const page = parts[1];
   header(index, run, page);
   picker.value = run;
   view.innerHTML = String(
@@ -595,7 +615,7 @@ async function draw() {
       : page === "case" ? caseView(run, s, parts.slice(2).join("/"))
         : page === "cases" ? cases(run, s)
           : page === "models" ? models(run, s)
-            : page === "numbers" ? numbers(run, parts[2])
+            : page === "numbers" ? numbers(run, parts[2], s)
               : constructs(run, s));
 }
 
@@ -603,7 +623,7 @@ function header(index, run, page) {
   const picker = document.getElementById("run");
   picker.innerHTML = String(html`${index.runs.map((r) => html`<option value="${r.run}">${r.run}</option>`)}`);
   const current = run ?? index.runs[0]?.run ?? "";
-  const links = { constructs: `#/${current}`, cases: `#/${current}/cases`, models: `#/${current}/models`, runs: "#/runs" };
+  const links = { constructs: `#/${current}/constructs`, cases: `#/${current}/cases`, models: `#/${current}/models`, runs: "#/runs" };
   for (const [name, href] of Object.entries(links)) {
     const link = document.querySelector(`[data-nav="${name}"]`);
     link.href = href;
@@ -655,6 +675,7 @@ view.addEventListener("click", (event) => {
   if (action === "tour") { startTour(); return; }
   if (action === "sort") state.sort = { by: value, down: state.sort.by === value ? !state.sort.down : true };
   if (action === "repeat") state.repeat = value;
+  if (action === "order") state.order = value;
   if (action === "inference") state.inference = Number(value);
   redraw(`button[data-action="${action}"][data-value="${CSS.escape(value)}"]`);
 });
@@ -667,7 +688,19 @@ view.addEventListener("change", (event) => {
   redraw("#pick-run", `Showing ${select.selectedOptions[0].text}`);
 });
 
-document.getElementById("run").addEventListener("change", (event) => { location.hash = `#/${event.target.value}`; });
+// Picking another run reads the same page on it; from Home or Runs, where it opens. A case or construct the other run
+// lacks leads to its list instead.
+async function samePage(run) {
+  const [first, page, ...rest] = route();
+  if (!first || first === "runs" || !page) return opens(run);
+  if (page === "case" || page === "construct") {
+    const s = await data.summary(run);
+    const known = page === "case" ? s.cases.some((c) => c.key === rest.join("/")) : s.constructs.some((c) => c.id === rest[0]);
+    if (!known) return `#/${run}/${page === "case" ? "cases" : "constructs"}`;
+  }
+  return `#/${[run, page, ...rest].join("/")}`;
+}
+document.getElementById("run").addEventListener("change", async (event) => { location.hash = await samePage(event.target.value); });
 
 // The menu closes when one of its pages is chosen, on a click anywhere else, and on Escape, which hands the focus back.
 document.addEventListener("click", (event) => { if (!menu.contains(event.target) || event.target.closest("a")) menu.open = false; });
@@ -687,7 +720,7 @@ theme.addEventListener("click", () => setTheme(document.documentElement.dataset.
 try { setTheme(localStorage.getItem("cwa-theme") ?? "light"); } catch { setTheme("light"); }
 
 let drawing = Promise.resolve();
-window.addEventListener("hashchange", () => { state.pick = 0; state.inference = null; state.sort = { by: null, down: true }; drawing = draw().then(() => window.scrollTo(0, 0)); });
+window.addEventListener("hashchange", () => { state.pick = 0; state.inference = null; state.sort = { by: null, down: true }; state.order = "run"; drawing = draw().then(() => window.scrollTo(0, 0)); });
 
 // The tour opens pages itself: visit resolves once the page it opened has drawn. This listener is added after the one
 // above, so it runs after that one has started the draw.
