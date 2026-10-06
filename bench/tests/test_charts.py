@@ -87,7 +87,7 @@ def test_a_case_is_a_cell_per_model_filled_by_the_repeats_it_passed() -> None:
     results += [result(model="a/steady", case="01-docs-qa/03-off-topic", checks=(), answer=None)]  # refused: nothing to grade
     pages = [metrics.stability(results, ["a/steady", "b/flips"])]
     chart = drawn(pages, results, ["a/steady", "b/flips"], "stability", "repeats")
-    assert (chart["kind"], chart["columns"]) == ("grid", ["steady", "flips"])
+    assert (chart["kind"], chart["columns"], chart["opens"]) == ("grid", ["steady", "flips"], ["a/steady", "b/flips"])
     assert chart["rows"] == [{"label": "01-docs-qa/01-answer · after", "cells": [{"value": 3, "of": 3}, {"value": 1, "of": 3}]}]
 
 

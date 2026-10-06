@@ -692,7 +692,13 @@ def stability(results: list[Result], models: list[str], listed: dict[str, Any] |
                      "checks": ", ".join(f"{name} ×{count}" for name, count in Counter(
                          name for one in repeated[model, case, variant] for name, passed in one.checks if not passed).items())}
                     for (model, case, variant), flags in verdicts.items() if not all(flags)]),
-        ]}
+        ],
+        # A card per model, the steadiest first as the chart of passing sets them, each with its own cases that
+        # passed only sometimes or never.
+        "cards": {"order": "pass_every", "down": True, "head": ["pass_every", "pass_average", "answer_similarity", "same_tool_path"],
+                  "groups": [{"title": "Passing", "numbers": ["pass_average", "pass_every", "cases_some", "cases_none"]},
+                             {"title": "Sameness", "numbers": ["temperature", "answer_similarity", "same_citations", "same_tool_path"]}],
+                  "tables": ["not_every_repeat"]}}
 
 
 def before_after(calls: list[Call], results: list[Result], models: list[str]) -> dict[str, Any]:

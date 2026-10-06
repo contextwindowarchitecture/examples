@@ -199,8 +199,8 @@ def _stability(by: dict[str, Any], results: list[Any], models: list[str]) -> lis
         "id": "repeats", "kind": "grid", "title": "Each case, by the repeats each model passed",
         "how": "A cell per case and model. A quiet cell passed every repeat. A filled one did not, and says how many "
                "it passed: the request was the same each time, so the difference is the model's.",
-        "values": "Each filled cell is a row of the table at the foot of this page. Every other cell passed all of its repeats.",
-        "columns": [_short(model) for model in models],
+        "values": "Each filled cell is a row of its model's card below, which a cell opens. Every other cell passed all of its repeats.",
+        "columns": [_short(model) for model in models], "opens": models,
         "legend": [{"mark": "dot", "tone": "quiet", "label": "Passed in every repeat"},
                    {"mark": "cell", "tone": "accent", "label": "Failed in at least one, with the repeats it passed"}],
         "rows": [{"label": case, "cells": [{"value": sum(cells[case, model]), "of": len(cells[case, model])} if (case, model) in cells else None
@@ -211,14 +211,14 @@ def _gap(page: dict[str, Any], models: list[str]) -> dict[str, Any] | None:
     """What a suite run once reports beside what a profile should be held to (R-19): the line between is the risk."""
     average, every = _values(page, "pass_average"), _values(page, "pass_every")
     ranked = sorted((model for model in models if average.get(model) is not None and every.get(model) is not None),
-                    key=lambda model: (-every[model], -average[model]))
+                    key=lambda model: -every[model])  # ties in the run's order, as the cards break them
     return ranked and {
         "id": "gap", "kind": "rows", "title": "Passing on average, and passing every time",
         "how": "A row per model, the steadiest first. The ring is the share of its results with every check passed, "
                "what a suite run once would report; the dot is the share of its cases it passed in every repeat. The "
                "accent line between them is the cases that pass only sometimes, which fail in production. The request "
                "was the same to the byte each time, so the gap is the model's.",
-        "values": "Its values are two of the numbers on this page.",
+        "values": "Its values are two of the numbers on this page. A row opens its model's card below.",
         "x": {"label": "Share passed", "unit": "percent", "zero": True, "to": 1},
         "legend": [{"mark": "ring", "tone": "ink", "label": "Results with every check passed"},
                    {"mark": "dot", "tone": "ink", "label": "Cases passed in every repeat"},
