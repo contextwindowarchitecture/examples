@@ -447,7 +447,7 @@ The run picker reads `index.json`. Comparing two runs, for example before and af
 
 ## On OpenShift
 
-The viewer also runs as a container, behind a Route on a hostname of your own. [Containerfile](Containerfile) builds `serve.py`, `config.py`, `viewer/` and `results/` into an image on UBI 9's minimal Python 3.12, with nothing installed. The results are baked in, so an image shows the runs it was built with, and publishing a new run is a new image. [.containerignore](.containerignore) is an allowlist of those four, so `.env` never reaches a builder; [tests/test_image.py](tests/test_image.py) fails if it is widened. [openshift/](openshift/) is a kustomization: a Deployment of two replicas that fits the `restricted-v2` SCC with a read-only root filesystem, a Service, and an edge-terminated Route that redirects plain HTTP.
+The viewer also runs as a container, behind a Route on a hostname of your own. [Containerfile](Containerfile) builds `serve.py`, `config.py`, `viewer/` and `results/` into an image on UBI 9's minimal Python 3.12, with nothing installed. The results are baked in, so an image shows the runs it was built with, and publishing a new run is a new image. [.containerignore](.containerignore) is an allowlist of those four, and after them leaves out `.env` by name, at any depth, as `.gitignore` does, with the rest of its entries, so no key reaches a builder; [tests/test_image.py](tests/test_image.py) fails if either is changed. [openshift/](openshift/) is a kustomization: a Deployment of two replicas that fits the `restricted-v2` SCC with a read-only root filesystem, a Service, and an edge-terminated Route that redirects plain HTTP.
 
 ```mermaid
 flowchart LR

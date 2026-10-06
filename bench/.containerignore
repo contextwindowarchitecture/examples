@@ -4,4 +4,15 @@
 !config.py
 !viewer
 !results
+
+# Left out by name too, as in .gitignore, and last: the last rule that matches a path decides, so nothing allowed
+# above can bring them back. Patterns here are anchored at bench/, hence a **/ form for each.
+.env
+**/.env
+**/.venv
 **/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.claude
+**/.idea
+**/.DS_Store
