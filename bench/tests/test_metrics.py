@@ -570,3 +570,12 @@ def test_tokens_sets_each_model_as_a_card_and_keeps_what_belongs_to_the_requests
     # and not a model's, stays on the page.
     assert cards["tables"] == ["counts_by_case", "margin_by_case"]
     assert {table["id"] for table in page["tables"]} - set(cards["tables"]) == {"requests"}
+
+
+def test_cost_sets_each_model_as_a_card_with_the_largest_spend_first() -> None:
+    page = metrics.cost([call()], [], {"models": {MODEL: listed()}, "jobs": []})
+    cards, numbers = page["cards"], [one["id"] for one in page["numbers"]]
+    assert (cards["order"], cards["down"]) == ("spend", True) and set(cards["head"]) <= set(numbers)
+    assert [group["title"] for group in cards["groups"]] == ["What was spent", "What it bought"]
+    assert sorted(id for group in cards["groups"] for id in group["numbers"]) == sorted(numbers)
+    assert cards["tables"] == ["identity", "by_example"] == [table["id"] for table in page["tables"]]

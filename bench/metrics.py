@@ -478,8 +478,8 @@ def cost(calls: list[Call], results: list[Result], summary: dict[str, Any]) -> d
     return {"id": "cost", "title": "Cost", "lede": (
         "What each model was charged, and where the charge comes from. A call costs its prompt tokens at the input "
         "price, less what the host takes off for tokens read from cache, plus its completion tokens, reasoning "
-        "included, at the output price. Every factor is in the table below, so a gap between two models can be read "
-        "as the factors that differ."),
+        "included, at the output price. Every factor is in each model's card below, so a gap between two models can "
+        "be read as the factors that differ."),
         "numbers": [
             _number("spend", "Spent", "usd", "What OpenRouter charged for every call, an attempt that failed included.",
                     {model: listed[model]["cost"] for model in models}),
@@ -528,7 +528,13 @@ def cost(calls: list[Call], results: list[Result], summary: dict[str, Any]) -> d
                    [{"example": example, **{model: _r(_median(job["cost"] for job in summary["jobs"] if job["exit"] == 0
                                                              and (job["model"], job["example"]) == (model, example)))
                                             for model in models}} for example in examples]),
-        ]}
+        ],
+        # A card per model, the largest spend first, as the chart of spend sets them: each holds its row of where the
+        # charge comes from and its cost by example, which nobody reads across fourteen models.
+        "cards": {"order": "spend", "down": True, "head": ["spend", "cost_per_clean_result", "charged_over_list", "prompt_share_of_spend"],
+                  "groups": [{"title": "What was spent", "numbers": ["spend", "planned", "spent_over_planned", "charged_over_list", "prompt_share_of_spend"]},
+                             {"title": "What it bought", "numbers": ["cost_per_passed_check", "cost_per_clean_result"]}],
+                  "tables": ["identity", "by_example"]}}
 
 
 def speed(calls: list[Call], summary: dict[str, Any]) -> dict[str, Any]:

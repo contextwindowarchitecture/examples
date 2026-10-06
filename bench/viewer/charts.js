@@ -325,6 +325,7 @@ function scatter(plot, chart) {
     const hit = el("circle", { cx, cy, r: 14, fill: "transparent" });
     const said = [[shown(point.x, chart.x.unit), chart.x.label, TONE.ink], [shown(point.y, chart.y.unit), chart.y.label, TONE.ink]];
     answers(hit, `${point.label}: ${chart.x.label} ${shown(point.x, chart.x.unit)}, ${chart.y.label} ${shown(point.y, chart.y.unit)}`, () => tell(hit, point.label, said));
+    if (point.opens) opens(hit, point.opens);
     svg.append(hit);
   }
 }

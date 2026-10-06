@@ -113,14 +113,14 @@ def _margins(page: dict[str, Any], models: list[str]) -> dict[str, Any] | None:
 def _cost(by: dict[str, Any], results: list[Any], models: list[str]) -> list[dict[str, Any] | None]:
     price = _values(by["cost"], "cost_per_clean_result")
     steady = _values(by["stability"], "pass_every") if "stability" in by else {}
-    points = [{"label": _short(model), "x": price[model], "y": steady[model]} for model in models
+    points = [{"label": _short(model), "x": price[model], "y": steady[model], "opens": model} for model in models
               if price.get(model) and steady.get(model) is not None]
     return [_spent(by["cost"], models), points and {
         "id": "frontier", "kind": "scatter", "title": "What a steady answer costs",
         "how": "Each model once: across, what the run spent for each of its results with every check passed, on a "
                "scale of ratios; up, the share of its cases it passed in every repeat. Up and to the left is steadier "
                "for less. A model that cost nothing has no place on a scale of ratios, and is left off.",
-        "values": "Its values are a column of the table on this page and, for the cases passed, a column of the Stability page's.",
+        "values": "Its values are in each model's card below, which a point opens, and, for the cases passed, a column of the Stability page's.",
         "x": {"label": "Cost per result with every check passed", "unit": "usd", "log": True},
         "y": {"label": "Cases passed in every repeat", "unit": "percent", "zero": False},
         "points": points}]

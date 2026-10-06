@@ -83,7 +83,7 @@ def test_cost_sets_each_model_where_its_price_and_its_steadiness_put_it() -> Non
     chart = drawn(pages, results, list(models), "cost", "frontier")
     assert (chart["kind"], chart["x"]["log"], chart["y"]["unit"]) == ("scatter", True, "percent")
     # A model that cost nothing has no place on a scale of ratios, and is left off.
-    assert chart["points"] == [{"label": "steady", "x": 0.01, "y": 1}, {"label": "flips", "x": 0.004, "y": 0}]
+    assert chart["points"] == [{"label": "steady", "x": 0.01, "y": 1, "opens": "a/steady"}, {"label": "flips", "x": 0.004, "y": 0, "opens": "b/flips"}]
 
 
 def test_what_a_model_cost_is_a_bar_of_prompt_and_completion_against_what_was_planned() -> None:

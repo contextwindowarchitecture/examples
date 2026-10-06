@@ -170,6 +170,10 @@ function slice(table, model) {
   const columns = long ? table.columns.filter((column) => column.id !== "model") : [table.columns[0], table.columns.find((column) => column.id === model)];
   const rows = long ? table.rows.filter((row) => row.model === model) : table.rows;
   if (!rows.length || !columns.at(-1)) return "";
+  // A model's one row is a list of what each column says of it: a row of nine columns would not fit a card.
+  if (long && rows.length === 1) return html`<div class="mslice" title="${table.how}"><div class="label">${table.title}</div>
+    ${columns.map((column) => html`<div class="mrow"><span>${column.label}</span><span class="${numeric(column.unit) ? "num fg" : "fg"}">${shown(rows[0][column.id], column.unit)}</span></div>`)}
+  </div>`;
   // Every row as wide as the columns need, so a slice too wide for a phone scrolls inside its card with its columns aligned.
   const template = `grid-template-columns: minmax(110px, 1.4fr) ${columns.slice(1).map(() => "minmax(56px, 1fr)").join(" ")}; min-width: ${110 + 68 * (columns.length - 1)}px;`;
   const cell = (row, column) => html`<span class="${numeric(column.unit) ? "num fg" : ""}">${shown(row[column.id], column.unit)}</span>`;
