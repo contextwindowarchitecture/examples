@@ -18,6 +18,7 @@ import { citedLeftOut, compared, marked, ordered, pairsOf } from "./beforeafter.
 import { asked, cell } from "./question.js";
 import * as figures from "./numbers.js";
 import * as charts from "./charts.js";
+import * as assembly from "./assembly.js";
 import * as tour from "./tour.js";
 
 const INVARIANTS = [
@@ -139,6 +140,12 @@ function home(run, s) {
       <div class="actions"><a class="ghost" href="${opens(run)}">Open the latest run →</a>
         <button type="button" class="ghost" data-action="tour">New here? Take the tour →</button></div>
     </section>
+    <section class="band"><div class="wrap">
+      <div class="kicker">Watch an assembly</div>
+      <h2>What CWA decided, a step at a time.</h2>
+      <p class="body">This run's own records, replayed example by example. Each item is a square in its plane's colour: offered by a producer, then left out for the reason its trace gives, or rendered into the request as its share of the route's budget. Each example adds a decision the one before it did not make. Point at an item for what it is.</p>
+      <div class="assembly"></div>
+    </div></section>
     <section class="band surface"><div class="wrap">
       <div class="kicker">What it does</div>
       <h2>Run, check, grade, show.</h2>
@@ -647,7 +654,9 @@ async function draw() {
     const latest = index.runs[0].run;
     header(index, latest, "home");
     picker.value = latest;
-    view.innerHTML = String(html`${examplesKey()}${home(latest, await data.summary(latest))}`);
+    const s = await data.summary(latest);
+    view.innerHTML = String(html`${examplesKey()}${home(latest, s)}`);
+    assembly.mount(view.querySelector(".assembly"), latest, s);
     return;
   }
   const run = parts[0];

@@ -86,7 +86,7 @@ function key(entry) {
 const tip = div("chart-tip");
 tip.hidden = true;
 document.body.append(tip);
-function tell(target, title, lines) {
+export function tell(target, title, lines) {
   tip.replaceChildren(div("tip-title", title), ...lines.map(([value, name, tone]) => {
     const line = div("tip-line");
     const mark = document.createElement("i");
@@ -112,7 +112,7 @@ const shows = new WeakMap();
 window.addEventListener("scroll", () => (shows.get(document.activeElement) ?? hush)(), { passive: true });
 
 // What answers to the pointer answers to the keyboard: the same details on focus as on hover.
-function answers(node, label, show) {
+export function answers(node, label, show) {
   node.setAttribute("tabindex", "0");
   node.setAttribute("role", "img");
   node.setAttribute("aria-label", label);

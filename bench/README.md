@@ -419,7 +419,7 @@ results/<run-id>/    # for example 2026-10-02T153007Z-bebe9ab
 
 | Page | What it shows |
 | --- | --- |
-| Home, where the site opens | What bench is and what a run does (run, check, grade, show), the latest run with whether its invariants held, a card per page in the header opened on that run, and what bench does not measure. Its links open the latest run where a run opens, What CWA decided. The brand at the top left leads back to it |
+| Home, where the site opens | What bench is, a replay of the latest run's assemblies example by example ([below](#watching-an-assembly)), what a run does (run, check, grade, show), the latest run with whether its invariants held, a card per page in the header opened on that run, and what bench does not measure. Its links open the latest run where a run opens, What CWA decided. The brand at the top left leads back to it |
 | Constructs, at `#/<run>/constructs` | The run's commit, the assembler-python release every example pinned, linked to its commit, and the spend, the four invariants with any failure called out, and a card per construct with its requirements and the checks of the cases that exercised it. The models have their own page |
 | A construct | Its description and requirements, then for each case that exercised it the evidence from a run's own trace (the chunks against the relevance threshold, the budget by plane, the routes an escalation took, the conflict groups, what was left out and why), and every run's answer with the checks of that construct's measures; a 01 case shows each model's before and after answers side by side |
 | A case | What CWA decided for the run picked from a drop-down, and for an agent the inference: the budget by plane, the items sent as slot rows with their authority, trust and injection risk, what was left out and why, conflicts and provenance, with the raw trace, snapshot and payload a click away. Then every run's tool calls with the guard's decision, its answer as it came back, and its checks. A 01 case reads before, then after: every item of `after.py`'s snapshot with where `before.py` put it and what `after.py`'s assembly decided, then a row per model with its two answers side by side, each citation of a chunk CWA left out marked ([beforeafter.js](viewer/beforeafter.js)) |
@@ -450,6 +450,31 @@ Answers are model output and are escaped before they reach the page. A long ques
 Each construct links to its requirement in the [specification](https://contextwindowarchitecture.io/spec.html). A case view shows the snapshot's items by slot with their authority, trust, freshness, lineage and scope, the trace's decisions, the rendered payload, and the models' answers side by side, each citation linked to the item it names. Raw JSON is one click away.
 
 The run picker reads `index.json`. Comparing two runs, for example before and after the assembler pin moves, comes later; the results already keep what it needs.
+
+### Watching an assembly
+
+The home page replays the latest run's own assemblies, a chapter an example, each showing what its example adds ([assembly.js](viewer/assembly.js)). Every frame is read from a recorded snapshot and trace: nothing in the viewer admits, scores, fits or renders, so every step on the screen is a decision assembler-python made in that run.
+
+| Chapter | Replays | What it adds |
+| --- | --- | --- |
+| 01 · A threshold, and a refusal | 01-answer, then 03-off-topic | Chunks below the route's relevance threshold left out, and a refusal when nothing clears it |
+| 02 · Who is asking | 02-memory-disagrees, then 03-memory-leak | A conflict between the account and a memory, decided by the route's policy, and memories from another scope left out |
+| 03 · A budget per route | 01-large-route, 02-small-route, then 03-pasted-log on each route it took | The same items fitted to a small budget by summarizing, then omitting; a request refused on the small route and escalated to the large one |
+| 04 · An agent, turn by turn | 01-owner-reenables, one model's path, picked from a list | Capabilities withheld by role, each tool result joining the next snapshot, and newer looks replacing older ones |
+
+An item is a square in its plane's colour. Each assembly plays only the steps its trace took:
+
+```mermaid
+flowchart LR
+    O["Offer<br/>the snapshot's items, by slot"] --> W["Withheld<br/>left out by a producer"]
+    W --> A["Admit<br/>threshold, scope, supersession"]
+    A --> C["Conflicts<br/>the loser left out"]
+    C --> F["Fit<br/>summarize, then omit"]
+    F --> R["Render<br/>a share of the budget each"]
+    F --> X["Refuse<br/>nothing sent, no model asked"]
+```
+
+It plays while it is on screen, and holds still for a reader who asks for less motion or pauses it; the arrows step through it, and a step's name jumps to it. A square tells what it is, its slot, relevance, tokens and why it was left out, to the pointer and to the keyboard, and each step is said in a sentence beneath. A summarized item keeps a dashed outline into the request, and the grey at the end of the request is what the renderer adds around the items.
 
 ## On OpenShift
 
