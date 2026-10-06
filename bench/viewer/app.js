@@ -581,7 +581,8 @@ function modelCard(run, s, r) {
 }
 
 // The pages name the examples by number. The key says what each number is, above every page that uses them, until a
-// reader hides it. Hidden, it stays hidden for them; where nothing can be stored, until the page is loaded again.
+// reader hides it. Hidden, it stays hidden for them; where nothing can be stored, until the page is loaded again. While
+// it is hidden, a link in the footer brings it back.
 const EXAMPLES_KEY = [
   ["01", "docs-qa", "A help-center Q&A bot over a product's docs"],
   ["02", "account-aware", "The same bot, aware of who is asking"],
@@ -600,15 +601,29 @@ function examplesKey() {
     <p><b>01–03 are Q&amp;A bots:</b> every model is sent the same snapshots. <b>04 and 05 are agents:</b> each model's tool calls decide what its next snapshot holds. A case such as <span class="mono">01-docs-qa/03-off-topic</span> is one example's case. <a href="https://github.com/contextwindowarchitecture/examples#the-examples" target="_blank" rel="noopener">The examples on GitHub →</a></p>
   </div></section>`;
 }
+const showKeyLink = document.getElementById("show-key");
+showKeyLink.hidden = !keyHidden;
 function hideKey() {
   keyHidden = true;
   try { localStorage.setItem("cwa-key", "hidden"); } catch { /* as above */ }
   view.querySelector(".key")?.remove();
+  showKeyLink.hidden = false;
   document.getElementById("status").textContent = "The key to the example numbers is hidden";
   // The button is gone, so the focus goes to the page's heading rather than the top of the document.
   const heading = view.querySelector("h1");
   if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
 }
+// Back on every page that uses the numbers, and at the top of this one, whatever it is, with the focus on it.
+showKeyLink.addEventListener("click", () => {
+  keyHidden = false;
+  try { localStorage.removeItem("cwa-key"); } catch { /* as above */ }
+  showKeyLink.hidden = true;
+  if (!view.querySelector(".key")) view.insertAdjacentHTML("afterbegin", String(examplesKey()));
+  const title = document.getElementById("key-title");
+  title.tabIndex = -1;
+  window.scrollTo(0, 0);
+  title.focus({ preventScroll: true });
+});
 const KEYED = new Set(["constructs", "construct", "cases", "case", "numbers"]);
 
 // Routing, the header, and the page's controls
