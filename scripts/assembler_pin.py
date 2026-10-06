@@ -4,10 +4,11 @@
     python3 scripts/assembler_pin.py --release TAG --remote          # a release: they pin TAG, as TAG points now
     python3 scripts/assembler_pin.py --release TAG --notes           # the release-notes line naming the pin
 
-The CWA repositories are released under one tag name: the website, the assemblers, the demo and these examples. An
-examples release at TAG must run against assembler-python at TAG. A tag can be moved, and uv.lock keeps the commit
-the tag pointed to when the lock was written, so a release also checks that the tag still points there. After the
-assembler's tag moves, run this in each example, then review the scenario diffs and commit them together:
+The CWA repositories are released under one tag name: the assemblers, the specification repository, the website, the
+demo and these examples. An examples release at TAG must run against assembler-python at TAG. A tag can be moved, and
+uv.lock keeps the commit the tag pointed to when the lock was written, so a release also checks that the tag still
+points there. After the assembler's tag moves, run this in each example, then review the scenario diffs and commit
+them together:
 
     uv lock --upgrade-package contextwindowarchitecture-assembler && uv run scenarios.py --write
 

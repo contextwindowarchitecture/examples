@@ -57,7 +57,7 @@ uv run serve.py                     # the viewer, at http://127.0.0.1:8765/
 
 ## Releases
 
-The CWA repositories are released under one tag name: the website, [assembler-python](https://github.com/contextwindowarchitecture/assembler-python) and the other assemblers, the demo, and these examples. Every example pins assembler-python to a tag in its `pyproject.toml`, and its `uv.lock` holds the commit that tag resolved to. [scripts/assembler_pin.py](scripts/assembler_pin.py) checks on every push that all examples pin the same tag and lock the same commit.
+The CWA repositories are released under one tag name: [assembler-python](https://github.com/contextwindowarchitecture/assembler-python) and the other assemblers, the [specification repository](https://github.com/contextwindowarchitecture/contextwindowarchitecture), the website, the demo, and these examples. Every example pins assembler-python to a tag in its `pyproject.toml`, and its `uv.lock` holds the commit that tag resolved to. [scripts/assembler_pin.py](scripts/assembler_pin.py) checks on every push that all examples pin the same tag and lock the same commit.
 
 Pushing a tag runs [.github/workflows/release.yml](.github/workflows/release.yml):
 
