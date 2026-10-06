@@ -133,12 +133,18 @@ export function page(run, numbers, id, sort, file, lead = "") {
     </div></section>
     ${one.charts?.length ? html`<section class="band"><div class="wrap charts" data-tour="numbers-chart">${one.charts.map(figure)}</div></section>` : ""}
     <section class="band surface"><div class="wrap">
-      <div class="toolbar"><span class="label">${one.cards ? "A card per model, in the chart's order · open one for every number it has" : "One row per model · a heading sorts by its column"}</span><span class="changed" aria-hidden="true"></span>
+      <div class="toolbar"><span class="label">${one.cards ? ordered(one) : "One row per model · a heading sorts by its column"}</span><span class="changed" aria-hidden="true"></span>
         <a class="mono" style="font-size: 12px;" href="${file}" target="_blank" rel="noopener">numbers.json →</a></div>
       <div data-tour="numbers-table">${one.cards ? cards(numbers, one) : byModel(numbers, one, sort)}</div>
       ${how(one)}
     </div></section>
     ${rest.length ? html`<section class="band"><div class="wrap" style="padding-top: 0;">${rest.map(breakdown)}</div></section>` : ""}`;
+}
+
+// What a page's cards are ordered by, which is the order its chart of models draws them in, where it has one.
+function ordered(page) {
+  const by = page.numbers.find((one) => one.id === page.cards.order);
+  return `A card per model, ${page.cards.down ? "highest" : "lowest"} ${by.label.toLowerCase()} first · open one for every number it has`;
 }
 
 // A page's models as cards, in the order its chart draws them. Closed, a card holds the few numbers most readers
