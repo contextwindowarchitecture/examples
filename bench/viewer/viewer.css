@@ -374,6 +374,11 @@ html[data-theme="dark"] { --c-around: oklch(0.46 0.008 85); --c-gov: oklch(0.66 
 .chart .cell-count { fill: var(--fg); font: 600 11.5px var(--mono); font-variant-numeric: tabular-nums; }
 .chart .hit:hover .cell-count, .chart .hit:focus .cell-count { fill: var(--bg); }
 .chart .crosshair { stroke: var(--muted); stroke-width: 1; opacity: 0; }
+/* A strip's dots: ink, until a model is pointed at, when its dots take the accent and the rest step back. */
+.chart .strip-dot { fill: var(--fg); pointer-events: none; transition: opacity 120ms; }
+.chart .picking .strip-dot { opacity: 0.25; }
+.chart .picking .strip-dot.picked { opacity: 1; fill: var(--accent); }
+.chart .strip-value { fill: var(--fg); font: 600 11.5px var(--mono); font-variant-numeric: tabular-nums; paint-order: stroke; stroke: var(--bg); stroke-width: 4px; pointer-events: none; }
 .chart .crosshair:has(+ .hit:hover), .chart .crosshair:has(+ .hit:focus) { opacity: 1; }
 .chart-tip { position: fixed; z-index: 70; max-width: 340px; padding: 10px 12px; background: var(--bg); border: 1px solid var(--fg); font-family: var(--mono); font-size: 12px; line-height: 1.5; color: var(--muted); pointer-events: none; }
 .chart-tip .tip-title { color: var(--fg); margin-bottom: 6px; overflow-wrap: anywhere; }
