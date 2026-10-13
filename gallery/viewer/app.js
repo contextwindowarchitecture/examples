@@ -35,6 +35,8 @@ const MEASURES = ["run", "invariant", "answer", "grounding", "conflict", "exclud
 const ASSEMBLER = "https://github.com/contextwindowarchitecture/assembler-python";
 const view = document.getElementById("view");
 const menu = document.getElementById("numbers");
+const hood = document.getElementById("hood");
+const menus = [menu, hood];
 const state = { repeat: "1", pick: 0, inference: null, sort: { by: null, down: true }, order: "run" };
 let fills = 0;
 const pending = new Set();
@@ -123,14 +125,15 @@ const invariantsOf = (s) => s.jobs.flatMap((job) => (job.invariants ?? []).map((
 const brokenOf = (checks) => checks.filter((c) => c.measure === "invariant" && c.passed === false);
 const callsOf = (s) => Object.values(s.models).reduce((sum, m) => sum + m.calls, 0);
 
-// The site's front page, in the shape of the site's own: what the gallery is, in a sentence and two ways in; what a
-// reader will see, with this run's assemblies replayed and a door to each way of reading the run; and what it is not.
+// The site's front page, in the shape of the site's own: what the gallery is, in a sentence and two ways in, two models
+// head to head or the tour; what a reader will see, with this run's assemblies replayed and a door to each way of
+// reading the run; and what it is not.
 function home(run, s) {
   const broken = brokenOf(invariantsOf(s));
   const models = Object.keys(s.models).length;
   const examples = new Set(s.cases.map((c) => c.key.split("/")[0])).size;
   const doors = [
-    [`#/${run}/cases`, "By question", "Cases →", "Every question the examples asked: what CWA sent, and each model's answer beside the others."],
+    [`#/${run}/vs`, "By scenario", "Head to head →", "One question, the request CWA built for it, and two models' answers side by side."],
     [`#/${run}/constructs`, "By decision", "Constructs →", "Each decision CWA makes, the requirement behind it, and what the models did with the context it produced."],
     [`#/${run}/numbers`, "By number", "See the Numbers →", "Tokens, cost, speed, stability and the checks, model by model."],
   ];
@@ -139,7 +142,7 @@ function home(run, s) {
       <div class="kicker ruled">Gallery · the examples on different models</div>
       <h1>Same context. Different models.</h1>
       <p class="lede">${plural(examples, "example application")} ${examples === 1 ? "builds" : "build"} every request with CWA. Each one ran on ${plural(models, "model")}, so you can see what CWA sent and what every model did with it.</p>
-      <div class="actions"><a class="cta solid" href="${opens(run)}">Open the latest run</a>
+      <div class="actions"><a class="cta solid" href="#/${run}/vs">Compare two models</a>
         <button type="button" class="cta" data-action="tour">Take the tour</button></div>
       <div class="meta"><span>latest run <b>${run}</b></span><span>${plural(models, "model")} · ${plural(s.jobs.length, "job")}</span>
         <span>${broken.length ? html`<span class="fail">${plural(broken.length, "invariant check")} broke</span>` : "every invariant held"}</span></div>
@@ -656,6 +659,8 @@ function header(index, run, page) {
     const here = name === page || (name === "constructs" && page === "construct") || (name === "cases" && page === "case");
     if (here) link.setAttribute("aria-current", "page"); else link.removeAttribute("aria-current");
   }
+  // Constructs, cases, models and runs are under the hood: the menu is marked when one of them is being read.
+  hood.toggleAttribute("data-current", ["constructs", "construct", "cases", "case", "models", "runs"].includes(page));
   // The menu's links lead to the same run's numbers; the one being read is marked, and so is the menu.
   const [, , shown] = route();
   menu.toggleAttribute("data-current", page === "numbers");
@@ -750,12 +755,15 @@ async function samePage(run) {
 }
 document.getElementById("run").addEventListener("change", async (event) => { location.hash = await samePage(event.target.value); });
 
-// The menu closes when one of its pages is chosen, on a click anywhere else, and on Escape, which hands the focus back.
-document.addEventListener("click", (event) => { if (!menu.contains(event.target) || event.target.closest("a")) menu.open = false; });
+// A menu closes when one of its pages is chosen, on a click anywhere else, and on Escape, which hands the focus back.
+document.addEventListener("click", (event) => {
+  for (const one of menus) if (!one.contains(event.target) || event.target.closest("a")) one.open = false;
+});
 document.addEventListener("keydown", (event) => {
-  if (event.key !== "Escape" || !menu.open) return;
-  menu.open = false;
-  menu.querySelector("summary").focus();
+  const open = menus.find((one) => one.open);
+  if (event.key !== "Escape" || !open) return;
+  open.open = false;
+  open.querySelector("summary").focus();
 });
 
 const theme = document.getElementById("theme");
