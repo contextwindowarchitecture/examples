@@ -1,0 +1,46 @@
+# The hostname's certificate, from Let's Encrypt through the cluster's cert-manager, as a component: switch it on in
+# ../kustomization.yaml. cert-manager issues and renews it into the secret cwa-gallery-viewer-tls, the Route names that
+# secret in spec.tls.externalCertificate, and the router's service account may read it. A renewal touches nothing but
+# the secret. The certificate is for the Route's own host, so the hostname is set once, in ../route.yaml.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+resources:
+  - issuer.yaml
+  - certificate.yaml
+  - router-secret-reader.yaml
+
+replacements:
+  - source:
+      kind: Route
+      name: cwa-gallery-viewer
+      fieldPath: spec.host
+    targets:
+      - select:
+          kind: Certificate
+          name: cwa-gallery-viewer-tls
+        fieldPaths:
+          - spec.dnsNames.0
+
+# The Route reads its certificate from the secret and carries none of its own: the nulls clear one set on the Route by
+# hand, which the API refuses beside the reference. The API also refuses a Route naming a secret that does not exist
+# yet, so the first apply leaves the Route as it was until the Certificate is Ready, and the next one moves it over
+# (README: A certificate for the hostname).
+patches:
+  - target:
+      kind: Route
+      name: cwa-gallery-viewer
+    patch: |-
+      - op: add
+        path: /spec/tls/externalCertificate
+        value:
+          name: cwa-gallery-viewer-tls
+      - op: add
+        path: /spec/tls/certificate
+        value: null
+      - op: add
+        path: /spec/tls/key
+        value: null
+      - op: add
+        path: /spec/tls/caCertificate
+        value: null

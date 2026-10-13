@@ -13,9 +13,9 @@ resources:
   - service.yaml
   - route.yaml
 
-# For a private image, give the pods a pull secret: write pull-secret/auth.json, then uncomment these two lines.
-# components:
-#   - pull-secret
+components:
+  - tls             # the hostname's certificate from cert-manager (README: A certificate for the hostname)
+  # - pull-secret   # for a private image: write pull-secret/auth.json, then uncomment this line
 
 images:
   - name: cwa-gallery-viewer

@@ -1,0 +1,17 @@
+# Let's Encrypt over ACME with the HTTP-01 challenge: cert-manager runs a solver pod behind an Ingress of the router's
+# class, which OpenShift turns into a Route for the challenge path on the host, so the host must already resolve to
+# the router. A namespaced Issuer, since one certificate is all this project needs. No account e-mail, so nothing here
+# publishes an address.
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: letsencrypt
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: openshift-default

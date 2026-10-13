@@ -533,7 +533,7 @@ oc apply -k openshift/
 oc rollout status deployment/cwa-gallery-viewer
 ```
 
-Publishing a new run is the same three steps: build and push under the new run's tag, set the image, apply.
+The first deployment takes a second apply, once the hostname's certificate is issued: see [A certificate for the hostname](#a-certificate-for-the-hostname). Publishing a new run is then the same three steps: build and push under the new run's tag, set the image, apply.
 
 ### Pull credentials
 
@@ -543,7 +543,7 @@ While `quay.io/contextwindowarchitecture/gallery` is private, the pods need a pu
 podman login quay.io --authfile openshift/pull-secret/auth.json --username 'contextwindowarchitecture+<robot>'
 ```
 
-Then uncomment `components:` and `- pull-secret` in [openshift/kustomization.yaml](openshift/kustomization.yaml), and apply as above. Quay's robot account page offers the same file under Docker Configuration. The secret's name ends in a hash of `auth.json`, so new credentials make a new secret and roll the pods onto it; the old one stays until you delete it. With the component on and no `auth.json`, `oc apply -k` stops before applying anything. A public image needs none of this.
+Then uncomment `- pull-secret` under `components:` in [openshift/kustomization.yaml](openshift/kustomization.yaml), and apply as above. Quay's robot account page offers the same file under Docker Configuration. The secret's name ends in a hash of `auth.json`, so new credentials make a new secret and roll the pods onto it; the old one stays until you delete it. With the component on and no `auth.json`, `oc apply -k` stops before applying anything. A public image needs none of this.
 
 ### The hostname
 
@@ -554,7 +554,7 @@ oc get route cwa-gallery-viewer -o jsonpath='{.status.ingress[0].routerCanonical
 oc get route cwa-gallery-viewer -o jsonpath='{.status.ingress[0].conditions[0].type}={.status.ingress[0].conditions[0].status}{"\n"}'
 ```
 
-The second prints `Admitted=True` once the router serves it. Only the browser fetches D3 from cdn.jsdelivr.net, so the pod needs no egress.
+The second prints `Admitted=True` once the router serves it. On a first deployment the Route does not exist until its certificate does, and the certificate needs the hostname to resolve first, so point the CNAME at a name under the router's wildcard domain instead, such as `gallery.<domain>` for the domain `oc get ingresses.config cluster -o jsonpath='{.spec.domain}'` prints: it reaches the same router. Only the browser fetches D3 from cdn.jsdelivr.net, so the pod needs no egress.
 
 The Route is public to whoever can reach the router. The results are the examples' fictional data and the models' answers, but to keep them to your own network, add the router's allowlist annotation:
 
@@ -564,14 +564,27 @@ oc annotate route cwa-gallery-viewer haproxy.router.openshift.io/ip_allowlist='2
 
 ### A certificate for the hostname
 
-The router's default certificate covers `*.apps.<cluster>` only, so browsers reject it for a hostname of your own. Give the Route the hostname's certificate, with its chain, and key, both PEM, from files kept out of the repository:
+The router's default certificate covers `*.apps.<cluster>` only, so browsers reject it for a hostname of your own. The certificate comes from Let's Encrypt through the cluster's cert-manager, as the benchmark's does. [openshift/tls/](openshift/tls/) is a kustomize component, on in [openshift/kustomization.yaml](openshift/kustomization.yaml), with three parts:
+
+- [issuer.yaml](openshift/tls/issuer.yaml): ACME with the HTTP-01 challenge, answered through an Ingress of the router's class, which OpenShift turns into a Route for the challenge path. So the hostname must resolve to the router first ([The hostname](#the-hostname)).
+- [certificate.yaml](openshift/tls/certificate.yaml): the hostname's certificate, issued and renewed into the secret `cwa-gallery-viewer-tls`. Its DNS name is copied from the Route's host, so the hostname is set in `route.yaml` alone.
+- [router-secret-reader.yaml](openshift/tls/router-secret-reader.yaml): the router's service account may read that one secret.
+
+The Route names the secret in `spec.tls.externalCertificate` and carries no certificate of its own, so a renewal touches nothing but the secret. The API refuses a Route that names a secret which does not exist yet, so the first apply creates the issuer, the certificate and the role and leaves the Route as it was; the second, once the certificate is ready, moves the Route onto it and clears any certificate set on the Route by hand:
+
+```sh
+oc apply -k openshift/          # issuer, certificate, role; the Route is refused for now
+oc wait certificate/cwa-gallery-viewer-tls --for=condition=Ready --timeout=10m
+oc apply -k openshift/          # the Route takes the certificate
+curl -sI https://gallery.contextwindowarchitecture.io/viewer/
+```
+
+If the certificate does not become ready, `oc describe challenge` says what Let's Encrypt saw. Applying it needs cert-manager on the cluster and rights to bind a role to `openshift-ingress`'s router; without cert-manager, take `- tls` out of `components:` and give the Route a certificate by hand, with its chain, and key, both PEM, from files kept out of the repository:
 
 ```sh
 oc patch route cwa-gallery-viewer --type=merge \
   -p "$(jq -n --rawfile crt tls.crt --rawfile key tls.key '{spec: {tls: {certificate: $crt, key: $key}}}')"
 ```
-
-`oc apply -k openshift/` leaves the patched certificate in place: the kustomization never sets those fields. Where cert-manager and its OpenShift Routes add-on run, annotate the Route with `cert-manager.io/issuer-name`, and `cert-manager.io/issuer-kind: ClusterIssuer` for a cluster issuer, instead: it fills them in and renews them.
 
 ## Changes to the examples
 

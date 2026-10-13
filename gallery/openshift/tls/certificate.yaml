@@ -1,0 +1,17 @@
+# The Route's certificate, issued and renewed by cert-manager into the secret the Route's externalCertificate names.
+# The DNS name is the Route's host, copied in by the component's replacement.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: cwa-gallery-viewer-tls
+spec:
+  secretName: cwa-gallery-viewer-tls
+  dnsNames:
+    - set-from-the-route
+  issuerRef:
+    name: letsencrypt
+    kind: Issuer
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always

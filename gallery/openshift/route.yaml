@@ -1,7 +1,7 @@
 # The custom route: your own hostname, TLS at the router, plain HTTP redirected. Point the hostname's DNS at the
-# router (README: On OpenShift). Without a certificate here the router serves its default one, which covers
-# *.apps.<cluster> only, so a custom hostname needs its own (README: A certificate for the hostname).
-# LetsEncrypt certificate is best option but requires manual renewal
+# router (README: On OpenShift). The router's default certificate covers *.apps.<cluster> only, so the tls component
+# gives this host its own from cert-manager, which the Route reads from a secret (README: A certificate for the
+# hostname). The hostname is set here only: the component copies it into its Certificate.
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
