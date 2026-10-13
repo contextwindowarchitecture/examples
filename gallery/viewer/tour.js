@@ -13,13 +13,13 @@ const link = (href, text) => html`<a href="${href}" target="_blank" rel="noopene
 // for a step that stands alone; when: whether this run has what the step shows.
 const STEPS = [
   {
-    page: "vs", kicker: "Welcome", title: "What this site shows.",
+    page: "compare", kicker: "Welcome", title: "What this site shows.",
     body: () => "CWA showcase shows the example applications of Context Window Architecture, a draft specification for how an application builds what it sends a model, at work on a list of models from OpenRouter. Every request was put together by the same assembler, so each page can set two things side by side: what CWA decided to send, and what each model did with it.",
     links: () => [link(EXAMPLES, "The examples on GitHub"), link(SPEC, "The specification")],
     next: "Start the tour →", end: "Not now",
   },
   {
-    page: "vs", parts: ["versus"], kicker: "Head to head", title: "Start here: one scenario, two models.",
+    page: "compare", parts: ["versus"], kicker: "Compare", title: "Start here: one scenario, two models.",
     body: () => "Pick a scenario and two models. Above the answers: what the user asked, what CWA did with it, and what to look for. Below: each model's tool calls, its answer as it came back, and its checks in plain words. Shuffle for another pair, or pick another repeat to see how much an answer moves. Nothing here is a score: the checks say what to look at, not who won.",
   },
   {

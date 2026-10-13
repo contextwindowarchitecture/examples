@@ -1,4 +1,4 @@
-// Head to head: one scenario, two models, side by side. In 01–03 every model was sent the same request, so the two
+// Compare: one scenario, two models, side by side. In 01–03 every model was sent the same request, so the two
 // columns differ only in the model; in 04 and 05 each starts from the same question and tools, and its own tool calls
 // decide what it is sent next. It sets two answers beside each other and scores neither.
 
@@ -134,7 +134,7 @@ const titleOf = (c) => SCENARIOS[c.key]?.title ?? asked(c.question || c.key).tit
 const nameOf = (example) => EXAMPLES.find(([n, folder]) => example === `${n}-${folder}`);
 const tool = (name) => html`<span class="mono">${name}</span>`;
 
-// The scenario a page shows, the two models, and the repeat, from the address: #/<run>/vs/<example>/<case>?a=&b=&repeat=.
+// The scenario a page shows, the two models, and the repeat, from the address: #/<run>/compare/<example>/<case>?a=&b=&repeat=.
 export function picks(s, key, query) {
   const scenario = s.cases.find((c) => c.key === key) ?? s.cases[0];
   const models = Object.keys(s.models);
@@ -146,7 +146,7 @@ export function picks(s, key, query) {
 }
 
 export const address = (run, key, { a, b, repeat }) =>
-  `#/${run}/vs/${key}?${new URLSearchParams({ a, b, repeat: String(repeat) })}`;
+  `#/${run}/compare/${key}?${new URLSearchParams({ a, b, repeat: String(repeat) })}`;
 
 // Two models picked at random, neither one the other.
 export function shuffled(models) {
@@ -170,7 +170,7 @@ export function page(run, s, key, query, later) {
   const agent = /^0[45]-/.test(scenario.key);
   return html`
     <section class="wrap head">
-      <div class="kicker ruled">Showcase · head to head</div>
+      <div class="kicker ruled">Showcase · compare</div>
       <h1>Two models. One request.</h1>
       <p class="lede">Pick a scenario and two models. Each scenario is a question one of the example applications asked, and CWA built the request every model was sent. Read what two of them did with it.</p>
       ${scenarios(run, s, scenario.key, { a, b, repeat })}

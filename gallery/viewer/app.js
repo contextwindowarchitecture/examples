@@ -2,7 +2,7 @@
 // and, for what it shows in detail, the job files the summary names.
 //
 //   #/                               what the showcase is and does, the latest run, and how to find your way
-//   #/<run>/vs/<example>/<case>      head to head: one scenario, two models' answers side by side (?a=&b=&repeat=)
+//   #/<run>/compare/<example>/<case> compare: one scenario, two models' answers side by side (?a=&b=&repeat=)
 //   #/<run>                          where a run opens: #/<run>/numbers/decisions, the address replaced
 //   #/<run>/constructs               the constructs and the invariants
 //   #/<run>/construct/<id>           one construct: the cases that exercised it, and how each model did
@@ -126,14 +126,14 @@ const brokenOf = (checks) => checks.filter((c) => c.measure === "invariant" && c
 const callsOf = (s) => Object.values(s.models).reduce((sum, m) => sum + m.calls, 0);
 
 // The site's front page, in the shape of the site's own: what the showcase is, in a sentence and two ways in, two models
-// head to head or the tour; what a reader will see, with this run's assemblies replayed and a door to each way of
+// compared or the tour; what a reader will see, with this run's assemblies replayed and a door to each way of
 // reading the run; and what it is not.
 function home(run, s) {
   const broken = brokenOf(invariantsOf(s));
   const models = Object.keys(s.models).length;
   const examples = new Set(s.cases.map((c) => c.key.split("/")[0])).size;
   const doors = [
-    [`#/${run}/vs`, "By scenario", "Head to head →", "One question, the request CWA built for it, and two models' answers side by side."],
+    [`#/${run}/compare`, "By scenario", "Compare →", "One question, the request CWA built for it, and two models' answers side by side."],
     [`#/${run}/constructs`, "By decision", "Constructs →", "Each decision CWA makes, the requirement behind it, and what the models did with the context it produced."],
     [`#/${run}/numbers`, "By number", "See the Numbers →", "Tokens, cost, speed, stability and the checks, model by model."],
   ];
@@ -142,7 +142,7 @@ function home(run, s) {
       <div class="kicker ruled">Showcase · the examples on different models</div>
       <h1>Same context. Different models.</h1>
       <p class="lede">${plural(examples, "example application")} ${examples === 1 ? "builds" : "build"} every request with CWA. Each one ran on ${plural(models, "model")}, so you can see what CWA sent and what every model did with it.</p>
-      <div class="actions"><a class="cta solid" href="#/${run}/vs">Compare two models</a>
+      <div class="actions"><a class="cta solid" href="#/${run}/compare">Compare two models</a>
         <button type="button" class="cta" data-action="tour">Take the tour</button></div>
       <div class="meta"><span>latest run <b>${run}</b></span><span>${plural(models, "model")} · ${plural(s.jobs.length, "job")}</span>
         <span>${broken.length ? html`<span class="fail">${plural(broken.length, "invariant check")} broke</span>` : "every invariant held"}</span></div>
@@ -157,7 +157,7 @@ function home(run, s) {
     <section class="band"><div class="wrap">
       <div class="kicker">What it is not</div>
       <h2>A showcase, not a benchmark.</h2>
-      <p class="body">It shows the examples on each model and ranks none: head to head sets two answers side by side and scores neither. Each example has a few cases with fictional data, and the checks are patterns, not a score. How CWA itself holds up is the benchmark's question.</p>
+      <p class="body">It shows the examples on each model and ranks none: Compare sets two answers side by side and scores neither. Each example has a few cases with fictional data, and the checks are patterns, not a score. How CWA itself holds up is the benchmark's question.</p>
       <div class="links"><a href="https://benchmark.contextwindowarchitecture.io" target="_blank" rel="noopener">CWA's benchmark →</a>
         <a href="https://github.com/contextwindowarchitecture/examples/tree/main/gallery" target="_blank" rel="noopener">How the showcase works →</a>
         <a href="https://contextwindowarchitecture.io/spec.html" target="_blank" rel="noopener">The specification →</a></div>
@@ -639,7 +639,7 @@ async function draw() {
   header(index, run, page);
   picker.value = run;
   view.innerHTML = String(KEYED.has(page) ? examplesKey() : "") + String(
-    page === "vs" ? showcase.page(run, s, parts.slice(2).join("/"), query(), later)
+    page === "compare" ? showcase.page(run, s, parts.slice(2).join("/"), query(), later)
       : page === "construct" ? construct(run, s, parts[2])
       : page === "case" ? caseView(run, s, parts.slice(2).join("/"))
         : page === "cases" ? cases(run, s)
@@ -652,7 +652,7 @@ function header(index, run, page) {
   const picker = document.getElementById("run");
   picker.innerHTML = String(html`${index.runs.map((r) => html`<option value="${r.run}">${r.run}</option>`)}`);
   const current = run ?? index.runs[0]?.run ?? "";
-  const links = { vs: `#/${current}/vs`, constructs: `#/${current}/constructs`, cases: `#/${current}/cases`, models: `#/${current}/models`, runs: "#/runs" };
+  const links = { compare: `#/${current}/compare`, constructs: `#/${current}/constructs`, cases: `#/${current}/cases`, models: `#/${current}/models`, runs: "#/runs" };
   for (const [name, href] of Object.entries(links)) {
     const link = document.querySelector(`[data-nav="${name}"]`);
     link.href = href;
@@ -713,7 +713,7 @@ view.addEventListener("click", (event) => {
   redraw(`button[data-action="${action}"][data-value="${CSS.escape(value)}"]`);
 });
 
-// Head to head keeps its picks in the address, so a pair can be shared: a pick replaces it, and the page redraws where
+// Compare keeps its picks in the address, so a pair can be shared: a pick replaces it, and the page redraws where
 // the reader is. Picking the model already in the other column swaps the two.
 async function pick(change, control) {
   const [run, , ...rest] = route();
@@ -749,8 +749,8 @@ async function samePage(run) {
     const known = page === "case" ? s.cases.some((c) => c.key === rest.join("/")) : s.constructs.some((c) => c.id === rest[0]);
     if (!known) return `#/${run}/${page === "case" ? "cases" : "constructs"}`;
   }
-  // Head to head reads the same scenario and models, where the other run has them.
-  if (page === "vs") { const p = showcase.picks(await data.summary(run), rest.join("/"), query()); return showcase.address(run, p.scenario.key, p); }
+  // Compare reads the same scenario and models, where the other run has them.
+  if (page === "compare") { const p = showcase.picks(await data.summary(run), rest.join("/"), query()); return showcase.address(run, p.scenario.key, p); }
   return `#/${[run, page, ...rest].join("/")}`;
 }
 document.getElementById("run").addEventListener("change", async (event) => { location.hash = await samePage(event.target.value); });

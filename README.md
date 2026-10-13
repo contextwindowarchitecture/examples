@@ -46,7 +46,7 @@ Each example commits scenarios: a conversation in, and the snapshot, trace and e
 
 ## Showcase
 
-[gallery/](gallery/) holds the showcase: every example at work on a list of models from OpenRouter. Each model is handed the context CWA decided on, and the showcase records what it did with it. Every request is checked against the payload the assembler rendered, and every answer is graded against what its run actually did. A local viewer opens on two models head to head, one scenario at a time, and lays the rest out by CWA construct: the cases that exercised each one, and each model's answer given the same decision. It ranks no model; CWA's benchmark is published at [benchmark.contextwindowarchitecture.io](https://benchmark.contextwindowarchitecture.io).
+[gallery/](gallery/) holds the showcase: every example at work on a list of models from OpenRouter. Each model is handed the context CWA decided on, and the showcase records what it did with it. Every request is checked against the payload the assembler rendered, and every answer is graded against what its run actually did. A local viewer opens on Compare, two models side by side on one scenario at a time, and lays the rest out by CWA construct: the cases that exercised each one, and each model's answer given the same decision. It ranks no model; CWA's benchmark is published at [benchmark.contextwindowarchitecture.io](https://benchmark.contextwindowarchitecture.io).
 
 ```sh
 cd gallery

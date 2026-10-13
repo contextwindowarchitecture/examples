@@ -470,7 +470,7 @@ html[data-theme="dark"] { --c-around: oklch(0.46 0.008 85); --c-gov: oklch(0.66 
 .chart .asm-refused { fill: var(--accent); }
 .asm-say { min-height: 3.2em; margin: 18px 0 0; font-size: 15px; line-height: 1.6; color: var(--fg); }
 
-/* Head to head: one scenario, two models side by side */
+/* Compare: one scenario, two models side by side */
 .scenarios { display: flex; flex-direction: column; gap: 16px; border-top: 1px solid var(--line); padding-top: 22px; }
 .scenario-row { display: grid; grid-template-columns: minmax(180px, 260px) minmax(0, 1fr); gap: 10px 24px; align-items: baseline; }
 .scenario-row > .label { line-height: 1.6; }
