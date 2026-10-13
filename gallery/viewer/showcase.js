@@ -274,7 +274,7 @@ function checks(r) {
   const lines = r.checks.filter((c) => c.measure !== "invariant").map((c) => ({ c, text: said(c) })).filter((line) => line.text);
   if (!lines.length) return "";
   return html`<ul class="said">${lines.map(({ c, text }) => html`<li class="${c.passed === false ? "failed" : c.passed ? "held" : "aside"}" title="${c.measure} ${c.check} · ${c.detail}">
-    <span class="mark" aria-hidden="true">${c.passed === false ? "✕" : c.passed ? "✓" : "·"}</span><span class="visually-hidden">${c.passed === false ? "Failed: " : c.passed ? "Passed: " : ""}</span>${text}</li>`)}</ul>`;
+    <span class="mark" aria-hidden="true">${c.passed === false ? "✕" : c.passed ? "✓" : "·"}</span><span><span class="visually-hidden">${c.passed === false ? "Failed: " : c.passed ? "Passed: " : ""}</span>${text}</span></li>`)}</ul>`;
 }
 
 // One check in words: what it found, passed or not. A check that passes or fails nothing is said as a note.
