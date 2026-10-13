@@ -7,7 +7,7 @@ kind: Route
 metadata:
   name: cwa-gallery-viewer
 spec:
-  host: gallery.contextwindowarchitecture.io
+  host: examples.contextwindowarchitecture.io
   to:
     kind: Service
     name: cwa-gallery-viewer

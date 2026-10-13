@@ -577,8 +577,10 @@ The Route names the secret in `spec.tls.externalCertificate` and carries no cert
 oc apply -k openshift/          # issuer, certificate, role; the Route is refused for now
 oc wait certificate/cwa-gallery-viewer-tls --for=condition=Ready --timeout=10m
 oc apply -k openshift/          # the Route takes the certificate
-curl -sI https://gallery.contextwindowarchitecture.io/viewer/
+curl -sI https://examples.contextwindowarchitecture.io/viewer/
 ```
+
+Moving a deployed viewer to another hostname takes one apply. Point the new name's CNAME at the router's canonical hostname first, since the challenge needs it, then change the host in `route.yaml` and apply. The Route moves to the new host and stops serving the old one. The Certificate takes the new name and cert-manager issues it into the same secret. Until that happens, the router serves the old certificate on the new host and browsers reject it. `oc wait` as above shows when it is done, and the old name's DNS record can go after that.
 
 If the certificate does not become ready, `oc describe challenge` says what Let's Encrypt saw. Applying it needs cert-manager on the cluster and rights to bind a role to `openshift-ingress`'s router; without cert-manager, take `- tls` out of `components:` and give the Route a certificate by hand, with its chain, and key, both PEM, from files kept out of the repository:
 
