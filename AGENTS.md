@@ -6,7 +6,7 @@ Instructions for coding agents and contributors working in `examples`, the runna
 
 Each example is a numbered folder (`01-docs-qa/`, `02-...`) and its own `uv` project, with its own README, tests and committed scenarios. Later examples build on earlier ones: an example's README says which one it extends and what the diff adds.
 
-`gallery/` is not an example: it shows the examples at work on a list of models from OpenRouter. It is its own `uv` project, standard library only, that runs the examples' command lines on each model and changes nothing they send. It is a gallery, not a benchmark: it ranks no model, and copy about it says so. Its README is its design and its manual, and `expectations.toml` says what each 01–04 scenario must show.
+`gallery/` is not an example: it holds the showcase, which shows the examples at work on a list of models from OpenRouter. It is its own `uv` project, standard library only, that runs the examples' command lines on each model and changes nothing they send. It is a showcase, not a benchmark: it ranks no model, and copy about it says so. Its README is its design and its manual, and `expectations.toml` says what each 01–04 scenario must show.
 
 ## Commands
 
@@ -45,7 +45,7 @@ python3 scripts/assembler_pin.py --release <tag> --remote  # before tagging: the
 - **Committed scenarios are reviewed expectations.** `scenarios.py --write` regenerates them. Read the diff of every `snapshot.json`, `trace.json` and `payload.json` it changes before committing, and say in the commit body why the context changed.
 - **Readable first.** Flat files, a short focal function per file, and comments that explain a CWA decision where it happens. A reader should be able to diff `before.py` and `after.py` in their head.
 - **No credentials in the repository.** Providers read their keys from the environment or `.env` (gitignored). The suite never calls a model. The gallery reads its OpenRouter key from `gallery/.env`, hands the examples a dummy one, and never writes the real one.
-- **A gallery run spends money.** Run `gallery/run.py` only when asked, after `plan.py` has shown what it would cost. A change to `expectations.toml` or the checks after reading a run's results tunes them to that run: say so in the commit body.
+- **A showcase run spends money.** Run `gallery/run.py` only when asked, after `plan.py` has shown what it would cost. A change to `expectations.toml` or the checks after reading a run's results tunes them to that run: say so in the commit body.
 
 ## Test-driven development
 

@@ -192,7 +192,7 @@ export function page(run, s, key, query, later) {
         ${repeats.length > 1 ? html`<span class="runpick"><label for="pick-repeat">Repeat</label><select id="pick-repeat" data-action="showcase" data-pick="repeat">${repeats.map((n) => html`
           <option value="${n}"${n === repeat ? html` selected` : ""}>${n} of ${repeats.length}</option>`)}</select></span>` : ""}
       </div>
-      <div class="versus">${[[a, ra], [b, rb]].map(([model, r], n) => column(run, s, scenario, model, r, n ? "B" : "A", later))}</div>
+      <div class="versus" data-tour="versus">${[[a, ra], [b, rb]].map(([model, r], n) => column(run, s, scenario, model, r, n ? "B" : "A", later))}</div>
       <p class="body reading-note">Answers are quoted as they came back. The checks under them are patterns read from each answer and its tool calls: they say what to look at, not who won. Each model ran this scenario ${plural(repeats.length, "time")}; pick another repeat to see how much an answer moves.</p>
     </div></section>`;
 }

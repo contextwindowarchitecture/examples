@@ -125,7 +125,7 @@ const invariantsOf = (s) => s.jobs.flatMap((job) => (job.invariants ?? []).map((
 const brokenOf = (checks) => checks.filter((c) => c.measure === "invariant" && c.passed === false);
 const callsOf = (s) => Object.values(s.models).reduce((sum, m) => sum + m.calls, 0);
 
-// The site's front page, in the shape of the site's own: what the gallery is, in a sentence and two ways in, two models
+// The site's front page, in the shape of the site's own: what the showcase is, in a sentence and two ways in, two models
 // head to head or the tour; what a reader will see, with this run's assemblies replayed and a door to each way of
 // reading the run; and what it is not.
 function home(run, s) {
@@ -139,7 +139,7 @@ function home(run, s) {
   ];
   return html`
     <section class="wrap head hero">
-      <div class="kicker ruled">Gallery · the examples on different models</div>
+      <div class="kicker ruled">Showcase · the examples on different models</div>
       <h1>Same context. Different models.</h1>
       <p class="lede">${plural(examples, "example application")} ${examples === 1 ? "builds" : "build"} every request with CWA. Each one ran on ${plural(models, "model")}, so you can see what CWA sent and what every model did with it.</p>
       <div class="actions"><a class="cta solid" href="#/${run}/vs">Compare two models</a>
@@ -156,10 +156,10 @@ function home(run, s) {
     </div></section>
     <section class="band"><div class="wrap">
       <div class="kicker">What it is not</div>
-      <h2>A gallery, not a benchmark.</h2>
-      <p class="body">It shows the examples on each model and ranks none. Each example has a few cases with fictional data, and the checks are patterns, not a score. How CWA itself holds up is the benchmark's question.</p>
+      <h2>A showcase, not a benchmark.</h2>
+      <p class="body">It shows the examples on each model and ranks none: head to head sets two answers side by side and scores neither. Each example has a few cases with fictional data, and the checks are patterns, not a score. How CWA itself holds up is the benchmark's question.</p>
       <div class="links"><a href="https://benchmark.contextwindowarchitecture.io" target="_blank" rel="noopener">CWA's benchmark →</a>
-        <a href="https://github.com/contextwindowarchitecture/examples/tree/main/gallery" target="_blank" rel="noopener">How the gallery works →</a>
+        <a href="https://github.com/contextwindowarchitecture/examples/tree/main/gallery" target="_blank" rel="noopener">How the showcase works →</a>
         <a href="https://contextwindowarchitecture.io/spec.html" target="_blank" rel="noopener">The specification →</a></div>
     </div></section>`;
 }
@@ -179,7 +179,7 @@ function constructs(run, s) {
   const broken = brokenOf(invariantChecks);
   return html`
     <section class="wrap head">
-      <div class="kicker ruled">Gallery · run ${run}</div>
+      <div class="kicker ruled">Showcase · run ${run}</div>
       <h1>Constructs</h1>
       <p class="lede">The decisions the assembler made for every request in this run. Each card names the requirement behind it, the cases that exercised it, and how the models did with the context it produced.</p>
       ${runLine(s)}
@@ -620,7 +620,7 @@ async function draw() {
   if (parts[0] === "runs" || !index.runs.length) {
     header(index, null, "runs");
     view.innerHTML = String(index.runs.length ? runs(index) : html`<section class="wrap head"><div class="kicker">No runs yet</div><h1>Nothing graded yet</h1>
-      <p class="lede">Run the gallery with uv run --env-file .env run.py, then reload this page.</p></section>`);
+      <p class="lede">Run the showcase with uv run --env-file .env run.py, then reload this page.</p></section>`);
     return;
   }
   if (!parts.length) {
