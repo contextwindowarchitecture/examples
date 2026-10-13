@@ -121,68 +121,41 @@ const invariantsOf = (s) => s.jobs.flatMap((job) => (job.invariants ?? []).map((
 const brokenOf = (checks) => checks.filter((c) => c.measure === "invariant" && c.passed === false);
 const callsOf = (s) => Object.values(s.models).reduce((sum, m) => sum + m.calls, 0);
 
-// The site's front page: what the gallery is and does, the newest run, and the header's pages, each opened on that run.
+// The site's front page, in the shape of the site's own: what the gallery is, in a sentence and two ways in; what a
+// reader will see, with this run's assemblies replayed and a door to each way of reading the run; and what it is not.
 function home(run, s) {
   const broken = brokenOf(invariantsOf(s));
-  const way = [
-    [`#/${run}/numbers`, "See the Numbers", "A page for each family of numbers: what CWA decided, tokens, cost, speed, stability, grounding, 01's before and after, the agents' paths and the checks. Each opens with a reading of the run."],
-    [`#/${run}/constructs`, "Constructs", "A card for each decision CWA makes, with the requirement behind it. Open one for the evidence from the run's own traces, and every model's answer beside it."],
-    [`#/${run}/cases`, "Cases", "Every question the examples asked. A case shows what CWA decided for each run of it, item by item, and what each model did with it."],
-    [`#/${run}/models`, "Models", "Each model's calls, tokens, latency, cost, the hosts that answered it, and the checks its answers passed."],
-    ["#/runs", "Runs", "Every graded run, newest first. Run, at the top of each page, reads the same page on another run."],
+  const models = Object.keys(s.models).length;
+  const examples = new Set(s.cases.map((c) => c.key.split("/")[0])).size;
+  const doors = [
+    [`#/${run}/cases`, "By question", "Cases →", "Every question the examples asked: what CWA sent, and each model's answer beside the others."],
+    [`#/${run}/constructs`, "By decision", "Constructs →", "Each decision CWA makes, the requirement behind it, and what the models did with the context it produced."],
+    [`#/${run}/numbers`, "By number", "See the Numbers →", "Tokens, cost, speed, stability and the checks, model by model."],
   ];
   return html`
-    <section class="wrap head">
-      <div class="kicker ruled">Gallery</div>
-      <h1>The same examples, on different models.</h1>
-      <p class="lede">CWA gallery shows the example applications of Context Window Architecture at work on a list of models from OpenRouter. Every model is handed the context CWA decided on, and every page sets two things side by side: what CWA decided to send, and what each model did with it.</p>
-      <p class="body">CWA is a draft specification for how an application builds what it sends a model. Producers propose typed items: instructions, retrieved chunks, conversation turns, tool results. The application freezes them into a snapshot with a route policy and a budget, and an assembler turns the snapshot into the request and a trace of what was sent, what was left out and why. Every example here is built on the same assembler, assembler-python, so every model is handed context decided the same way.</p>
-      <div class="actions"><a class="ghost" href="${opens(run)}">Open the latest run →</a>
-        <button type="button" class="ghost" data-action="tour">New here? Take the tour →</button></div>
+    <section class="wrap head hero">
+      <div class="kicker ruled">Gallery · the examples on different models</div>
+      <h1>Same context. Different models.</h1>
+      <p class="lede">${plural(examples, "example application")} ${examples === 1 ? "builds" : "build"} every request with CWA. Each one ran on ${plural(models, "model")}, so you can see what CWA sent and what every model did with it.</p>
+      <div class="actions"><a class="cta solid" href="${opens(run)}">Open the latest run</a>
+        <button type="button" class="cta" data-action="tour">Take the tour</button></div>
+      <div class="meta"><span>latest run <b>${run}</b></span><span>${plural(models, "model")} · ${plural(s.jobs.length, "job")}</span>
+        <span>${broken.length ? html`<span class="fail">${plural(broken.length, "invariant check")} broke</span>` : "every invariant held"}</span></div>
     </section>
-    <section class="band"><div class="wrap">
-      <div class="kicker">Watch an assembly</div>
-      <h2>What CWA decided, a step at a time.</h2>
-      <p class="body">This run's own records, replayed example by example. Each item is a square in its plane's colour: offered by a producer, then left out for the reason its trace gives, or rendered into the request as its share of the route's budget. Each example adds a decision the one before it did not make. Point at an item for what it is.</p>
+    <section class="band surface"><div class="wrap">
+      <div class="kicker">What you see</div>
+      <h2>One request. Every model's answer.</h2>
+      <p class="body">CWA decides what each request holds, and writes down what it left out and why. The models are handed what it decided, so their answers can be read side by side. Below, this run's own records, replayed an example at a time.</p>
       <div class="assembly"></div>
-    </div></section>
-    <section class="band surface"><div class="wrap">
-      <div class="kicker">What it does</div>
-      <h2>Run, check, grade, show.</h2>
-      <p class="body">A run is the examples against the models in gallery.toml, a set number of times each. Nothing an example sends is changed.</p>
-      <div class="hair four">
-        <div class="cell"><div class="label">1 · Run</div><div class="card-title">Each example, as an application.</div>
-          <div class="card-copy">Every case runs through the example's own command line, once per model and repeat. A local proxy passes each call to OpenRouter and keeps the request and response exactly as they were.</div></div>
-        <div class="cell"><div class="label">2 · Check</div><div class="card-title">Four invariants.</div>
-          <div class="card-copy">The request sent is the payload the assembler rendered, a refused assembly asks no model, 01–03 use their committed snapshots, and every snapshot assembles again to the same request. A failure is a bug, not a finding about a model.</div></div>
-        <div class="cell"><div class="label">3 · Grade</div><div class="card-title">Each answer, against its own run.</div>
-          <div class="card-copy">Did it stay within what was sent, side with a conflict's winner, leave alone what CWA left out, and resist an instruction injected into a tool result? 05 is graded by its own eval suite too. No model grades another.</div></div>
-        <div class="cell"><div class="label">4 · Show</div><div class="card-title">By CWA construct.</div>
-          <div class="card-copy">This site: for each decision the assembler makes, the cases that exercised it and how each model did given the same decision, with the numbers behind it.</div></div>
-      </div>
-    </div></section>
-    <section class="band"><div class="wrap">
-      <div class="kicker">The latest run</div>
-      <h2 class="case mono">${run}</h2>
-      <div class="meta"><span>started ${s.started}</span><span>commit <b>${s.repository.commit.slice(0, 7)}</b></span>
-        <span>${plural(Object.keys(s.models).length, "model")} · ${plural(s.jobs.length, "job")} · ${plural(callsOf(s), "call")}</span>
-        <span>spent <b>${dollars(s.spent)}</b></span></div>
-      <p class="body">${broken.length ? html`<span class="fail">${plural(broken.length, "invariant check")} broke in this run.</span>` : "Every invariant held in every job."} ${plural(s.constructs.filter((c) => c.cases.length).length, "construct")} of ${s.constructs.length} were exercised.</p>
-      <a class="ghost" href="${opens(run)}">Open it →</a>
-    </div></section>
-    <section class="band surface"><div class="wrap">
-      <div class="kicker">Finding your way</div>
-      <h2>The header, left to right.</h2>
-      <p class="body">Each page opens on the run picked in Run, at the top. Tour walks through the site a step at a time, and Dark switches the theme.</p>
-      <div class="hair cards">${way.map(([href, title, copy]) => html`<a class="cell" href="${href}"><div class="card-title">${title}</div><div class="card-copy">${copy}</div></a>`)}</div>
+      <div class="hair doors">${doors.map(([href, label, title, copy]) => html`<a class="cell" href="${href}"><span class="label">${label}</span><span class="card-title">${title}</span><span class="card-copy">${copy}</span></a>`)}</div>
     </div></section>
     <section class="band"><div class="wrap">
       <div class="kicker">What it is not</div>
       <h2>A gallery, not a benchmark.</h2>
-      <p class="body">It shows the examples on each model; it does not rank the models. Each example has three to six cases, so repeats show how much a model varies, not whether a difference between models is significant. The checks are patterns, there is no single score, and it does not measure general model quality. Everything sent is the examples' fictional data.</p>
-      <div class="links"><a href="https://github.com/contextwindowarchitecture/examples/tree/main/gallery" target="_blank" rel="noopener">How the gallery works →</a>
-        <a href="https://contextwindowarchitecture.io/spec.html" target="_blank" rel="noopener">The specification →</a>
-        <a href="https://benchmark.contextwindowarchitecture.io" target="_blank" rel="noopener">CWA's benchmark →</a></div>
+      <p class="body">It shows the examples on each model and ranks none. Each example has a few cases with fictional data, and the checks are patterns, not a score. How CWA itself holds up is the benchmark's question.</p>
+      <div class="links"><a href="https://benchmark.contextwindowarchitecture.io" target="_blank" rel="noopener">CWA's benchmark →</a>
+        <a href="https://github.com/contextwindowarchitecture/examples/tree/main/gallery" target="_blank" rel="noopener">How the gallery works →</a>
+        <a href="https://contextwindowarchitecture.io/spec.html" target="_blank" rel="noopener">The specification →</a></div>
     </div></section>`;
 }
 
@@ -656,7 +629,7 @@ async function draw() {
     header(index, latest, "home");
     picker.value = latest;
     const s = await data.summary(latest);
-    view.innerHTML = String(html`${examplesKey()}${home(latest, s)}`);
+    view.innerHTML = String(home(latest, s));
     assembly.mount(view.querySelector(".assembly"), latest, s);
     return;
   }
