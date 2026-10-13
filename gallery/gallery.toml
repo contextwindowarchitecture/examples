@@ -1,4 +1,4 @@
-# The models to benchmark and how to run them (README.md). Model IDs are OpenRouter's, sent as written. The key is read
+# The models to show the examples on, and how to run them (README.md). Model IDs are OpenRouter's, sent as written. The key is read
 # from the variable key_env names; `uv run --env-file .env ...` reads it from gallery/.env, which git ignores.
 
 models = [

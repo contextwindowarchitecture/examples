@@ -14,7 +14,7 @@ const link = (href, text) => html`<a href="${href}" target="_blank" rel="noopene
 const STEPS = [
   {
     page: "constructs", kicker: "Welcome", title: "What this site shows.",
-    body: () => "CWA gallery runs the example applications of Context Window Architecture, a draft specification for how an application builds what it sends a model, against a list of models on OpenRouter. Every request was put together by the same assembler, so each page can set two things side by side: what CWA decided to send, and what each model did with it.",
+    body: () => "CWA gallery shows the example applications of Context Window Architecture, a draft specification for how an application builds what it sends a model, at work on a list of models from OpenRouter. Every request was put together by the same assembler, so each page can set two things side by side: what CWA decided to send, and what each model did with it.",
     links: () => [link(EXAMPLES, "The examples on GitHub"), link(SPEC, "The specification")],
     next: "Start the tour →", end: "Not now",
   },
@@ -65,7 +65,7 @@ const STEPS = [
   },
   {
     parts: ["sources"], kicker: "Where it comes from", title: "Run it yourself.",
-    body: () => "The examples and this benchmark are in one repository, the assembler in another. gallery/ runs every example against the models in gallery.toml, records what was sent, and grades it: uv run --env-file .env run.py.",
+    body: () => "The examples and this gallery are in one repository, the assembler in another. gallery/ runs every example against the models in gallery.toml, records what was sent, and grades it: uv run --env-file .env run.py.",
     links: () => [link(EXAMPLES, "The examples on GitHub"), link(ASSEMBLER, "assembler-python on GitHub")],
     next: "Finish",
   },

@@ -133,9 +133,9 @@ function home(run, s) {
   ];
   return html`
     <section class="wrap head">
-      <div class="kicker ruled">Benchmark</div>
-      <h1>CWA across models.</h1>
-      <p class="lede">CWA gallery runs the example applications of Context Window Architecture against a list of models on OpenRouter, and records two things for every request: what CWA decided to send, and what the model did with it.</p>
+      <div class="kicker ruled">Gallery</div>
+      <h1>The same examples, on different models.</h1>
+      <p class="lede">CWA gallery shows the example applications of Context Window Architecture at work on a list of models from OpenRouter. Every model is handed the context CWA decided on, and every page sets two things side by side: what CWA decided to send, and what each model did with it.</p>
       <p class="body">CWA is a draft specification for how an application builds what it sends a model. Producers propose typed items: instructions, retrieved chunks, conversation turns, tool results. The application freezes them into a snapshot with a route policy and a budget, and an assembler turns the snapshot into the request and a trace of what was sent, what was left out and why. Every example here is built on the same assembler, assembler-python, so every model is handed context decided the same way.</p>
       <div class="actions"><a class="ghost" href="${opens(run)}">Open the latest run →</a>
         <button type="button" class="ghost" data-action="tour">New here? Take the tour →</button></div>
@@ -178,10 +178,11 @@ function home(run, s) {
     </div></section>
     <section class="band"><div class="wrap">
       <div class="kicker">What it is not</div>
-      <h2>A smoke test, not a leaderboard.</h2>
-      <p class="body">Each example has three to six cases, so repeats show how much a model varies, not whether a difference between models is significant. The checks are patterns, there is no single score, and it does not measure general model quality. Everything sent is the examples' fictional data.</p>
+      <h2>A gallery, not a benchmark.</h2>
+      <p class="body">It shows the examples on each model; it does not rank the models. Each example has three to six cases, so repeats show how much a model varies, not whether a difference between models is significant. The checks are patterns, there is no single score, and it does not measure general model quality. Everything sent is the examples' fictional data.</p>
       <div class="links"><a href="https://github.com/contextwindowarchitecture/examples/tree/main/gallery" target="_blank" rel="noopener">How the gallery works →</a>
-        <a href="https://contextwindowarchitecture.io/spec.html" target="_blank" rel="noopener">The specification →</a></div>
+        <a href="https://contextwindowarchitecture.io/spec.html" target="_blank" rel="noopener">The specification →</a>
+        <a href="https://benchmark.contextwindowarchitecture.io" target="_blank" rel="noopener">CWA's benchmark →</a></div>
     </div></section>`;
 }
 
@@ -200,7 +201,7 @@ function constructs(run, s) {
   const broken = brokenOf(invariantChecks);
   return html`
     <section class="wrap head">
-      <div class="kicker ruled">Benchmark · run ${run}</div>
+      <div class="kicker ruled">Gallery · run ${run}</div>
       <h1>Constructs</h1>
       <p class="lede">The decisions the assembler made for every request in this run. Each card names the requirement behind it, the cases that exercised it, and how the models did with the context it produced.</p>
       ${runLine(s)}
@@ -647,7 +648,7 @@ async function draw() {
   if (parts[0] === "runs" || !index.runs.length) {
     header(index, null, "runs");
     view.innerHTML = String(index.runs.length ? runs(index) : html`<section class="wrap head"><div class="kicker">No runs yet</div><h1>Nothing graded yet</h1>
-      <p class="lede">Run the benchmark with uv run --env-file .env run.py, then reload this page.</p></section>`);
+      <p class="lede">Run the gallery with uv run --env-file .env run.py, then reload this page.</p></section>`);
     return;
   }
   if (!parts.length) {

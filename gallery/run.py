@@ -1,4 +1,4 @@
-"""Run the benchmark: the preflight, the plan and its estimate, a confirmation, then every job through the recording
+"""Run the gallery: the preflight, the plan and its estimate, a confirmation, then every job through the recording
 proxy.
 
     uv run --env-file .env run.py                       # a new run, in results/<run-id>/

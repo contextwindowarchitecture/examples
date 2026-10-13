@@ -1,7 +1,7 @@
 [project]
 name = "cwa-gallery"
 version = "0.1.0"
-description = "Runs the examples against a list of models on OpenRouter and records what CWA decided and what each model did"
+description = "Shows the examples at work on a list of models from OpenRouter: what CWA decided and what each model did with it"
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.12"
