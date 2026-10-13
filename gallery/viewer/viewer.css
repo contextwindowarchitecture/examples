@@ -52,13 +52,14 @@ a:hover { color: var(--fg); }
 /* Header */
 .hdr { position: sticky; top: 0; z-index: 50; background: color-mix(in oklab, var(--bg) 88%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
 .hdr-row { min-height: 68px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; }
-.brand { display: flex; align-items: center; gap: 10px; color: var(--fg); }
-.mark { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px; width: 18px; height: 18px; }
-.mark span:nth-child(1) { background: var(--p-gov); }
-.mark span:nth-child(2) { background: var(--p-state); }
-.mark span:nth-child(3) { background: var(--p-evid); }
-.mark span:nth-child(4) { background: var(--p-inter); }
-.wordmark { font-weight: 700; letter-spacing: -0.02em; font-size: 16px; }
+/* The organization's logo, as the site sets it: one image per theme, the other hidden. The wordmark beside it says
+   which of the site's pages this is. */
+.brand { display: flex; align-items: center; gap: 14px; color: var(--fg); }
+.logo { display: block; width: 108px; height: 40px; }
+.logo.dark, html[data-theme="dark"] .logo.light { display: none; }
+html[data-theme="dark"] .logo.dark { display: block; }
+.wordmark { font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); padding-left: 14px; border-left: 1px solid var(--line); line-height: 28px; }
+@media (max-width: 620px) { .logo { width: 81px; height: 30px; } }
 .nav { display: flex; flex-wrap: wrap; gap: 24px; font-size: 14px; font-weight: 500; }
 .nav a { color: var(--muted); white-space: nowrap; }
 .nav a:hover { color: var(--fg); }

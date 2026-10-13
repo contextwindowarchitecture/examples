@@ -32,6 +32,16 @@ def test_the_viewer_is_served_and_the_root_leads_to_it(base: str) -> None:
     assert urllib.request.urlopen(f"{base}/", timeout=5).url == f"{base}/viewer/"
 
 
+def test_the_header_logos_are_the_ones_the_page_names_and_are_served_as_images(base: str) -> None:
+    # The organization's logo, one for each theme, as contextwindowarchitecture/.github publishes it.
+    page = urllib.request.urlopen(f"{base}/viewer/", timeout=5).read().decode()
+    for theme in ("light", "dark"):
+        assert f'src="logo-{theme}.png"' in page
+        response = urllib.request.urlopen(f"{base}/viewer/logo-{theme}.png", timeout=5)
+        assert response.headers["Content-Type"] == "image/png"
+        assert response.read(8) == b"\x89PNG\r\n\x1a\n"
+
+
 @pytest.mark.parametrize("path", ["/.env", "/gallery.toml", "/config.py", "/viewer/../.env", "/%2e%2e/gallery/.env",
                                   "/results/"])
 def test_nothing_but_the_viewer_and_result_files_is_served(base: str, path: str) -> None:
