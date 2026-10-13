@@ -163,7 +163,7 @@ def _write(path: Path, value: Any) -> None:
 def run_suite(provider: str, model_name: str | None, label: str | None, out: str | Path | None = None) -> Path:
     """Run every case live against the route's model (or model_name), and record each run under evals/results/, or in
     out. The suite checks every folder under evals/results/ against its committed report, so a run that is not to be
-    committed, such as the benchmark's, goes to out."""
+    committed, such as the gallery's, goes to out."""
     route = routes.load(routes.default())
     options = {"model": model_name} if model_name else dict(route.models[provider])
     profile = _json(PROFILE)

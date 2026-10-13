@@ -46,10 +46,10 @@ Each example commits scenarios: a conversation in, and the snapshot, trace and e
 
 ## Benchmark
 
-[bench/](bench/) runs every example against a list of models on OpenRouter and records, for each model, what CWA decided and what the model did with it. Every request is checked against the payload the assembler rendered, and every answer is graded against what its run actually did. A local viewer lays the results out by CWA construct: the cases that exercised each one, and how each model fared with the same decision.
+[gallery/](gallery/) runs every example against a list of models on OpenRouter and records, for each model, what CWA decided and what the model did with it. Every request is checked against the payload the assembler rendered, and every answer is graded against what its run actually did. A local viewer lays the results out by CWA construct: the cases that exercised each one, and how each model fared with the same decision.
 
 ```sh
-cd bench
+cd gallery
 uv run --env-file .env plan.py      # what a run would do and cost; nothing is sent
 uv run --env-file .env run.py       # run it, into results/ (gitignored)
 uv run serve.py                     # the viewer, at http://127.0.0.1:8765/

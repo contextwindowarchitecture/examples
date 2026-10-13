@@ -44,7 +44,7 @@ class Pin:
 
 def pins(root: Path = ROOT) -> list[Pin]:
     """The assembler pin of every example under root: each numbered folder, such as 01-docs-qa, with a pyproject.toml
-    and a uv.lock. Other projects in the repository, such as bench/, are not examples and pin no assembler."""
+    and a uv.lock. Other projects in the repository, such as gallery/, are not examples and pin no assembler."""
     found = []
     for project in sorted(root.glob("[0-9]*/pyproject.toml")):
         folder = project.parent

@@ -8,4 +8,4 @@ runs/
 .idea/
 .DS_Store
 store/
-bench/results/
+gallery/results/

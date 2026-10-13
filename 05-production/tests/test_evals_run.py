@@ -11,7 +11,7 @@ import providers
 
 
 def test_a_run_writes_its_results_where_out_says(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    # A run against some other model, such as the benchmark's, stays out of evals/results/: the suite checks every
+    # A run against some other model, such as the gallery's, stays out of evals/results/: the suite checks every
     # folder there against its committed report.
     suite = json.loads(evals.CASES.read_text(encoding="utf-8"))
     suite["cases"] = [case for case in suite["cases"] if case["id"] == "export-backup"]

@@ -44,10 +44,10 @@ class Check(unittest.TestCase):
 
     def test_only_numbered_folders_are_examples(self) -> None:
         write(self.root, "01-a")
-        bench = self.root / "bench"  # a project of the repository's own, such as the benchmark harness
-        bench.mkdir()
-        (bench / "pyproject.toml").write_text('[project]\nname = "bench"\n')
-        (bench / "uv.lock").write_text('[[package]]\nname = "pytest"\nversion = "8.0.0"\n')
+        gallery = self.root / "gallery"  # a project of the repository's own that is not an example
+        gallery.mkdir()
+        (gallery / "pyproject.toml").write_text('[project]\nname = "gallery"\n')
+        (gallery / "uv.lock").write_text('[[package]]\nname = "pytest"\nversion = "8.0.0"\n')
         self.assertEqual(self.problems(), [])
 
     def test_examples_on_different_tags_fail(self) -> None:

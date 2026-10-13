@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CWA gallery — Context Window Architecture</title>
+<meta name="description" content="The CWA examples run against a list of models: what CWA decided, and what each model did with it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="viewer.css">
+</head>
+<body>
+<header class="hdr">
+  <div class="wrap hdr-row">
+    <a class="brand" href="#/" aria-label="CWA gallery, home">
+      <span class="mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+      <span class="wordmark">CWA gallery</span>
+    </a>
+    <nav class="nav" aria-label="Viewer">
+      <details class="menu" id="numbers">
+        <summary>See the Numbers</summary>
+        <div class="menu-items">
+          <a data-numbers="decisions" href="#/">What CWA decided</a>
+          <a data-numbers="tokens" href="#/">Tokens</a>
+          <a data-numbers="cost" href="#/">Cost</a>
+          <a data-numbers="speed" href="#/">Speed</a>
+          <a data-numbers="stability" href="#/">Stability</a>
+          <a data-numbers="grounding" href="#/">Grounding</a>
+          <a data-numbers="before-after" href="#/">Before and after</a>
+          <a data-numbers="agents" href="#/">Agents</a>
+          <a data-numbers="checks" href="#/">Checks</a>
+          <a data-numbers="" href="#/" class="every">All numbers</a>
+        </div>
+      </details>
+      <a data-nav="constructs" href="#/">Constructs</a>
+      <a data-nav="cases" href="#/">Cases</a>
+      <a data-nav="models" href="#/">Models</a>
+      <a data-nav="runs" href="#/runs">Runs</a>
+    </nav>
+    <span class="spacer"></span>
+    <label class="runpick" for="run">Run <select id="run"></select></label>
+    <button type="button" class="ghost" id="tour" aria-pressed="false">Tour</button>
+    <button type="button" class="ghost" id="theme">Dark</button>
+  </div>
+</header>
+<div id="status" class="visually-hidden" role="status" aria-live="polite"></div>
+<main id="view"><section class="wrap head"><div class="loading">Loading the latest run, please stand by…</div></section></main>
+<footer class="foot">
+  <div class="wrap">
+    <span>Context Window Architecture is a context assembler specification, not a library.</span>
+    <span class="links"><button type="button" class="foot-link" id="show-key" hidden>What do 01–05 mean?</button><span class="links" data-tour="sources"><a href="https://contextwindowarchitecture.io/spec.html">Spec</a><a href="https://github.com/contextwindowarchitecture/examples">Examples on GitHub</a><a href="https://github.com/contextwindowarchitecture/assembler-python">assembler-python</a></span></span>
+  </div>
+</footer>
+<!-- The charts on the pages of numbers are drawn with D3 (ISC licence), the one thing the viewer loads that it does not
+     hold: a fixed version, refused by the browser unless it matches this hash. Without it the pages keep their tables. -->
+<script defer src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"
+  integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i" crossorigin="anonymous"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
