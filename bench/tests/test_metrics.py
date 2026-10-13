@@ -51,7 +51,7 @@ def graded(run: Path, names: list[str], found: dict[str, list[checks.Check]] | N
         "run": run.name, "started": "2026-10-02T15:30:07Z", "repository": {"commit": "abc1234", "dirty": False},
         "assembler": [{"example": "01-docs-qa", "tag": "draft-release", "commit": "49b321e"}],
         "models": {MODEL: {"label": "vendor-model", "input_price": 2e-06, "output_price": 1e-05, "tools": True, "free": False}},
-        "skipped": [], "jobs": names})
+        "config": {"file": "bench.toml", "sha256": "0" * 64}, "skipped": [], "jobs": names})
     (run / "bench.toml").write_text('models = ["vendor/model"]\n\n[run]\nmax_cost_usd = 1.5\n')
     return summary.write(run, found or {})
 

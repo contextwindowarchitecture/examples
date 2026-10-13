@@ -65,6 +65,7 @@ def run_with(tmp_path: Path) -> Path:
         "assembler": [{"example": "01-docs-qa", "tag": "draft-release", "commit": "49b321e"}],
         "models": {"vendor/model": {"label": "vendor-model", "input_price": 2e-06, "output_price": 1e-05, "tools": True,
                                     "free": False}},
+        "config": {"file": "bench.toml", "sha256": "0" * 64},
         "skipped": [], "jobs": ["vendor-model/01-docs-qa/01-answer/after/1", "vendor-model/02-account-aware/01-team-plan/1"]}))
     (run / "bench.toml").write_text('models = ["vendor/model"]\n\n[run]\nmax_cost_usd = 1.5\n')
     name = "vendor-model/01-docs-qa/01-answer/after/1"
@@ -111,6 +112,15 @@ def test_the_summary_holds_each_result_and_the_totals_by_model(tmp_path: Path) -
     assert "01-docs-qa/01-answer" in construct["cases"] and construct["spec"] == ["R-13"]
     placement = {c["id"]: c for c in written["constructs"]}["placement-and-rendering"]
     assert placement["invariants"] == ["payload_sent"]
+
+
+def test_a_runs_configuration_is_the_file_its_manifest_names(tmp_path: Path) -> None:
+    # A run keeps the configuration it was made from under the name it had then, whatever the harness calls it now.
+    run = run_with(tmp_path)
+    (run / "bench.toml").rename(run / "older.toml")
+    recorded = json.loads((run / "manifest.json").read_text())
+    (run / "manifest.json").write_text(json.dumps(recorded | {"config": {"file": "older.toml", "sha256": "0" * 64}}))
+    assert summary.write(run, GRADED)["max_cost_usd"] == 1.5
 
 
 def test_the_index_lists_every_run_newest_first(tmp_path: Path) -> None:

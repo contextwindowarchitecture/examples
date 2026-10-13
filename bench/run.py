@@ -102,7 +102,7 @@ def main(argv: list[str]) -> int:
             print(f"{args.resume} ran at commit {recorded['repository']['commit'][:7]}, not {head[:7]}; "
                   "check that commit out to resume it, so one run never mixes two versions of the code", file=sys.stderr)
             return 2
-        config_file, listings = run / "bench.toml", manifest.listings(recorded)
+        config_file, listings = manifest.config_file(run, recorded), manifest.listings(recorded)
     else:
         config_file, listings = Path(args.config), catalog.fetch()
     try:

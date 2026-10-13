@@ -53,6 +53,11 @@ def write(run: Path, config_file: Path, listings: dict[str, Listing], planned: P
     return written
 
 
+def config_file(run: Path, recorded: dict[str, Any]) -> Path:
+    """The configuration a run was made from: the copy beside its manifest, under the name the manifest records."""
+    return run / recorded["config"]["file"]
+
+
 def _planned(model: str, listing: Listing, planned: Plan) -> dict[str, float]:
     """What the plan estimated the model's jobs would cost, likely and at most, to set beside what the run spent."""
     costs = [plan.cost(job, listing) for job in planned.jobs if job.model == model]

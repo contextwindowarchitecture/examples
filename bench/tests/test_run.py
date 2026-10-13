@@ -116,6 +116,11 @@ def test_resuming_a_finished_run_runs_nothing_and_asks_nothing(monkeypatch: pyte
     planned = plan.plan(config.load(small), LISTINGS)
     run_folder = tmp_path / "results" / "done"
     manifest.write(run_folder, small, LISTINGS, planned, manifest.commit()[0], False)
+    # Resumed under the name its manifest gives its configuration, whatever the harness calls the file now.
+    (run_folder / "bench.toml").rename(run_folder / "older.toml")
+    recorded = json.loads((run_folder / "manifest.json").read_text())
+    recorded["config"]["file"] = "older.toml"
+    (run_folder / "manifest.json").write_text(json.dumps(recorded))
     for job in planned.jobs:
         (run_folder / job.folder).mkdir(parents=True)
         (run_folder / job.folder / "job.json").write_text(json.dumps({"exit": 0}))

@@ -56,3 +56,12 @@ def test_what_a_run_already_holds_is_not_fetched_again_and_what_openrouter_lacks
     assert (fetched, missing, asked) == (0, 1, ["gen-2"])
     assert not gone.with_name("2.generation.json").exists() and json.loads(held.with_name("1.generation.json").read_text()) == {"latency": 1}
     assert "1 not there" in out.getvalue()
+
+
+def test_the_key_is_named_by_the_configuration_the_run_recorded(tmp_path: Path, monkeypatch: Any, capsys: Any) -> None:
+    run = tmp_path / "run"
+    write(run / "manifest.json", {"config": {"file": "older.toml", "sha256": "0" * 64}})
+    (run / "older.toml").write_text('models = ["vendor/model"]\n\n[openrouter]\nkey_env = "OLDER_KEY"\n\n[run]\nmax_cost_usd = 1.0\n')
+    monkeypatch.delenv("OLDER_KEY", raising=False)
+    assert generations.main([str(run)]) == 2
+    assert "OLDER_KEY is not set" in capsys.readouterr().err

@@ -29,6 +29,7 @@ from pathlib import Path
 from typing import Any, TextIO
 
 import config
+import manifest
 from proxy import RETRIED, UPSTREAM
 
 KEPT = ("created_at", "model", "provider_name", "latency", "generation_time", "moderation_latency", "tokens_prompt",
@@ -99,7 +100,8 @@ def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("run", help="a run's folder, such as results/<run-id>")
     run = Path(parser.parse_args(argv).run)
-    key_env = config.load(run / "bench.toml").key_env
+    recorded = json.loads((run / "manifest.json").read_text(encoding="utf-8"))
+    key_env = config.load(manifest.config_file(run, recorded)).key_env
     if not os.environ.get(key_env):
         print(f"{key_env} is not set: run it with uv run --env-file .env generations.py {run}", file=sys.stderr)
         return 2

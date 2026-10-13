@@ -26,6 +26,7 @@ import constructs
 from checks import Check
 from config import ROOT
 from constructs import Facts
+from manifest import config_file
 
 
 def facts(record: Path, example: str, steps: int) -> Facts:
@@ -74,13 +75,14 @@ def write(run: Path, graded: dict[str, list[Check]]) -> dict[str, Any]:
         if digest:
             case["snapshots"][digest] = case["snapshots"].get(digest, 0) + 1
 
+    configured = config_file(run, manifest)
     written = {
         "run": run.name, "started": manifest["started"],  # a run is its folder, whatever was copied into it
         "graded": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "repository": manifest["repository"], "assembler": manifest["assembler"], "skipped": manifest["skipped"],
         "spent": round(sum(call["cost"] or 0 for lines in calls.values() for call in lines), 6),
-        "max_cost_usd": tomllib.loads((run / "bench.toml").read_text(encoding="utf-8"))["run"]["max_cost_usd"]
-        if (run / "bench.toml").exists() else None,
+        "max_cost_usd": tomllib.loads(configured.read_text(encoding="utf-8"))["run"]["max_cost_usd"]
+        if configured.exists() else None,
         "constructs": [{"id": c.id, "title": c.title, "spec": list(c.spec), "description": c.description,
                         "measures": list(c.measures), "invariants": list(c.invariants),
                         "cases": [key for key, case in cases.items() if c.id in case["constructs"]]}
