@@ -13,10 +13,14 @@ const link = (href, text) => html`<a href="${href}" target="_blank" rel="noopene
 // for a step that stands alone; when: whether this run has what the step shows.
 const STEPS = [
   {
-    page: "constructs", kicker: "Welcome", title: "What this site shows.",
-    body: () => "CWA gallery shows the example applications of Context Window Architecture, a draft specification for how an application builds what it sends a model, at work on a list of models from OpenRouter. Every request was put together by the same assembler, so each page can set two things side by side: what CWA decided to send, and what each model did with it.",
+    page: "compare", kicker: "Welcome", title: "What this site shows.",
+    body: () => "CWA showcase shows the example applications of Context Window Architecture, a draft specification for how an application builds what it sends a model, at work on a list of models from OpenRouter. Every request was put together by the same assembler, so each page can set two things side by side: what CWA decided to send, and what each model did with it.",
     links: () => [link(EXAMPLES, "The examples on GitHub"), link(SPEC, "The specification")],
     next: "Start the tour →", end: "Not now",
+  },
+  {
+    page: "compare", parts: ["versus"], kicker: "Compare", title: "Start here: one scenario, two models.",
+    body: () => "Pick a scenario and two models. Above the answers: what the user asked, what CWA did with it, and what to look for. Below: each model's tool calls, its answer as it came back, and its checks in plain words. Shuffle for another pair, or pick another repeat to see how much an answer moves. Nothing here is a score: the checks say what to look at, not who won.",
   },
   {
     page: "constructs", parts: ["run"], kicker: "This run", title: "A run is pinned, so it can be read again.",
@@ -65,7 +69,7 @@ const STEPS = [
   },
   {
     parts: ["sources"], kicker: "Where it comes from", title: "Run it yourself.",
-    body: () => "The examples and this gallery are in one repository, the assembler in another. gallery/ runs every example against the models in gallery.toml, records what was sent, and grades it: uv run --env-file .env run.py.",
+    body: () => "The examples and this showcase are in one repository, the assembler in another. gallery/ runs every example against the models in gallery.toml, records what was sent, and grades it: uv run --env-file .env run.py.",
     links: () => [link(EXAMPLES, "The examples on GitHub"), link(ASSEMBLER, "assembler-python on GitHub")],
     next: "Finish",
   },

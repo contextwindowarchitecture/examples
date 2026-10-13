@@ -44,9 +44,9 @@ No API key is needed to see what would be sent. Each example's README says how t
 
 Each example commits scenarios: a conversation in, and the snapshot, trace and exact request it produces. CI rebuilds them on every push, so editing a document, the instructions or the policy fails the build until the scenarios are regenerated. The pull request then shows exactly how the context the model receives has changed.
 
-## Gallery
+## Showcase
 
-[gallery/](gallery/) shows every example at work on a list of models from OpenRouter: each model is handed the context CWA decided on, and the gallery records what it did with it. Every request is checked against the payload the assembler rendered, and every answer is graded against what its run actually did. A local viewer lays the results out by CWA construct: the cases that exercised each one, and each model's answer given the same decision. It ranks no model; CWA's benchmark is published at [benchmark.contextwindowarchitecture.io](https://benchmark.contextwindowarchitecture.io).
+[gallery/](gallery/) holds the showcase: every example at work on a list of models from OpenRouter. Each model is handed the context CWA decided on, and the showcase records what it did with it. Every request is checked against the payload the assembler rendered, and every answer is graded against what its run actually did. A local viewer opens on Compare, two models side by side on one scenario at a time, and lays the rest out by CWA construct: the cases that exercised each one, and each model's answer given the same decision. It ranks no model; CWA's benchmark is published at [benchmark.contextwindowarchitecture.io](https://benchmark.contextwindowarchitecture.io).
 
 ```sh
 cd gallery
@@ -83,7 +83,7 @@ python3 scripts/assembler_pin.py --release <tag> --remote
 ## Related
 
 - [Specification](https://contextwindowarchitecture.io/spec.html): the numbered requirements cited in these examples' comments as `R-n`
-- [Benchmark](https://benchmark.contextwindowarchitecture.io): CWA's viability results, which the gallery does not attempt
+- [Benchmark](https://benchmark.contextwindowarchitecture.io): CWA's viability results, which the showcase does not attempt
 - [assembler-python](https://github.com/contextwindowarchitecture/assembler-python): the reference assembler these examples depend on, with [TypeScript](https://github.com/contextwindowarchitecture/assembler-typescript), [Go](https://github.com/contextwindowarchitecture/assembler-go) and [Rust](https://github.com/contextwindowarchitecture/assembler-rust) implementations
 - [assembler-demo](https://github.com/contextwindowarchitecture/assembler-demo): an inspector that runs the same snapshots through all four assemblers and shows every decision
 

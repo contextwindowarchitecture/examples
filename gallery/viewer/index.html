@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CWA gallery — Context Window Architecture</title>
+<title>CWA showcase — Context Window Architecture</title>
 <meta name="description" content="The CWA examples run against a list of models: what CWA decided, and what each model did with it.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,12 +13,13 @@
 <body>
 <header class="hdr">
   <div class="wrap hdr-row">
-    <a class="brand" href="#/" aria-label="CWA gallery, home">
+    <a class="brand" href="#/" aria-label="CWA showcase, home">
       <img class="logo light" src="logo-light.png" alt="" width="108" height="40">
       <img class="logo dark" src="logo-dark.png" alt="" width="108" height="40">
-      <span class="wordmark">Gallery</span>
+      <span class="wordmark">Showcase</span>
     </a>
     <nav class="nav" aria-label="Viewer">
+      <a data-nav="compare" href="#/">Compare</a>
       <details class="menu" id="numbers">
         <summary>See the Numbers</summary>
         <div class="menu-items">
@@ -34,10 +35,15 @@
           <a data-numbers="" href="#/" class="every">All numbers</a>
         </div>
       </details>
-      <a data-nav="constructs" href="#/">Constructs</a>
-      <a data-nav="cases" href="#/">Cases</a>
-      <a data-nav="models" href="#/">Models</a>
-      <a data-nav="runs" href="#/runs">Runs</a>
+      <details class="menu" id="hood">
+        <summary>Under the hood</summary>
+        <div class="menu-items">
+          <a data-nav="constructs" href="#/">Constructs</a>
+          <a data-nav="cases" href="#/">Cases</a>
+          <a data-nav="models" href="#/">Models</a>
+          <a data-nav="runs" href="#/runs">Runs</a>
+        </div>
+      </details>
     </nav>
     <span class="spacer"></span>
     <label class="runpick" for="run">Run <select id="run"></select></label>
