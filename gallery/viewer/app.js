@@ -1,7 +1,8 @@
 // The viewer: a run's results, organized by the CWA construct they exercised. Every page reads a run's summary.json
 // and, for what it shows in detail, the job files the summary names.
 //
-//   #/                               what the gallery is and does, the latest run, and how to find your way
+//   #/                               what the showcase is and does, the latest run, and how to find your way
+//   #/<run>/vs/<example>/<case>      head to head: one scenario, two models' answers side by side (?a=&b=&repeat=)
 //   #/<run>                          where a run opens: #/<run>/numbers/decisions, the address replaced
 //   #/<run>/constructs               the constructs and the invariants
 //   #/<run>/construct/<id>           one construct: the cases that exercised it, and how each model did
@@ -20,6 +21,7 @@ import * as figures from "./numbers.js";
 import * as charts from "./charts.js";
 import * as assembly from "./assembly.js";
 import * as tour from "./tour.js";
+import * as showcase from "./showcase.js";
 
 const INVARIANTS = [
   ["payload_sent", "Every request the proxy saw carried exactly the payload the assembler rendered.", "R-7 · R-20"],
@@ -564,13 +566,6 @@ function modelCard(run, s, r) {
 // The pages name the examples by number. The key says what each number is, above every page that uses them, until a
 // reader hides it. Hidden, it stays hidden for them; where nothing can be stored, until the page is loaded again. While
 // it is hidden, a link in the footer brings it back.
-const EXAMPLES_KEY = [
-  ["01", "docs-qa", "A help-center Q&A bot over a product's docs"],
-  ["02", "account-aware", "The same bot, aware of who is asking"],
-  ["03", "budget-and-routes", "The bot on a small and a large model route"],
-  ["04", "tools", "The bot as an agent, with tools from an MCP server"],
-  ["05", "production", "The agent, made production-shaped"],
-];
 let keyHidden = false;
 try { keyHidden = localStorage.getItem("cwa-key") === "hidden"; } catch { /* a private window keeps no storage */ }
 function examplesKey() {
@@ -578,7 +573,7 @@ function examplesKey() {
   return html`<section class="wrap key" aria-labelledby="key-title"><div class="key-box">
     <div class="key-head"><h2 id="key-title">What does the use of 01-03 or 05 mean?</h2>
       <button type="button" class="key-hide" data-action="hide-key">Hide</button></div>
-    <ul>${EXAMPLES_KEY.map(([n, folder, what]) => html`<li><b class="mono">${n}</b> <span class="mono">${folder}</span><span class="what">${what}</span></li>`)}</ul>
+    <ul>${showcase.EXAMPLES.map(([n, folder, what]) => html`<li><b class="mono">${n}</b> <span class="mono">${folder}</span><span class="what">${what}</span></li>`)}</ul>
     <p><b>01–03 are Q&amp;A bots:</b> every model is sent the same snapshots. <b>04 and 05 are agents:</b> each model's tool calls decide what its next snapshot holds. A case such as <span class="mono">01-docs-qa/03-off-topic</span> is one example's case. <a href="https://github.com/contextwindowarchitecture/examples#the-examples" target="_blank" rel="noopener">The examples on GitHub →</a></p>
   </div></section>`;
 }
@@ -613,6 +608,7 @@ function route() {
   const [path] = location.hash.replace(/^#\/?/, "").split("?");
   return path.split("/").filter(Boolean).map(decodeURIComponent);
 }
+const query = () => new URLSearchParams(location.hash.split("?")[1] ?? "");
 
 async function draw() {
   const index = await data.index().catch(() => ({ runs: [] }));
@@ -640,7 +636,8 @@ async function draw() {
   header(index, run, page);
   picker.value = run;
   view.innerHTML = String(KEYED.has(page) ? examplesKey() : "") + String(
-    page === "construct" ? construct(run, s, parts[2])
+    page === "vs" ? showcase.page(run, s, parts.slice(2).join("/"), query(), later)
+      : page === "construct" ? construct(run, s, parts[2])
       : page === "case" ? caseView(run, s, parts.slice(2).join("/"))
         : page === "cases" ? cases(run, s)
           : page === "models" ? models(run, s)
@@ -652,7 +649,7 @@ function header(index, run, page) {
   const picker = document.getElementById("run");
   picker.innerHTML = String(html`${index.runs.map((r) => html`<option value="${r.run}">${r.run}</option>`)}`);
   const current = run ?? index.runs[0]?.run ?? "";
-  const links = { constructs: `#/${current}/constructs`, cases: `#/${current}/cases`, models: `#/${current}/models`, runs: "#/runs" };
+  const links = { vs: `#/${current}/vs`, constructs: `#/${current}/constructs`, cases: `#/${current}/cases`, models: `#/${current}/models`, runs: "#/runs" };
   for (const [name, href] of Object.entries(links)) {
     const link = document.querySelector(`[data-nav="${name}"]`);
     link.href = href;
@@ -702,6 +699,7 @@ view.addEventListener("click", (event) => {
   if (!button) return;
   const { action, value } = button.dataset;
   if (action === "tour") { startTour(); return; }
+  if (action === "shuffle") { pick((models) => { const [a, b] = showcase.shuffled(models); return { a, b }; }, `button[data-action="shuffle"]`); return; }
   if (action === "hide-key") { hideKey(); return; }
   if (action === "sort") state.sort = { by: value, down: state.sort.by === value ? !state.sort.down : true };
   if (action === "repeat") state.repeat = value;
@@ -710,7 +708,25 @@ view.addEventListener("click", (event) => {
   redraw(`button[data-action="${action}"][data-value="${CSS.escape(value)}"]`);
 });
 
+// Head to head keeps its picks in the address, so a pair can be shared: a pick replaces it, and the page redraws where
+// the reader is. Picking the model already in the other column swaps the two.
+async function pick(change, control) {
+  const [run, , ...rest] = route();
+  const now = showcase.picks(await data.summary(run), rest.join("/"), query());
+  const changed = change(now.models);
+  const next = { a: now.a, b: now.b, repeat: now.repeat, ...changed };
+  if (next.a === next.b) { if ("a" in changed) next.b = now.a; else next.a = now.b; }
+  history.replaceState(null, "", showcase.address(run, now.scenario.key, next));
+  redraw(control, next.a === now.a && next.b === now.b ? `Showing repeat ${next.repeat}` : `Showing ${short(next.a)} and ${short(next.b)}`);
+}
+
 view.addEventListener("change", (event) => {
+  const choice = event.target.closest("select[data-action='showcase']");
+  if (choice) {
+    const { value } = choice;
+    pick(() => ({ [choice.dataset.pick]: choice.dataset.pick === "repeat" ? Number(value) : value }), `#pick-${choice.dataset.pick}`);
+    return;
+  }
   const select = event.target.closest("select[data-action='pick']");
   if (!select) return;
   state.pick = Number(select.value);
@@ -728,6 +744,8 @@ async function samePage(run) {
     const known = page === "case" ? s.cases.some((c) => c.key === rest.join("/")) : s.constructs.some((c) => c.id === rest[0]);
     if (!known) return `#/${run}/${page === "case" ? "cases" : "constructs"}`;
   }
+  // Head to head reads the same scenario and models, where the other run has them.
+  if (page === "vs") { const p = showcase.picks(await data.summary(run), rest.join("/"), query()); return showcase.address(run, p.scenario.key, p); }
   return `#/${[run, page, ...rest].join("/")}`;
 }
 document.getElementById("run").addEventListener("change", async (event) => { location.hash = await samePage(event.target.value); });
