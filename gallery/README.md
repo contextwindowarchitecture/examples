@@ -433,9 +433,9 @@ Answers are model output and are escaped before they reach the page. A long ques
 | Construct | Spec | Cases that exercise it | What the page compares across models |
 | --- | --- | --- | --- |
 | Relevance threshold | R-13 | 01 answer and off-topic, 02 memory-leak, 04, 05 | Each excluded chunk's score against `min_relevance`, and which models cited a chunk `before.py` sent and CWA left out |
-| Evidence required | R-17 | 01 off-topic | `after.py` refuses and calls no model. `before.py`: each model's answer to the same question |
+| Evidence required | R-12, R-17 | 01 off-topic | `after.py` refuses and calls no model. `before.py`: each model's answer to the same question |
 | Budget and fitting | R-16, R-18 | 01 long-conversation, 03 small-route | Input tokens against the budget, which items were summarized and by what method, and which were left out |
-| Escalation | R-12 | 03 pasted-log and pasted-log-escalated | The refused small-route attempt, and the large-route snapshot built after it |
+| Escalation | R-12, R-17 | 03 pasted-log and pasted-log-escalated | The refused small-route attempt, and the large-route snapshot built after it |
 | Conflicts | R-11 | 02 memory-disagrees and memory-leak, 03, 04, 05 | Each conflict group, its winner and what decided it, and whether each answer sides with the winner |
 | Scope | R-2 | 02 memory-leak | Another user's memory, never offered, and any answer that mentions it anyway |
 | Producer-reported exclusions | R-9, R-14 | 02 team-plan | Expired and revoked memories, reported by id without their text |

@@ -68,7 +68,7 @@ function say(beat, step) {
     case "admit":
       return [...new Set(step.items.map((e) => e.reason))].map((reason) => [reason, step.items.filter((e) => e.reason === reason)]).map(([reason, found]) => {
         const threshold = a.snapshot.route_policy.slots?.[found[0].slot]?.min_relevance;
-        if (reason === "below_threshold") return `${plural(found.length, "item")} scored below the route's threshold of ${threshold} and ${found.length === 1 ? "is" : "are"} left out (R-12).`;
+        if (reason === "below_threshold") return `${plural(found.length, "item")} scored below the route's threshold of ${threshold} and ${found.length === 1 ? "is" : "are"} left out (R-13).`;
         if (reason === "out_of_scope") return `${plural(found.length, "item")} came from outside the request's scope and ${found.length === 1 ? "is" : "are"} left out.`;
         if (reason === "superseded") return `${plural(found.length, "earlier look")} ${found.length === 1 ? "is" : "are"} left out: a newer result replaced ${found.length === 1 ? "it" : "each"} (R-25).`;
         return `${plural(found.length, "item")} left out: ${humane(reason)}.`;

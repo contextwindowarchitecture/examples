@@ -46,6 +46,15 @@ def test_every_construct_names_its_requirements_and_measures() -> None:
         assert set(construct.measures) <= set(checks_measures())
 
 
+def test_each_construct_cites_the_requirement_that_names_its_reason_code() -> None:
+    # The specification's numbers, as contract/requirements.json gives them: evidence_required is R-12's refusal,
+    # below_threshold R-13's exclusion, protected_content_over_budget R-16's and R-17's refusal.
+    cited = {construct.id: set(construct.spec) for construct in constructs.CONSTRUCTS}
+    assert "R-12" in cited["evidence-required"]
+    assert "R-13" in cited["relevance-threshold"]
+    assert {"R-12", "R-17"} <= cited["escalation"]
+
+
 def checks_measures() -> set[str]:
     return {"invariant", "answer", "grounding", "conflict", "excluded", "untrusted", "actions", "refusal", "claims",
             "guard", "evals"}

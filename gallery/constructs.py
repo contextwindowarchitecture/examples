@@ -41,7 +41,7 @@ CONSTRUCTS = (
               "are sent; the rest are left out as below_threshold, and the trace says by how much. before.py sends its "
               "top five whatever they scored.",
               ("grounding",), lambda f: "below_threshold" in f.reasons),
-    Construct("evidence-required", "Evidence required", ("R-17",),
+    Construct("evidence-required", "Evidence required", ("R-12", "R-17"),
               "A route that requires evidence refuses when none is admitted. Nothing is rendered, so no model is asked, "
               "and the application decides what to tell the user. before.py sends the question anyway.",
               ("invariant", "refusal"), lambda f: "evidence_required" in f.refusals, ("refused_sends_nothing",)),
