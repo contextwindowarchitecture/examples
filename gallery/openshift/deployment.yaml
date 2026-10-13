@@ -7,6 +7,8 @@ spec:
   replicas: 2
   template:
     spec:
+      imagePullSecrets:
+        - name: gallery-pull
       automountServiceAccountToken: false  # it never calls the API
       containers:
         - name: viewer
