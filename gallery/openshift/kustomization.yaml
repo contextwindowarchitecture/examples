@@ -3,21 +3,21 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 labels:
-  - pairs:
-      app.kubernetes.io/name: cwa-gallery-viewer
-      app.kubernetes.io/part-of: cwa-examples
-    includeSelectors: true
+- includeSelectors: true
+  pairs:
+    app.kubernetes.io/name: cwa-gallery-viewer
+    app.kubernetes.io/part-of: cwa-examples
 
 resources:
-  - deployment.yaml
-  - service.yaml
-  - route.yaml
+- deployment.yaml
+- service.yaml
+- route.yaml
 
 components:
-  - tls             # the hostname's certificate from cert-manager (README: A certificate for the hostname)
+- tls
   # - pull-secret   # for a private image: write pull-secret/auth.json, then uncomment this line
 
 images:
-  - name: cwa-gallery-viewer
-    newName: quay.io/contextwindowarchitecture/gallery  # the image this repository publishes
-    newTag: 2026-10-05T224455Z-5c3f660                # the newest run it holds, so a new run is a new tag
+- name: cwa-gallery-viewer
+  newName: quay.io/contextwindowarchitecture/gallery
+  newTag: 2026-10-05T224455Z-5c3f660-24b6596
